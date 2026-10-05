@@ -1,0 +1,10 @@
+{
+  "name": "albashir-isolated-sql-regression",
+  "private": true,
+  "scripts": {
+    "test": "node manual-employee-check-qr.cjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}
