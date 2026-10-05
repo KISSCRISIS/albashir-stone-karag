@@ -640,6 +640,12 @@
         .replaceAll("'", "&#039;");
     }
 
+    function safeImageUrl(u) {
+      const s = String(u ?? "").trim();
+      if (s.startsWith("https://") || s.startsWith("./")) return s;
+      return "";
+    }
+
     function formatDate(value) {
       if (!value) return "-";
       try {
@@ -1346,7 +1352,7 @@
 
       body.innerHTML = rows.map((row) => `
         <tr>
-          <td>${row.employee_photo_url ? `<a href="${escapeHtml(row.employee_photo_url)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(row.employee_photo_url)}" alt="صورة شخصية" /></a>` : "-"}</td>
+          <td>${(() => { const u = safeImageUrl(row.employee_photo_url); return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(u)}" alt="صورة شخصية" /></a>` : "-"; })()}</td>
           <td>${escapeHtml(row.full_name)}</td>
           <td>${escapeHtml(row.employee_id)}</td>
           <td>${escapeHtml(row.mobile_number)}</td>
@@ -1423,9 +1429,7 @@
       body.innerHTML = violationsData.map((row) => `
         <tr>
           <td>
-            ${row.photo_url
-              ? `<a href="${escapeHtml(row.photo_url)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(row.photo_url)}" alt="صورة بلاغ" /></a>`
-              : `<span class="small-muted">الصورة غير متاحة</span>`}
+            ${(() => { const u = safeImageUrl(row.photo_url); return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(u)}" alt="صورة بلاغ" /></a>` : `<span class="small-muted">الصورة غير متاحة</span>`; })()}
           </td>
           <td>${escapeHtml(row.employee_id || "-")}</td>
           <td style="white-space:normal; min-width:220px">${escapeHtml(row.note || "-")}</td>
