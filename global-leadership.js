@@ -3,7 +3,9 @@
 
   const STORAGE_KEY = "erp_global_hospital_leadership_v1";
   const HOSPITAL_NAME = "ALBASHIR EMERGENCY HOSPITAL";
-  const PUBLIC_SITE_URL = "https://sprightly-donut-6db8c8.netlify.app";
+  const PUBLIC_SITE_URL = window.location.origin && window.location.origin !== "null"
+    ? window.location.origin
+    : "https://albashir-stone-karag.vercel.app";
   const SUPABASE_URL = "https://qinsfvlspdticposbvst.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8";
   const defaults = [
@@ -244,6 +246,10 @@
     render();
     refreshLeadership();
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
-  else init();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
 })();
