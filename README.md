@@ -328,23 +328,21 @@ Implemented:
 - Service Worker install continues even when one optional asset fails to cache;
 - Supabase API responses are excluded from offline caching.
 
-### Current cache-version inconsistency
+### Cache-version alignment
 
-This is not fully aligned yet.
+Cache-version constants are now aligned.
 
-service-worker.js currently uses:
+The following files use:
 
 ~~~text
 emergency-room-parking-offline-v15
 ~~~
 
-But index.html and verify-shared.js currently report/use:
+- service-worker.js
+- index.html
+- verify-shared.js
 
-~~~text
-emergency-room-parking-offline-v14
-~~~
-
-This should be unified before the next production acceptance test so heartbeat/cache diagnostics reflect the actual Service Worker version.
+This alignment was completed in commit 2cc03bf, so heartbeat/cache diagnostics now report the same Service Worker cache version.
 
 ---
 
@@ -495,7 +493,7 @@ Verify the actual Production schedule before marking this complete.
 | Trusted Device registration/approval | Production-confirmed |
 | Guard-device approval | Production-confirmed |
 | Offline queue and sync code | Implemented |
-| Service Worker v15 | Implemented, but cache-version constants are not unified |
+| Service Worker v15 | Implemented; cache-version constants aligned across service-worker.js, index.html, and verify-shared.js |
 | Two-argument reset_guard_screen | Applied and confirmed in Production via migration 20261005075552 (add_authenticated_guard_screen_reset) |
 | Permanent vs Temporary/External registration split | Not implemented in current register.html |
 | External/affiliated entity registration field | Not implemented |
@@ -526,7 +524,7 @@ The repository contains test scripts/checklists, but the following should not be
 | Unauthorized admin access test | Pending acceptance evidence |
 | Role separation test | Pending acceptance evidence |
 | Employee privacy/guard display test | Pending acceptance evidence |
-| Service Worker upgrade/cache migration test | Pending after cache-version unification |
+| Service Worker upgrade/cache migration test | Pending acceptance evidence |
 
 ---
 
