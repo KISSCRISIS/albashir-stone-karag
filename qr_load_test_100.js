@@ -9,7 +9,7 @@
     $env:RUN_REAL_LOAD_TEST="1"
     $env:SUPABASE_URL="https://PROJECT.supabase.co"
     $env:SUPABASE_ANON_KEY="ANON_KEY"
-    node tests/qr_load_test_100.js
+    node qr_load_test_100.js
 */
 
 const CONCURRENCY = Number(process.env.CONCURRENCY || 100);

@@ -12,80 +12,7 @@
   <script src="./supabase.min.js"></script>
   <script src="./jsqr.min.js"></script>
 
-  <style>
-    :root {
-      --bg:#020813; --panel:rgba(15,23,42,.78); --line:rgba(148,163,184,.22);
-      --text:#e5f2ff; --muted:#9fb3c8; --blue:#38bdf8; --green:#22c55e;
-      --red:#ef4444; --yellow:#facc15; --orange:#fb923c;
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;font-family:Tahoma,Arial,sans-serif;color:var(--text);
-      background:
-        radial-gradient(circle at 15% 0%,rgba(56,189,248,.18),transparent 34%),
-        radial-gradient(circle at 85% 5%,rgba(250,204,21,.10),transparent 30%),
-        linear-gradient(180deg,#020813 0%,#06101f 46%,#000 100%)}
-    body{min-height:100vh;overflow-x:hidden}
-    .app-shell{width:min(980px,100%);margin:auto;padding:12px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-    .brand{display:flex;align-items:center;gap:10px}
-    .brand-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:21px;
-      background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.32)}
-    .brand-title{margin:0;font-size:clamp(18px,4vw,27px);font-weight:950}
-    .brand-subtitle{color:var(--muted);font-size:12px;margin-top:3px}
-    .pill{padding:8px 12px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted);background:rgba(15,23,42,.72)}
-    .pill.ready{color:#bae6fd;border-color:rgba(56,189,248,.35)}
-    .pill.error{color:#fecaca;border-color:rgba(239,68,68,.4)}
-
-    .result-card{min-height:235px;display:grid;place-items:center;text-align:center;border-radius:26px;
-      border:2px solid rgba(56,189,248,.35);background:rgba(2,8,19,.78);
-      box-shadow:0 0 42px rgba(56,189,248,.20);padding:18px;margin-bottom:12px;transition:.2s}
-    .result-card.allowed{border-color:rgba(34,197,94,.78);box-shadow:0 0 58px rgba(34,197,94,.42)}
-    .result-card.denied{border-color:rgba(239,68,68,.78);box-shadow:0 0 58px rgba(239,68,68,.42)}
-    .result-card.limited{border-color:rgba(251,146,60,.84);box-shadow:0 0 58px rgba(251,146,60,.34)}
-    .result-icon{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;
-      font-size:38px;border:1px solid rgba(56,189,248,.35);background:rgba(56,189,248,.10)}
-    .result-title{margin:0;font-size:clamp(28px,7vw,46px);font-weight:950}
-    .result-message{margin:10px auto 0;max-width:620px;color:var(--muted);line-height:1.8;font-size:clamp(15px,3.8vw,20px);white-space:pre-line}
-    .result-details{width:min(680px,100%);margin:16px auto 0;text-align:right}
-    .employee-card{display:grid;grid-template-columns:112px 1fr;gap:14px;align-items:center;padding:12px;border-radius:18px;
-      background:rgba(15,23,42,.62);border:1px solid rgba(148,163,184,.24)}
-    .employee-photo{width:112px;height:112px;border-radius:18px;object-fit:cover;border:1px solid rgba(148,163,184,.32);background:#08111f}
-    .employee-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .employee-field{border:1px solid rgba(148,163,184,.16);border-radius:12px;padding:8px;background:rgba(2,8,19,.42)}
-    .employee-field span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
-    .employee-field strong{font-size:14px}
-    @media(max-width:620px){.employee-card{grid-template-columns:1fr}.employee-photo{margin:auto}.employee-info{grid-template-columns:1fr}}
-
-    .notice{margin:10px 0;padding:12px;border-radius:15px;border:1px solid rgba(250,204,21,.36);
-      background:rgba(250,204,21,.10);color:#fef3c7;line-height:1.7}
-    .notice.error{border-color:rgba(239,68,68,.42);background:rgba(239,68,68,.10);color:#fecaca}
-    .notice.ok{border-color:rgba(34,197,94,.38);background:rgba(34,197,94,.10);color:#bbf7d0}
-    .hidden{display:none!important}
-
-    .panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:18px;backdrop-filter:blur(18px);margin-bottom:12px}
-    .panel h2{margin:0 0 6px;font-size:clamp(20px,5vw,28px)}
-    .desc{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.7}
-    label{display:block;color:var(--muted);font-size:13px;margin:11px 0 5px}
-    input{width:100%;border:1px solid rgba(148,163,184,.28);background:#08111f;color:var(--text);
-      border-radius:15px;padding:13px;outline:0;font-family:inherit;font-size:15px}
-    input:focus{border-color:rgba(56,189,248,.6);box-shadow:0 0 0 4px rgba(56,189,248,.08)}
-    button{width:100%;border:0;cursor:pointer;color:#fff;font-weight:900;border-radius:15px;padding:13px 15px;
-      margin-top:14px;background:linear-gradient(135deg,#0284c7,#0ea5e9);font-family:inherit;font-size:15px}
-    button.green{background:linear-gradient(135deg,#15803d,#22c55e)}
-    button.soft{background:rgba(15,23,42,.82);border:1px solid rgba(56,189,248,.25)}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .device-panel{margin-top:12px;padding:12px;border-radius:16px;border:1px solid rgba(34,197,94,.28);background:rgba(6,95,70,.16)}
-    .device-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .device-actions button{margin-top:8px}
-    .section-title{font-size:13px;color:#bae6fd;margin:0 0 8px;font-weight:900}
-    .qr-scan-panel{margin-bottom:12px}
-    .scanner-video-wrap{margin-top:10px;border-radius:18px;overflow:hidden;border:1px solid rgba(56,189,248,.28);background:#050b14}
-    .profile-button{display:inline-flex;margin-top:12px;padding:10px 14px;border-radius:11px;background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;text-decoration:none;font-weight:900}
-    .profile-link{color:#dbeafe;text-decoration:none;border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:9px 11px;font-size:12px;font-weight:900;background:rgba(8,43,75,.8)}
-    .register-link{display:block;text-align:center;margin-top:10px;color:#7dd3fc;text-decoration:none;font-size:13px;font-weight:800}
-    video{width:100%;max-height:320px;display:block;background:#050b14}
-    .footer{text-align:center;color:var(--muted);font-size:11px;padding:16px 0}
-  </style>
+  <link rel="stylesheet" href="./verify.css" />
   <link rel="stylesheet" href="./global-theme.css" />
   <link rel="stylesheet" href="./assets/css/design-system.css" />
   <link rel="stylesheet" href="./assets/css/components.css" />
@@ -98,20 +25,23 @@
 <main class="app-shell">
   <header class="topbar">
     <div class="brand">
-      <div class="brand-icon" role="img" aria-label="البشير ALBASHIR Gate"></div>
+      <img class="brand-logo" src="./albashir-gate-logo.png" alt="البشير ALBASHIR Gate" />
       <div>
         <h1 class="brand-title" id="appTitle">ALBASHIR EMERGENCY HOSPITAL</h1>
         <div class="brand-subtitle">التحقق من الدخول</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><a class="profile-link" href="./profile.html">الملف الشخصي</a><div class="pill" id="connectionBadge">جارِ فحص الاتصال...</div></div>
+    <div class="top-badges"><a class="profile-link" href="./profile.html">الملف الشخصي</a><div class="pill" id="connectionBadge">جارِ فحص الاتصال...</div><div id="offlinePendingBadge" class="notice hidden"></div></div>
   </header>
 
   <section class="panel qr-scan-panel">
+    <h2 class="scan-title">امسح QR من شاشة الحارس</h2>
+    <p class="scan-guidance">وجّه كاميرا هاتفك نحو رمز QR المعروض على <strong>شاشة الحارس</strong> مباشرة. يتم التحقق فور المسح وتظهر النتيجة أدناه.</p>
     <button type="button" id="cameraButton" onclick="startQrCamera()">فتح الكاميرا لمسح QR</button>
     <div id="scannerWrap" class="scanner-video-wrap hidden">
       <video id="qrVideo" playsinline muted></video>
     </div>
+    <div id="qrSessionStatus" class="notice hidden"></div>
   </section>
 
   <!-- النتيجة في أعلى الشاشة دائمًا -->
@@ -126,14 +56,12 @@
   </section>
 
   <div id="setupWarning" class="notice hidden"></div>
-  <div id="qrSessionStatus" class="notice hidden"></div>
-  <div id="offlinePendingBadge" class="notice hidden"></div>
 
   <section id="manualSections">
     <div class="panel">
       <h2>تحقق يدوي</h2>
       <p class="desc">أدخل رقم الموظف ورقم الهاتف.</p>
-      <p class="desc">ملاحظة: يُستخدم هذا الخيار في الحالات الطارئة أو عند وجود أعطال في النظام.</p>
+      <p class="secondary-note">التحقق اليدوي لا يغني عن مسح QR: يجب تفعيل رمز صالح من الكاميرا أولًا، ويُستخدم هذا الخيار في الحالات الطارئة أو عند وجود أعطال في النظام.</p>
 
       <form id="checkForm">
         <label for="checkEmployeeId">الرقم الوظيفي/الوطني لغير موظفين الوزارة</label>
@@ -152,6 +80,7 @@
           <button type="button" id="enableAutoDeviceButton" class="green" onclick="enableTrustedDeviceOnThisBrowser()">تسجيل هذا الجهاز للدخول السريع</button>
           <button type="button" class="soft" onclick="forgetTrustedDeviceOnThisBrowser()">نسيان الجهاز</button>
         </div>
+        <p class="desc">تفعيل الجهاز السريع يخضع لأهلية يحددها النظام (backend) ولا يتم إلا بعد تحقق ناجح وموافقة الإدارة.</p>
       </div>
 
       <a class="register-link" href="./register.html">موظف جديد؟ سجّل من هنا</a>

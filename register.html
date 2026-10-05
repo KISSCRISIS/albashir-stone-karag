@@ -75,6 +75,17 @@
     .profile-button{display:inline-flex;margin-top:12px;padding:10px 14px;border-radius:11px;background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;text-decoration:none;font-weight:900}
     .file-input{padding:10px;background:#08111f}
     .photo-preview{width:92px;height:92px;border-radius:16px;object-fit:cover;border:1px solid rgba(148,163,184,.28);display:none;margin-top:10px}
+    .registration-progress{margin:0 0 12px;padding:10px 8px 2px}
+    .progress-caption{margin:0 0 10px;color:var(--muted);font-size:12px;font-weight:700}
+    .progress-track{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0}
+    .progress-step{position:relative;text-align:center;color:var(--muted);font-size:11px;font-weight:800}
+    .progress-dot{width:34px;height:34px;margin:0 auto 6px;display:grid;place-items:center;border-radius:50%;border:2px solid rgba(56,189,248,.35);background:#08111f;color:var(--text)}
+    .progress-step.active .progress-dot{border-color:var(--blue);background:rgba(56,189,248,.16);box-shadow:0 0 16px rgba(56,189,248,.35)}
+    .progress-step.done .progress-dot{border-color:var(--green);background:rgba(34,197,94,.16)}
+    .progress-step.review .progress-dot{border-color:var(--yellow);background:rgba(250,204,21,.12);color:#fef3c7;box-shadow:0 0 16px rgba(250,204,21,.35)}
+    .device-review-note{margin:10px 0 0;padding:10px 12px;border:1px solid rgba(250,204,21,.36);border-radius:12px;background:rgba(250,204,21,.08);color:#fef3c7;font-size:13px;line-height:1.8}
+    .device-review-note[hidden]{display:none}
+    @media(max-width:620px){.progress-track{grid-template-columns:repeat(7,minmax(64px,1fr));overflow-x:auto}}
     .footer{text-align:center;color:var(--muted);font-size:11px;padding:16px 0}
   </style>
   <link rel="stylesheet" href="./global-theme.css" />
@@ -109,6 +120,20 @@
   </section>
 
   <div id="setupWarning" class="notice hidden"></div>
+
+  <section class="registration-progress" aria-label="مراحل التسجيل">
+    <p class="progress-caption">مراحل التسجيل</p>
+    <div class="progress-track">
+      <div class="progress-step active" id="stepRegister"><div class="progress-dot">♙</div><div>التسجيل</div></div>
+      <div class="progress-step" id="stepDevice"><div class="progress-dot">⌁</div><div>مراجعة الجهاز</div></div>
+      <div class="progress-step" id="stepPersonal"><div class="progress-dot">♙</div><div>بيانات شخصية</div></div>
+      <div class="progress-step" id="stepWork"><div class="progress-dot">▣</div><div>بيانات العمل</div></div>
+      <div class="progress-step" id="stepAttachments"><div class="progress-dot">◉</div><div>المرفقات</div></div>
+      <div class="progress-step" id="stepApproval"><div class="progress-dot">◈</div><div>موافقة الإدارة</div></div>
+      <div class="progress-step" id="stepDone"><div class="progress-dot">▤</div><div>إنهاء الطلب</div></div>
+    </div>
+    <p class="device-review-note" id="deviceReviewNote" hidden>تم تسجيل بيانات الجهاز وسيتم مراجعته ضمن طلب التسجيل.</p>
+  </section>
 
   <section class="panel" id="employee-registration">
     <h2>موظف جديد — التسجيل</h2>
@@ -339,6 +364,29 @@
     toggleField("affiliatedEntityWrap", "affiliatedEntity", isTemporary, true);
   }
 
+  // Stepper: device review is a real pending workflow state — never mark completed here.
+  function updateStepper(state) {
+    const reg = $("stepRegister");
+    const dev = $("stepDevice");
+    const note = $("deviceReviewNote");
+    if (!reg || !dev) return;
+    if (state === "submitted") {
+      reg.classList.remove("active");
+      reg.classList.add("done");
+      reg.querySelector(".progress-dot").textContent = "✓";
+      dev.classList.add("review");
+      dev.classList.remove("done");
+      if (note) note.hidden = false;
+    } else {
+      reg.classList.add("active");
+      reg.classList.remove("done");
+      reg.querySelector(".progress-dot").textContent = "♙";
+      dev.classList.remove("review", "done");
+      if (note) note.hidden = true;
+    }
+  }
+  window.updateStepper = updateStepper;
+
   function setupRegistrationCategoryUI() {
     const categoryEl = $("registrationCategory");
     if (!categoryEl) return;
@@ -391,6 +439,7 @@
         saveTrustedDeviceToken(pendingDeviceToken);
         $("registerForm").reset();
         updateRegistrationForm();
+        window.updateStepper?.("submitted");
         $("employeePhotoPreview").removeAttribute("src");
         $("employeePhotoPreview").style.display = "none";
       }
@@ -422,6 +471,7 @@
 
   setupEmployeePhotoPreview();
   setupRegistrationCategoryUI();
+  updateStepper("editing");
   initSupabase();
   updateNetworkState();
   window.addEventListener("online", updateNetworkState);

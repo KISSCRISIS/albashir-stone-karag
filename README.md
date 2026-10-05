@@ -98,14 +98,17 @@ Current note:
 
 The portal does not currently contain the full previously documented dedication/feature/leadership-photo layout. Leadership information is appended by global-leadership.js.
 
+Current UI (local, uncommitted batch): reference-image overlay login (assets/images/portal-reference.png) with role tabs and the same routing/session logic; runtime script unchanged.
+
 ### login.html
 
 Legacy compatibility entry.
 
 Current behavior:
 
-- Redirects immediately to portal.html.
+- Redirects immediately to portal.html via an early inline script, so the legacy admin-login markup below it in the file is dead code that never renders.
 - It is not the primary standalone login screen.
+- Remaining references are: service-worker cache list, robots.txt disallow, and an admin_dashboard error string — login.html itself is kept, not deleted.
 
 ### index.html
 
@@ -129,6 +132,8 @@ Implemented:
 - offline queue synchronization;
 - authenticated two-argument reset_guard_screen client call.
 
+Current UI (local, uncommitted batch): simplified operational screen — the GUARD displays the QR and the employee scans it with the employee phone. Approved on-screen instruction: "اعرض الرمز للموظف ليمسحه بهاتفه". Dominant QR card, compact countdown, compact waiting card, result overlay on real results with automatic reset, collapsible violation/diagnostics sections. QR/security/heartbeat/realtime/reset logic unchanged; no QR fallback introduced.
+
 ### register.html
 
 Employee registration screen.
@@ -146,9 +151,11 @@ Implemented:
 - register_employee_request RPC (15-argument overload with category fields, Production-confirmed via 20261005092112 registration_category_split);
 - Pending approval result.
 
+Current UI (local, uncommitted batch): stepper with a real device-review state (never marked completed by the frontend), personal/work/device cards, dynamic PERMANENT/TEMPORARY fields, photo preview. Registration RPC payload and Trusted Device logic unchanged.
+
 Repository status:
 
-Production repository supports PERMANENT / TEMPORARY registration split with affiliated-entity field. Production DB migration is APPLIED AND VERIFIED via 20261005092112 registration_category_split (registration_category and affiliated_entity exist and are nullable, specialty remains NOT NULL, CHECK constraint exists, register_employee_request overloads 8/13/15 present, 15-arg has 0 defaults, anon/authenticated EXECUTE confirmed, old rows were NOT backfilled). The split frontend is DEPLOYED to Production (commit 76608c3): Production register.html uses the 15-argument overload and admin_dashboard.html shows the registration category + affiliated entity columns. Production smoke tests passed for registration UI state switching and deployed JS; admin authenticated live-row rendering test COMPLETE and PASSED on Production as SUPER_ADMIN (طلبات التسجيل opened, نوع التسجيل column visible, legacy NULL registration_category rendered غير مصنف (سجل سابق), الجهة التابعة column visible, NULL affiliated_entity rendered -, no approve/reject action performed).
+Production repository supports PERMANENT / TEMPORARY registration split with affiliated-entity field. Production DB migration is APPLIED AND VERIFIED via 20261005092112 registration_category_split (registration_category and affiliated_entity exist and are nullable, specialty remains NOT NULL, CHECK constraint exists, register_employee_request overloads 8/13/15 present, 15-arg has 0 defaults, anon/authenticated EXECUTE confirmed, old rows were NOT backfilled). The split frontend is DEPLOYED to Production (commit 76608c3): Production register.html uses the 15-argument overload and admin_dashboard.html shows the registration category + affiliated entity columns. Production smoke tests passed for registration UI state switching and deployed JS; admin authenticated live-row rendering test COMPLETE and PASSED on Production as SUPER_ADMIN (طلبات التسجيل opened, نوع التسجيل column visible, legacy NULL registration_category rendered غير مصنف (سجل سابق), الجهة التابعة column visible, NULL affiliated_entity rendered -, no approve/reject action performed). The newer UI redesign batch for these pages (see section 22) is LOCAL only and has NOT been committed, pushed, or deployed yet.
 
 ### verify.html
 
@@ -161,6 +168,8 @@ Implemented:
 - QR claim/verification flow;
 - Supabase access decision;
 - offline attempt queuing when the network is unavailable.
+
+Current UI (local, uncommitted batch): mobile-first scan card titled to scan the guard screen QR, same claim/check/Trusted-Device/offline logic; manual panel stays secondary and still requires a claimed QR.
 
 ### guard.html
 
@@ -178,6 +187,8 @@ Current implementation note:
 
 The current guard page is not scan-only. Manual employee verification is still available.
 
+Architecture clarification: guard.html is a SECONDARY manual/fallback verification page. The PRIMARY guard screen is index.html. Do not delete index.html before reviewing its dependencies.
+
 ### profile.html
 
 Employee profile portal.
@@ -190,6 +201,8 @@ Implemented:
 - access history;
 - employee data-change request flow;
 - QR verification navigation.
+
+Current UI (local, uncommitted batch): sidebar + identity/status cards + QR-scan CTA routing only to verify.html (no personal employee QR is generated); registration_category is not returned by the current RPC and is shown as unavailable rather than inferred; runtime script unchanged.
 
 ### admin_dashboard.html
 
@@ -218,6 +231,8 @@ Implemented:
 Current note:
 
 A dedicated DRS quick-filter button is not present. The current dashboard uses a generic department filter.
+
+Current UI (local, uncommitted batch): command-center layout (topbar + sidebar, 9 tabs), six compact KPI cards, Shift A/B/C analytics, three-chart analytics row (current-shift results, hospital PERMANENT employees, temporary/external registrations), prominent daily specialty-limit usage, compact system health, collapsible filters/specialty/device sections. All admin RPCs, permissions, realtime, CSV, Watar sound, signed URLs, and display-only gate devices unchanged.
 
 ---
 
@@ -524,6 +539,7 @@ schedule_expired_qr_cleanup
 | QR cleanup Cron | Confirmed active in Production every 15 minutes via migration 20261005080323 |
 | Legacy RPC consumer inventory/freeze | Pending |
 | supabase/migrations baseline reconciliation | Pending by design |
+| SUB_ADMIN / access-control role discrepancy | Known, NOT MODIFIED |
 
 ---
 
@@ -605,3 +621,90 @@ Vercel migration in repository: Implemented
 Registration split feature deployment: Verified for DB + registration frontend smoke tests + admin authenticated live-row rendering (PASSED as SUPER_ADMIN)
 Production acceptance: Pending final verification and recorded acceptance tests
 ~~~
+
+---
+
+## 22. Frontend UI batch status (local, uncommitted)
+
+Primary frontend pages:
+
+portal.html             COMPLETE
+register.html           COMPLETE
+profile.html            COMPLETE
+verify.html             COMPLETE
+index.html              COMPLETE
+admin_dashboard.html    COMPLETE
+
+Status: 6 / 6 primary frontend pages completed locally.
+
+This statement refers to the approved frontend/UI batch only, not to blanket closure of every repository/security issue. guard.html remains a secondary manual/fallback page outside the six.
+
+## 23. Shift definitions (dashboard analytics)
+
+Shift A: 07:00 <= time < 15:00
+
+Shift B: 15:00 <= time < 23:00
+
+Shift C: 23:00 <= time < 07:00 next day
+
+Operational-day rule: from 07:00 onward the operational date is the current calendar date; from 00:00 through 06:59 it is the previous calendar date. Shift C belongs to the date on which it started at 23:00. Classification uses the same local timestamp basis as existing log rendering; no database timestamps or timezones were changed.
+
+## 24. Admin three-chart analytics
+
+Final Overview row (desktop): three compact cards — (1) نتائج الشفت الحالي (current-shift result distribution), (2) موظفو المستشفى (registration_category === "PERMANENT" only, by specialty), (3) التسجيلات المؤقتة والخارجية (registration_category === "TEMPORARY" only, affiliated entity/specialty bars).
+
+Classification rules: PERMANENT and TEMPORARY are mutually exclusive per linked registration; legacy/null categories stay UNKNOWN; unlinked logs stay UNLINKED; neither is guessed into the other group. UNKNOWN methodology is secondary/collapsed. No new RPC, query, or realtime subscription was added for these charts.
+
+## 25. KPI responsive behavior
+
+The six KPI cards use a compact responsive grid (desktop six-across, tablet responsive, mobile stacked) with title + value always visible; there is no KPI icon-only mode (sidebar mobile icons are separate navigation behavior). Decorative pseudo-elements were disabled where they interfered with card content.
+
+## 26. Daily specialty limits (current UI behavior)
+
+Daily limits remain specialty-based via the unchanged admin_upsert_specialty_limit RPC and parameters. Specialty selection is SELECT-based from known real values; department-only values are not used as specialty keys; free-text specialty creation was removed from the current UI while existing saved limit names remain selectable. PER-EMPLOYEE LIMITS ARE NOT SUPPORTED BY THE CURRENT RPC.
+
+## 27. System health (Overview)
+
+Gate Devices + Offline Sync remain available but secondary: compact health summaries (device health, stale/offline state, pending sync) with full tables collapsed by default. No new monitoring backend was added.
+
+## 28. Database / backend impact of the UI batch
+
+The completed frontend redesign did NOT require: a new database schema, a new migration, a new RPC for dashboard analytics, a new realtime channel, service_role exposure, or new QR fallback logic. Existing backend contracts were preserved.
+
+## 29. Security rules (restated, still mandatory)
+
+- no QR generation without Supabase validation;
+- gate device must be approved before QR creation;
+- no service_role in frontend;
+- no silent heartbeat fallback;
+- no automatic migrations;
+- no production schema patches without owner review;
+- manual_employee_check decision order remains: 1. Employee Status, 2. Trusted Device, 3. QR Validation + Consume, 4. Specialty Rules, 5. Daily Limits.
+
+These are mandatory rules, not optional recommendations.
+
+## 30. Known / unresolved items
+
+- SUB_ADMIN / access-control role discrepancy (access-control.js data-roles vs verifyAdmin accepted roles): known, NOT MODIFIED during UI work.
+- Broader items from sections 17-18 (photo privacy, guard policy, acceptance tests, migration reconciliation) remain unchanged by the UI batch.
+
+## 31. Repository / workflow status
+
+- Current UI work lives in the local extracted working folder; no final commit/push yet for this batch.
+- Final changes must be transferred/reconciled into the clean Git clone before commit; do not git init the extracted ZIP working directory.
+- Clean clone for Git operations: C:\Users\USER\Downloads\albashir-stone-karag-git\
+- Repository: KISSCRISIS/albashir-stone-karag, branch main. No new commit hash exists yet.
+
+## 32. Next steps (approved sequence)
+
+1. Repository Cleanup Audit — READ ONLY (classify KEEP / REVIEW / DELETE CANDIDATE, owner review before deletion).
+2. Final Regression + Security Audit.
+3. Final diff review.
+4. Reconcile approved files into the clean Git clone.
+5. Commit/push only after explicit owner approval.
+
+## 33. Cleanup audit warning
+
+- SQL/migration files must not be deleted merely because they appear old; schema_patch_*.sql files require separate review.
+- No PROJECT_RULES.md, wrangler config, or supabase/ directory was found in the current working folder; do not reference them as authoritative until verified.
+- Repository cleanup must follow the controlled review workflow above.

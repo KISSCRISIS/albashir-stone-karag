@@ -9,11 +9,7 @@
   <link rel="manifest" href="./manifest.json" />
   <script src="./access-control.js" data-roles="EMPLOYEE"></script>
   <script src="./supabase.min.js"></script>
-  <style>
-    :root{--bg:#041426;--panel:rgba(8,35,61,.92);--line:rgba(56,189,248,.24);--text:#e5f2ff;--muted:#9fb3c8;--blue:#0ea5e9;--green:#22c55e;--red:#ef4444;--orange:#fb923c}
-    *{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:radial-gradient(circle at 80% 0%,rgba(14,165,233,.2),transparent 34%),linear-gradient(145deg,#020b17,var(--bg));color:var(--text)}
-    a{color:#bae6fd;text-decoration:none}.shell{width:min(1100px,100%);margin:auto;padding:18px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:15px 18px;margin-bottom:16px;border:1px solid var(--line);border-radius:16px;background:rgba(2,13,27,.9);box-shadow:0 14px 40px rgba(0,0,0,.22)}.brand{display:flex;align-items:center;gap:12px}.logo{width:48px;height:48px;border-radius:14px;object-fit:cover}.title{margin:0;font-size:24px}.subtitle{color:#bfdbfe;font-size:12px;margin-top:4px}.nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn,button{border:0;border-radius:11px;padding:11px 14px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;color:white;background:linear-gradient(135deg,#0284c7,#0ea5e9)}button.soft,.btn.soft{background:rgba(15,23,42,.7);border:1px solid var(--line)}button:disabled{opacity:.55;cursor:not-allowed}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 18px 42px rgba(0,0,0,.17)}h2{margin:0 0 8px;font-size:21px}.desc{color:var(--muted);line-height:1.7;font-size:13px}.notice{padding:12px 14px;border-radius:12px;background:rgba(14,165,233,.12);border:1px solid var(--line);color:#dbeafe;margin-bottom:14px}.notice.error{border-color:rgba(239,68,68,.45);color:#fecaca}.notice.ok{border-color:rgba(34,197,94,.45);color:#bbf7d0}.hidden{display:none!important}.login-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;max-width:700px}.field{display:grid;gap:6px}.field label{font-size:12px;color:#bfdbfe}.field input,.field textarea{width:100%;border:1px solid rgba(148,163,184,.24);border-radius:10px;background:rgba(2,8,19,.55);color:var(--text);padding:11px;font:inherit}.profile-head{display:flex;align-items:center;gap:18px;margin-bottom:18px}.photo{width:112px;height:112px;object-fit:cover;border-radius:18px;border:2px solid rgba(56,189,248,.32);background:#0b2945}.status{display:inline-flex;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;background:rgba(56,189,248,.12);border:1px solid var(--line)}.status.APPROVED{color:#bbf7d0;border-color:rgba(34,197,94,.4)}.status.PENDING{color:#fed7aa;border-color:rgba(251,146,60,.4)}.status.REJECTED{color:#fecaca;border-color:rgba(239,68,68,.4)}.profile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.info{padding:12px;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:rgba(2,13,27,.42)}.info span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.info strong{font-size:14px}.table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.15);border-radius:12px}table{width:100%;border-collapse:collapse;min-width:620px;font-size:12px}th,td{text-align:right;padding:11px;border-bottom:1px solid rgba(148,163,184,.12)}th{background:#082b4b;color:#dbeafe}.request-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.footer{text-align:center;color:var(--muted);font-size:11px;padding:18px}@media(max-width:700px){.shell{padding:10px}.topbar{align-items:flex-start;flex-direction:column}.nav{width:100%}.nav .btn{flex:1;text-align:center}.login-grid,.profile-grid,.request-grid{grid-template-columns:1fr}.profile-head{align-items:flex-start;flex-direction:column}.photo{width:96px;height:96px}}
-  </style>
+  <link rel="stylesheet" href="./profile.css" />
   <link rel="stylesheet" href="./global-theme.css" />
   <link rel="stylesheet" href="./assets/css/design-system.css" />
   <link rel="stylesheet" href="./assets/css/components.css" />
@@ -29,41 +25,62 @@
   </header>
 
   <div id="notice" class="notice hidden"></div>
-  <section id="loginPanel" class="panel">
-    <h2>تسجيل الدخول إلى الملف الشخصي</h2>
-    <p class="desc">استخدم الرقم الوظيفي/الوطني ورقم الهاتف للتحقق من هويتك. بيانات الهوية للعرض فقط ولا يمكن تعديلها مباشرة.</p>
-    <form id="loginForm" class="login-grid">
-      <div class="field"><label for="loginEmployeeId">الرقم الوظيفي/الوطني</label><input id="loginEmployeeId" required autocomplete="username" /></div>
-      <div class="field"><label for="loginPhone">رقم الهاتف</label><input id="loginPhone" required type="tel" autocomplete="tel" /></div>
-      <button type="submit">فتح الملف الشخصي</button>
-    </form>
-  </section>
+  <div class="profile-layout">
+    <aside class="profile-sidebar" aria-label="أقسام الملف الشخصي">
+      <div class="side-brand"><img src="./albashir-gate-logo.png" alt="البشير ALBASHIR Gate" /><div><strong>حسابي</strong><span>ALBASHIR Gate</span></div></div>
+      <nav>
+        <a href="#profilePanel">♙ الملف الشخصي</a>
+        <a href="#historyPanel">▤ سجل الدخول</a>
+        <a class="accent" href="./verify.html">▦ مسح QR للدخول</a>
+        <a href="#requestPanel">◈ طلب تعديل البيانات</a>
+      </nav>
+      <div class="side-note">بيانات الهوية مقفلة. أي تعديل يتم فقط عبر طلب مراجعة إدارية.</div>
+    </aside>
 
-  <section id="profilePanel" class="panel hidden">
-    <div class="profile-head"><img id="profilePhoto" class="photo" alt="صورة الموظف" /><div><h2 id="profileName">-</h2><div id="profileStatus" class="status">-</div><p class="desc">بيانات الهوية مقفلة. استخدم طلب تغيير البيانات عند الحاجة.</p></div></div>
-    <div id="profileInfo" class="profile-grid"></div>
-  </section>
+    <div class="profile-content">
+      <section id="loginPanel" class="panel">
+        <h2>تسجيل الدخول إلى الملف الشخصي</h2>
+        <p class="desc">استخدم الرقم الوظيفي/الوطني ورقم الهاتف للتحقق من هويتك. بيانات الهوية للعرض فقط ولا يمكن تعديلها مباشرة.</p>
+        <form id="loginForm" class="login-grid">
+          <div class="field"><label for="loginEmployeeId">الرقم الوظيفي/الوطني</label><input id="loginEmployeeId" required autocomplete="username" /></div>
+          <div class="field"><label for="loginPhone">رقم الهاتف</label><input id="loginPhone" required type="tel" autocomplete="tel" /></div>
+          <button type="submit">فتح الملف الشخصي</button>
+        </form>
+      </section>
 
-  <section id="historyPanel" class="panel hidden"><h2>سجل تحقق QR</h2><p class="desc">آخر عمليات التحقق والدخول المسجلة على الموظف.</p><div class="table-wrap"><table><thead><tr><th>الوقت</th><th>النتيجة</th><th>السبب</th><th>الاختصاص</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+      <section id="profilePanel" class="panel hidden">
+        <div class="identity-card"><img id="profilePhoto" class="photo" alt="صورة الموظف" /><div><h2 class="identity-name" id="profileName">-</h2><span class="status-label">حالة الحساب</span><div id="profileStatus" class="status">-</div><p class="desc">بيانات الهوية مقفلة. استخدم طلب تغيير البيانات عند الحاجة.</p></div></div>
+        <div class="status-cards">
+          <div class="status-card"><span>نوع التسجيل</span><strong>غير متاح حالياً</strong></div>
+          <div class="status-card"><span>الجهاز الموثوق</span><strong>يُعرض نشاطه ضمن البيانات أدناه</strong></div>
+          <div class="status-card"><span>القسم / الاختصاص</span><strong>ضمن بيانات العمل أدناه</strong></div>
+        </div>
+        <div id="profileInfo" class="profile-grid" style="margin-top:12px"></div>
+        <div class="qr-cta"><div><strong>الدخول عبر QR</strong><span>امسح رمز QR المعروض على شاشة الحارس من هاتفك.</span></div><a class="btn green" href="./verify.html">مسح QR من شاشة الحارس</a></div>
+      </section>
 
-  <section id="requestPanel" class="panel hidden">
-    <h2>طلب تغيير البيانات</h2><p class="desc">لا يتم تعديل أي بيانات إلا بعد مراجعة وموافقة SUPER_ADMIN أو ADMIN.</p>
-    <form id="changeForm">
-      <div class="request-grid">
-        <div class="field"><label for="changeName">الاسم المطلوب</label><input id="changeName" /></div>
-        <div class="field"><label for="changeId">الرقم الوظيفي/الوطني المطلوب</label><input id="changeId" /></div>
-        <div class="field"><label for="changePhone">الهاتف المطلوب</label><input id="changePhone" type="tel" /></div>
-        <div class="field"><label for="changeDepartment">القسم المطلوب</label><input id="changeDepartment" /></div>
-        <div class="field"><label for="changeSpecialty">الاختصاص المطلوب</label><input id="changeSpecialty" /></div>
-        <div class="field"><label for="changeJobType">الوظيفة المطلوبة</label><input id="changeJobType" /></div>
-        <div class="field"><label for="changeVehicleType">نوع المركبة</label><input id="changeVehicleType" /></div>
-        <div class="field"><label for="changeVehiclePlate">رقم اللوحة</label><input id="changeVehiclePlate" /></div>
-        <div class="field"><label for="changeVehicleColor">لون المركبة</label><input id="changeVehicleColor" /></div>
-      </div>
-      <div class="field" style="margin-top:10px"><label for="changeReason">سبب التغيير</label><textarea id="changeReason" rows="3" required></textarea></div>
-      <button type="submit" style="margin-top:10px">إرسال طلب التغيير</button>
-    </form>
-  </section>
+      <section id="historyPanel" class="panel hidden"><h2>سجل تحقق QR</h2><p class="desc">آخر عمليات التحقق والدخول المسجلة على الموظف.</p><div class="table-wrap"><table><thead><tr><th>الوقت</th><th>النتيجة</th><th>السبب</th><th>الاختصاص</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+
+      <section id="requestPanel" class="panel hidden">
+        <h2>طلب تغيير البيانات</h2><p class="desc">لا يتم تعديل أي بيانات إلا بعد مراجعة وموافقة SUPER_ADMIN أو ADMIN.</p>
+        <form id="changeForm">
+          <div class="request-grid">
+            <div class="field"><label for="changeName">الاسم المطلوب</label><input id="changeName" /></div>
+            <div class="field"><label for="changeId">الرقم الوظيفي/الوطني المطلوب</label><input id="changeId" /></div>
+            <div class="field"><label for="changePhone">الهاتف المطلوب</label><input id="changePhone" type="tel" /></div>
+            <div class="field"><label for="changeDepartment">القسم المطلوب</label><input id="changeDepartment" /></div>
+            <div class="field"><label for="changeSpecialty">الاختصاص المطلوب</label><input id="changeSpecialty" /></div>
+            <div class="field"><label for="changeJobType">الوظيفة المطلوبة</label><input id="changeJobType" /></div>
+            <div class="field"><label for="changeVehicleType">نوع المركبة</label><input id="changeVehicleType" /></div>
+            <div class="field"><label for="changeVehiclePlate">رقم اللوحة</label><input id="changeVehiclePlate" /></div>
+            <div class="field"><label for="changeVehicleColor">لون المركبة</label><input id="changeVehicleColor" /></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label for="changeReason">سبب التغيير</label><textarea id="changeReason" rows="3" required></textarea></div>
+          <button type="submit" style="margin-top:10px">إرسال طلب التغيير</button>
+        </form>
+      </section>
+    </div>
+  </div>
   <footer class="footer">ALBASHIR EMERGENCY HOSPITAL — Employee Profile</footer>
 </main>
 <script>
@@ -81,6 +98,5 @@
   if(portalSession?.role==="EMPLOYEE"&&portalSession.employeeId&&portalSession.mobileNumber){$("loginEmployeeId").value=portalSession.employeeId;$("loginPhone").value=portalSession.mobileNumber;setTimeout(()=>$("loginForm").requestSubmit(),0);}
   if("serviceWorker" in navigator)navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
 </script>
-<script src="./global-leadership.js"></script>
 </body>
 </html>

@@ -28,8 +28,8 @@ These indicators are intended for fast diagnosis by the technical team without o
 ## Required Acceptance Tests Before Live Use
 
 1. Long run test: keep `index.html` open for at least 8 hours and confirm QR continues refreshing.
-2. Shift pressure test: run `tests/qr_load_test_100.js` only against staging or with explicit production approval.
-3. Network loss test: follow `tests/offline_sync_10_minute_check.md` and confirm `synced_count` does not count duplicate client logs.
+2. Shift pressure test: run `qr_load_test_100.js` (repository root) only against staging or with explicit production approval.
+3. Network loss test: follow `offline_sync_10_minute_check.md` and confirm `synced_count` does not count duplicate client logs.
 4. Cache update test: change `CACHE_VERSION`, redeploy, and confirm updated files load after refresh.
 5. Role test: confirm SUPER_ADMIN, ADMIN, GUARD, and EMPLOYEE only see their allowed pages.
 6. Data privacy test: confirm employee phone and sensitive details are not exposed on the guard display.

@@ -9,7 +9,7 @@
 const APP_CONFIG = {
   APP_NAME: "ALBASHIR EMERGENCY HOSPITAL",
   SUPABASE_URL: "https://qinsfvlspdticposbvst.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbnNmdmxzcGR0aWNwb3NidnN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1OTY5MjgsImV4cCI6MjEwNjE3MjkyOH0.6HsEob0w4BOD0VYt_KgzYEYpCBQgbciCP7nJ-owqqTY"
+  SUPABASE_ANON_KEY: "sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8"
 };
 
 let supabaseClient = null;

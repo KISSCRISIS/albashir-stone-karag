@@ -12,1003 +12,7 @@
 
   <script src="./supabase.min.js"></script>
 
-  <style>
-    :root {
-      --bg: #020813;
-      --bg2: #06101f;
-      --panel: rgba(15, 23, 42, 0.78);
-      --panel2: rgba(2, 8, 19, 0.72);
-      --line: rgba(148, 163, 184, 0.22);
-      --text: #e5f2ff;
-      --muted: #9fb3c8;
-      --blue: #38bdf8;
-      --green: #22c55e;
-      --red: #ef4444;
-      --yellow: #facc15;
-      --orange: #fb923c;
-      --shadow-blue: 0 0 42px rgba(56, 189, 248, 0.18);
-      --shadow-green: 0 0 42px rgba(34, 197, 94, 0.24);
-      --shadow-red: 0 0 42px rgba(239, 68, 68, 0.24);
-      --shadow-yellow: 0 0 42px rgba(250, 204, 21, 0.20);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      min-height: 100%;
-      font-family: Tahoma, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.18), transparent 34%),
-        radial-gradient(circle at 86% 2%, rgba(34, 197, 94, 0.10), transparent 30%),
-        radial-gradient(circle at 50% 100%, rgba(250, 204, 21, 0.07), transparent 32%),
-        linear-gradient(180deg, #020813 0%, #06101f 46%, #000 100%);
-      color: var(--text);
-    }
-
-    body {
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    a {
-      color: #a7f3d0;
-    }
-
-    .app-shell {
-      width: min(1420px, 100%);
-      margin: 0 auto;
-      padding: 18px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      padding: 10px 0;
-      background: linear-gradient(180deg, rgba(2, 8, 19, 0.92), rgba(2, 8, 19, 0.62));
-      backdrop-filter: blur(18px);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 17px;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(34, 197, 94, 0.14));
-      border: 1px solid rgba(56, 189, 248, 0.34);
-      box-shadow: var(--shadow-blue);
-      font-size: 24px;
-    }
-
-    .brand-title {
-      margin: 0;
-      font-size: clamp(21px, 4vw, 31px);
-      letter-spacing: -0.04em;
-      font-weight: 950;
-    }
-
-    .brand-subtitle {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 4px;
-      line-height: 1.7;
-    }
-
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .pill {
-      border: 1px solid var(--line);
-      background: rgba(15, 23, 42, 0.72);
-      color: var(--muted);
-      padding: 10px 13px;
-      border-radius: 999px;
-      backdrop-filter: blur(18px);
-      box-shadow: 0 0 22px rgba(56, 189, 248, 0.06);
-      white-space: nowrap;
-      font-size: 12px;
-    }
-
-    .pill.ready {
-      color: #bae6fd;
-      border-color: rgba(56, 189, 248, 0.32);
-    }
-
-    .pill.super {
-      color: #fde68a;
-      border-color: rgba(250, 204, 21, 0.38);
-    }
-
-    .pill.error {
-      color: #fecaca;
-      border-color: rgba(239, 68, 68, 0.36);
-    }
-
-    .nav-tabs {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 0 0 16px;
-    }
-
-    .tab-btn {
-      width: auto;
-      margin: 0;
-      padding: 10px 13px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.74);
-      border: 1px solid rgba(148, 163, 184, 0.20);
-      color: #cbd5e1;
-      box-shadow: none;
-      font-size: 13px;
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(135deg, rgba(2, 132, 199, 0.95), rgba(14, 165, 233, 0.95));
-      color: white;
-      border-color: rgba(56, 189, 248, 0.40);
-      box-shadow: var(--shadow-blue);
-    }
-
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    .panel {
-      position: relative;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      padding: 18px;
-      backdrop-filter: blur(22px);
-      box-shadow: var(--shadow-blue);
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-
-    .panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: inherit;
-      background:
-        linear-gradient(120deg, rgba(255, 255, 255, 0.07), transparent 28%, transparent 72%, rgba(56, 189, 248, 0.07));
-      opacity: 0.46;
-    }
-
-    .panel > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .panel-title {
-      margin: 0 0 8px;
-      font-size: clamp(20px, 4vw, 29px);
-      font-weight: 950;
-      letter-spacing: -0.04em;
-    }
-
-    .panel-desc {
-      color: var(--muted);
-      margin: 0 0 14px;
-      line-height: 1.8;
-      font-size: 14px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    @media (max-width: 1100px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 620px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .stat-card {
-      position: relative;
-      border-radius: 24px;
-      padding: 17px;
-      background: rgba(15, 23, 42, 0.72);
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      box-shadow: inset 0 0 26px rgba(56, 189, 248, 0.04);
-      overflow: hidden;
-    }
-
-    .stat-card::after {
-      content: "";
-      position: absolute;
-      inset: auto 12px 10px 12px;
-      height: 2px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.75), transparent);
-    }
-
-    .stat-label {
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 7px;
-    }
-
-    .stat-value {
-      font-size: clamp(28px, 6vw, 44px);
-      font-weight: 950;
-      letter-spacing: -0.05em;
-      line-height: 1;
-    }
-
-    .stat-card.green {
-      box-shadow: var(--shadow-green);
-      border-color: rgba(34, 197, 94, 0.28);
-    }
-
-    .stat-card.red {
-      box-shadow: var(--shadow-red);
-      border-color: rgba(239, 68, 68, 0.28);
-    }
-
-    .stat-card.yellow {
-      box-shadow: var(--shadow-yellow);
-      border-color: rgba(250, 204, 21, 0.30);
-    }
-
-    .stat-card.orange {
-      border-color: rgba(251, 146, 60, 0.30);
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 920px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-      border-radius: 18px;
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      background: rgba(2, 8, 19, 0.38);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 780px;
-      font-size: 13px;
-    }
-
-    th,
-    td {
-      padding: 12px 10px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.13);
-      text-align: right;
-      vertical-align: top;
-      white-space: nowrap;
-    }
-
-    th {
-      color: #bae6fd;
-      font-weight: 900;
-      background: rgba(2, 8, 19, 0.52);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    td {
-      color: #dbeafe;
-    }
-
-    tr:hover td {
-      background: rgba(56, 189, 248, 0.05);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      border-radius: 999px;
-      padding: 6px 9px;
-      font-size: 12px;
-      font-weight: 900;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(15, 23, 42, 0.72);
-    }
-
-    .badge.green {
-      color: #bbf7d0;
-      border-color: rgba(34, 197, 94, 0.35);
-      background: rgba(34, 197, 94, 0.09);
-    }
-
-    .badge.red {
-      color: #fecaca;
-      border-color: rgba(239, 68, 68, 0.35);
-      background: rgba(239, 68, 68, 0.09);
-    }
-
-    .badge.yellow {
-      color: #fef3c7;
-      border-color: rgba(250, 204, 21, 0.35);
-      background: rgba(250, 204, 21, 0.09);
-    }
-
-    .badge.blue {
-      color: #bae6fd;
-      border-color: rgba(56, 189, 248, 0.35);
-      background: rgba(56, 189, 248, 0.09);
-    }
-
-    .badge.orange {
-      color: #fed7aa;
-      border-color: rgba(251, 146, 60, 0.35);
-      background: rgba(251, 146, 60, 0.09);
-    }
-
-    .row-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    button,
-    .btn {
-      border: 0;
-      outline: 0;
-      cursor: pointer;
-      color: white;
-      font-weight: 900;
-      border-radius: 14px;
-      padding: 10px 12px;
-      background: linear-gradient(135deg, #0284c7, #0ea5e9);
-      box-shadow: 0 0 18px rgba(56, 189, 248, 0.12);
-      transition: transform 0.15s ease, filter 0.15s ease;
-      font-family: inherit;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      white-space: nowrap;
-      font-size: 13px;
-    }
-
-    button:hover,
-    .btn:hover {
-      transform: translateY(-1px);
-      filter: brightness(1.08);
-    }
-
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-green {
-      background: linear-gradient(135deg, #15803d, #22c55e);
-    }
-
-    .btn-red {
-      background: linear-gradient(135deg, #991b1b, #ef4444);
-    }
-
-    .btn-yellow {
-      background: linear-gradient(135deg, #a16207, #facc15);
-      color: #111827;
-    }
-
-    .btn-soft {
-      background: rgba(15, 23, 42, 0.78);
-      border: 1px solid rgba(56, 189, 248, 0.22);
-      color: #dbeafe;
-      box-shadow: none;
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      align-items: end;
-    }
-
-    @media (max-width: 1000px) {
-      .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 620px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    label {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin: 4px 0 6px;
-    }
-
-    input,
-    select {
-      width: 100%;
-      border: 1px solid rgba(148, 163, 184, 0.26);
-      background: #08111f;
-      color: var(--text);
-      border-radius: 14px;
-      padding: 12px;
-      outline: none;
-      font-family: inherit;
-      font-size: 14px;
-    }
-
-    input::placeholder {
-      color: rgba(159, 179, 200, 0.58);
-    }
-
-    input:focus,
-    select:focus {
-      border-color: rgba(56, 189, 248, 0.55);
-      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.08);
-    }
-
-    .notice {
-      margin: 12px 0;
-      padding: 13px 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(250, 204, 21, 0.36);
-      background: rgba(250, 204, 21, 0.10);
-      color: #fef3c7;
-      line-height: 1.8;
-      font-size: 14px;
-    }
-
-    .notice.error {
-      border-color: rgba(239, 68, 68, 0.42);
-      background: rgba(239, 68, 68, 0.10);
-      color: #fecaca;
-    }
-
-    .notice.ok {
-      border-color: rgba(34, 197, 94, 0.38);
-      background: rgba(34, 197, 94, 0.10);
-      color: #bbf7d0;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .photo-thumb {
-      width: 82px;
-      height: 62px;
-      object-fit: cover;
-      border-radius: 12px;
-      border: 1px solid rgba(56, 189, 248, 0.24);
-      background: #020813;
-    }
-
-    .small-muted {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.7;
-    }
-
-
-
-    .app-hero-cover {
-      position: relative;
-      min-height: 220px;
-      margin: 0 0 16px;
-      border-radius: 30px;
-      overflow: hidden;
-      border: 1px solid rgba(56, 189, 248, 0.24);
-      background:
-        linear-gradient(90deg, rgba(2, 8, 19, 0.92), rgba(2, 8, 19, 0.56), rgba(2, 8, 19, 0.24)),
-        url("./hero.jpeg") center center / cover no-repeat;
-      box-shadow: 0 0 42px rgba(56, 189, 248, 0.18);
-    }
-
-    .app-hero-cover::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 12% 12%, rgba(56, 189, 248, 0.20), transparent 34%),
-        linear-gradient(180deg, transparent, rgba(2, 8, 19, 0.72));
-    }
-
-    .app-hero-content {
-      position: relative;
-      z-index: 1;
-      width: min(620px, 100%);
-      min-height: 220px;
-      padding: 22px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-
-    .app-hero-kicker {
-      display: inline-flex;
-      width: fit-content;
-      padding: 7px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(239, 68, 68, 0.36);
-      background: rgba(239, 68, 68, 0.12);
-      color: #fecaca;
-      font-size: 12px;
-      font-weight: 900;
-      margin-bottom: 10px;
-    }
-
-    .app-hero-title {
-      margin: 0;
-      font-size: clamp(26px, 6vw, 46px);
-      font-weight: 950;
-      letter-spacing: -0.05em;
-      line-height: 1.1;
-      color: #f8fbff;
-      text-shadow: 0 0 24px rgba(2, 8, 19, 0.80);
-    }
-
-    .app-hero-subtitle {
-      margin: 9px 0 0;
-      color: rgba(224, 242, 254, 0.86);
-      line-height: 1.75;
-      font-size: 14px;
-      text-shadow: 0 0 18px rgba(2, 8, 19, 0.80);
-    }
-
-    @media (max-width: 700px) {
-      .app-hero-cover,
-      .app-hero-content {
-        min-height: 190px;
-      }
-    }
-
-
-    .hospital-identity {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 12px;
-      padding: 12px;
-      border-radius: 20px;
-      background: rgba(2, 8, 19, 0.42);
-      border: 1px solid rgba(56, 189, 248, 0.18);
-      box-shadow: inset 0 0 22px rgba(56, 189, 248, 0.05);
-    }
-
-    .hospital-logo {
-      width: 62px;
-      height: 62px;
-      border-radius: 18px;
-      object-fit: cover;
-      border: 1px solid rgba(56, 189, 248, 0.34);
-      box-shadow: 0 0 22px rgba(56, 189, 248, 0.16);
-      background: #020813;
-      flex: 0 0 auto;
-    }
-
-    .hospital-name-ar {
-      font-size: 14px;
-      font-weight: 900;
-      color: #e0f2fe;
-      line-height: 1.45;
-    }
-
-    .hospital-name-en {
-      direction: ltr;
-      text-align: left;
-      font-size: 12px;
-      color: rgba(186, 230, 253, 0.76);
-      margin-top: 3px;
-      letter-spacing: 0.02em;
-    }
-
-    .permission-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    @media (max-width: 900px) {
-      .permission-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .permission-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 44px;
-      padding: 10px;
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      background: rgba(2, 8, 19, 0.42);
-      color: #cbd5e1;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .permission-box input {
-      width: auto;
-      accent-color: #38bdf8;
-      margin: 0;
-    }
-
-    .creator-signature {
-      width: min(1420px, 100%);
-      margin: 14px auto 0;
-      padding: 0 4px 2px;
-      display: flex;
-      justify-content: flex-start;
-      direction: ltr;
-    }
-
-    .creator-signature-card {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      padding: 10px 14px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(2, 8, 19, 0.72), rgba(15, 23, 42, 0.58));
-      border: 1px solid rgba(56, 189, 248, 0.20);
-      box-shadow: 0 0 24px rgba(56, 189, 248, 0.10);
-      backdrop-filter: blur(18px);
-    }
-
-    .creator-label {
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(186, 230, 253, 0.76);
-      font-weight: 800;
-    }
-
-    .creator-name {
-      font-family: "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive;
-      font-size: clamp(16px, 3.2vw, 22px);
-      color: #e0f2fe;
-      text-shadow: 0 0 14px rgba(56, 189, 248, 0.42);
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-      /* V1.8 Watar Luxury Admin Alerts CSS */
-
-    /* ================= V1.8 Watar Luxury Admin Alerts ================= */
-    .admin-alert-panel {
-      position: sticky;
-      top: 10px;
-      z-index: 80;
-      margin: 14px 0;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      padding: 14px 16px;
-      border: 1px solid rgba(250, 204, 21, 0.38);
-      border-radius: 24px;
-      background:
-        radial-gradient(circle at top left, rgba(250, 204, 21, 0.22), transparent 35%),
-        radial-gradient(circle at top right, rgba(168, 85, 247, 0.20), transparent 35%),
-        linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(2, 8, 19, 0.84));
-      box-shadow: 0 18px 55px rgba(0,0,0,.35), 0 0 42px rgba(250,204,21,.12);
-      backdrop-filter: blur(16px);
-    }
-
-    .admin-alert-panel strong {
-      display: block;
-      color: #fef9c3;
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-
-    .admin-alert-panel span {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .notify-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .notify-btn {
-      border: 0;
-      border-radius: 999px;
-      padding: 11px 15px;
-      cursor: pointer;
-      color: #06101f;
-      font-weight: 950;
-      background: linear-gradient(135deg, #facc15, #fb7185, #a855f7);
-      box-shadow: 0 0 28px rgba(250,204,21,.24), 0 0 18px rgba(168,85,247,.20);
-      transition: transform .18s ease, filter .18s ease;
-    }
-
-    .notify-btn:active {
-      transform: scale(.97);
-      filter: brightness(1.08);
-    }
-
-    .notify-btn.secondary {
-      color: #e5f2ff;
-      background: rgba(148, 163, 184, .16);
-      border: 1px solid rgba(148, 163, 184, .28);
-      box-shadow: none;
-    }
-
-    .watar-alert {
-      position: fixed;
-      top: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      width: min(92vw, 560px);
-      border-radius: 32px;
-      padding: 16px 16px 15px;
-      border: 1px solid rgba(250,204,21,.55);
-      background:
-        radial-gradient(circle at 18% 16%, rgba(250,204,21,.34), transparent 34%),
-        radial-gradient(circle at 82% 18%, rgba(168,85,247,.34), transparent 34%),
-        linear-gradient(135deg, rgba(2,8,19,.96), rgba(15,23,42,.94));
-      box-shadow:
-        0 26px 85px rgba(0,0,0,.68),
-        0 0 52px rgba(250,204,21,.28),
-        0 0 50px rgba(168,85,247,.24);
-      backdrop-filter: blur(18px);
-      overflow: hidden;
-      cursor: pointer;
-      animation: watarSlide .45s cubic-bezier(.2,.9,.2,1), watarGlow 1.4s ease-in-out infinite alternate;
-    }
-
-    .watar-alert.hidden {
-      display: none !important;
-    }
-
-    .watar-alert::before {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
-      transform: translateX(-130%);
-      animation: watarShimmer 2.25s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    .watar-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .watar-bell-wrap {
-      width: 84px;
-      height: 84px;
-      min-width: 84px;
-      position: relative;
-      border-radius: 28px;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(circle at center, rgba(250,204,21,.18), rgba(168,85,247,.10));
-      box-shadow: inset 0 0 28px rgba(255,255,255,.06), 0 0 30px rgba(250,204,21,.18);
-      overflow: visible;
-      animation: watarBellFloat 1.45s ease-in-out infinite;
-    }
-
-    .watar-bell-img {
-      width: 76px;
-      height: 76px;
-      object-fit: contain;
-      border-radius: 18px;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,.38));
-    }
-
-    .watar-fallback-bell {
-      display: none;
-      font-size: 52px;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,.38));
-    }
-
-    .watar-exclamation {
-      position: absolute;
-      top: 1px;
-      right: -2px;
-      width: 29px;
-      height: 29px;
-      display: grid;
-      place-items: center;
-      border-radius: 999px;
-      color: #fff;
-      background: linear-gradient(135deg, #fb923c, #ef4444);
-      font-size: 20px;
-      font-weight: 950;
-      box-shadow: 0 0 18px rgba(251,146,60,.5);
-      animation: watarBadgePulse 1s ease-in-out infinite;
-    }
-
-    .watar-title {
-      margin: 0;
-      color: #fef3c7;
-      font-size: 19px;
-      font-weight: 950;
-      letter-spacing: .2px;
-    }
-
-    .watar-msg {
-      margin: 6px 0 0;
-      color: #e0f2fe;
-      font-size: 13px;
-      line-height: 1.8;
-    }
-
-    .watar-footer {
-      margin-top: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      color: #c4b5fd;
-      font-size: 12px;
-    }
-
-    .watar-count {
-      min-width: 34px;
-      height: 34px;
-      display: inline-grid;
-      place-items: center;
-      border-radius: 999px;
-      background: rgba(250,204,21,.18);
-      border: 1px solid rgba(250,204,21,.40);
-      color: #fef08a;
-      font-weight: 950;
-      animation: watarCountPulse 1.05s ease-in-out infinite;
-    }
-
-    .admin-pulse {
-      animation: adminWatarPulse 1s ease-in-out 6;
-      box-shadow: 0 0 40px rgba(250,204,21,.30) !important;
-    }
-
-    @keyframes watarSlide {
-      from { opacity: 0; transform: translate(-50%, -26px) scale(.96); }
-      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
-    }
-
-    @keyframes watarGlow {
-      from { box-shadow: 0 26px 85px rgba(0,0,0,.66), 0 0 36px rgba(250,204,21,.20), 0 0 34px rgba(168,85,247,.16); }
-      to { box-shadow: 0 28px 92px rgba(0,0,0,.72), 0 0 65px rgba(250,204,21,.36), 0 0 62px rgba(168,85,247,.30); }
-    }
-
-    @keyframes watarShimmer {
-      0%, 45% { transform: translateX(-130%); }
-      72%, 100% { transform: translateX(130%); }
-    }
-
-    @keyframes watarBellFloat {
-      0%, 100% { transform: translateY(0) rotate(-3deg); }
-      50% { transform: translateY(-4px) rotate(3deg); }
-    }
-
-    @keyframes watarBadgePulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.13); }
-    }
-
-    @keyframes watarCountPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.10); }
-    }
-
-    @keyframes adminWatarPulse {
-      0%, 100% { transform: scale(1); }
-      45% { transform: scale(1.035); }
-    }
-
-    /* Modern hospital operations layout */
-    :root { --admin-bg:#041426; --admin-panel:rgba(4,25,46,.92); --admin-border:rgba(56,189,248,.25); }
-    body { background: radial-gradient(circle at 70% -10%, rgba(14,165,233,.22), transparent 32%), linear-gradient(135deg,#020b17 0%,var(--admin-bg) 52%,#061b32 100%); }
-    .app-shell { width:100%; max-width:none; margin:0; padding:18px 24px 32px 252px; }
-    .topbar { min-height:76px; margin:-18px -24px 18px -252px; padding:13px 24px 13px 252px; background:rgba(2,13,27,.94); border-bottom:1px solid rgba(56,189,248,.18); box-shadow:0 12px 35px rgba(0,0,0,.18); }
-    .brand-icon { width:54px; height:54px; border-radius:14px; background:linear-gradient(145deg,#ecfeff,#bae6fd); color:#075985; box-shadow:0 0 28px rgba(34,211,238,.25); }
-    .brand-title { font-size:25px; letter-spacing:0; }
-    .hospital-identity { display:flex; align-items:center; gap:9px; margin-top:2px; }
-    .hospital-logo { width:30px; height:30px; object-fit:cover; border-radius:8px; }
-    .hospital-name-ar,.hospital-name-en { font-size:11px; color:#bae6fd; line-height:1.35; }
-    .hospital-name-en { color:#7dd3fc; }
-    .nav-tabs { position:fixed; inset:0 auto 0 0; z-index:20; width:220px; margin:0; padding:102px 12px 18px; display:flex; flex-direction:column; align-items:stretch; gap:7px; overflow-y:auto; background:linear-gradient(180deg,#062442 0%,#031426 72%,#02101e 100%); border-right:1px solid rgba(56,189,248,.18); box-shadow:12px 0 30px rgba(0,0,0,.18); }
-    .nav-tabs::before { content:"ALBASHIR EMERGENCY HOSPITAL\\A Admin Dashboard"; white-space:pre; position:absolute; top:22px; left:18px; color:#e0f2fe; font-size:12px; font-weight:900; line-height:1.6; text-align:left; }
-    .tab-btn { width:100%; justify-content:flex-start; border-radius:12px; padding:12px 13px; background:transparent; border:1px solid transparent; color:#bfdbfe; text-align:left; box-shadow:none; }
-    .tab-btn::before { display:inline-grid; width:22px; margin-right:8px; place-items:center; font-size:17px; }
-    .tab-btn:nth-child(1)::before { content:"⌂"; } .tab-btn:nth-child(2)::before { content:"♙"; } .tab-btn:nth-child(3)::before { content:"▤"; } .tab-btn:nth-child(4)::before { content:"▦"; } .tab-btn:nth-child(5)::before { content:"▥"; } .tab-btn:nth-child(6)::before { content:"◈"; } .tab-btn:nth-child(7)::before { content:"⚙"; } .tab-btn:nth-child(8)::before { content:"⇩"; }
-    .tab-btn.active { background:linear-gradient(90deg,#0284c7,#075985); border-color:rgba(56,189,248,.5); box-shadow:0 0 24px rgba(14,165,233,.26); color:white; }
-    .app-hero-cover { min-height:118px; margin-bottom:18px; background:linear-gradient(90deg,rgba(2,13,27,.86),rgba(2,43,75,.40)),url("./hero.jpeg") center/cover; border:1px solid var(--admin-border); border-radius:14px; display:flex; align-items:center; }
-    .app-hero-title { font-size:25px; } .app-hero-subtitle { color:#dbeafe; }
-    .stats-grid { grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; }
-    .stat-card { min-height:118px; border-radius:14px; background:linear-gradient(145deg,rgba(8,43,75,.96),rgba(3,23,43,.94)); border-color:var(--admin-border); padding:15px; }
-    .stat-card::before { content:""; position:absolute; width:42px; height:42px; top:14px; right:14px; border:2px solid currentColor; border-radius:50%; opacity:.35; }
-    .stat-label { max-width:120px; line-height:1.45; } .stat-helper { max-width:190px; margin-top:4px; color:#93c5fd; font-size:10px; line-height:1.45; } .stat-value { margin-top:15px; font-size:36px; }
-    .panel { border-radius:14px; padding:16px; background:var(--admin-panel); border-color:var(--admin-border); box-shadow:0 18px 42px rgba(0,0,0,.18); }
-    .panel-title { font-size:20px; letter-spacing:0; } .table-wrap { border-radius:12px; background:rgba(2,14,28,.65); } th { background:#082b4b; color:#e0f2fe; } td { color:#dbeafe; }
-    .toolbar { padding:8px; border:1px solid rgba(56,189,248,.15); border-radius:12px; background:rgba(2,19,36,.5); }
-    .status-chart-layout { display:grid; grid-template-columns:150px 1fr; gap:18px; align-items:center; margin:8px 0 14px; }
-    .status-donut { width:142px; height:142px; border-radius:50%; display:grid; place-content:center; text-align:center; background:conic-gradient(#22c55e 0 62%, #facc15 62% 78%, #ef4444 78% 88%, #38bdf8 88% 100%); box-shadow:0 0 28px rgba(34,197,94,.18); position:relative; }
-    .status-donut::after { content:""; position:absolute; inset:25px; border-radius:50%; background:#061b32; }
-    .status-donut span,.status-donut small { position:relative; z-index:1; } .status-donut span { font-size:27px; font-weight:950; } .status-donut small { color:#bae6fd; }
-    .status-legend { display:grid; gap:8px; } .status-legend div { display:flex; justify-content:space-between; gap:12px; color:#dbeafe; font-size:13px; } .status-legend i { width:9px; height:9px; border-radius:50%; display:inline-block; margin-left:6px; }
-    .specialty-bars { display:grid; gap:8px; margin:8px 0 14px; } .specialty-bar-row { display:grid; grid-template-columns:88px 1fr 34px; gap:8px; align-items:center; font-size:12px; } .specialty-bar-track { height:13px; background:#0b2945; border-radius:99px; overflow:hidden; } .specialty-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#0ea5e9,#22d3ee); }
-    .dashboard-activity-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-    .dashboard-filters { display:grid; grid-template-columns:minmax(180px,1.6fr) repeat(2,minmax(130px,1fr)) auto auto auto; align-items:center; }
-    .dashboard-filters input,.dashboard-filters select { min-width:0; }
-    .sound-toggle { width:42px; height:42px; padding:0; border-radius:50%; font-size:19px; background:rgba(8,43,75,.9); border:1px solid rgba(56,189,248,.35); box-shadow:none; }
-    .sound-toggle.muted { color:#94a3b8; border-color:rgba(148,163,184,.28); }
-    .access-denied .app-shell > *:not(#setupWarning) { display:none !important; }
-    .access-denied #setupWarning { display:block !important; margin:20vh auto 0; max-width:680px; text-align:center; font-size:16px; }
-    @media (max-width:1180px) { .stats-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-    @media (max-width:960px) { .dashboard-activity-grid{grid-template-columns:1fr;} }
-    @media (max-width:760px) { .app-shell{padding:12px;} .topbar{margin:-12px -12px 12px;padding:12px;} .nav-tabs{position:sticky;inset:auto;width:auto;padding:8px;flex-direction:row;margin-bottom:12px;border:1px solid rgba(56,189,248,.18);border-radius:14px;} .nav-tabs::before{display:none;} .tab-btn{width:auto;flex:1 0 auto;justify-content:center;padding:9px 10px;font-size:0;} .tab-btn::before{margin:0;font-size:18px;} .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .grid-2{grid-template-columns:1fr;} .top-actions{width:100%;} .dashboard-filters{grid-template-columns:1fr 1fr;} .dashboard-filters input{grid-column:1/-1;} .status-chart-layout{grid-template-columns:1fr;justify-items:center;} }
-    @media (max-width:430px) { .stats-grid{gap:7px;} .stat-card{padding:12px 10px;min-height:105px;} .stat-value{font-size:29px;} }
-
-  </style>
+  <link rel="stylesheet" href="./admin_dashboard.css" />
   <link rel="stylesheet" href="./global-theme.css" />
   <link rel="stylesheet" href="./assets/css/design-system.css" />
   <link rel="stylesheet" href="./assets/css/components.css" />
@@ -1086,88 +90,147 @@
     </nav>
 
     <section id="overview" class="section active">
-      <div class="stats-grid">
-        <div class="stat-card blue">
+      <div class="stats-grid kpi-strip" aria-label="مؤشرات الأداء الرئيسية">
+        <div class="stat-card blue kpi-card">
           <div class="stat-label">طلبات التسجيل</div>
           <div class="stat-helper">طلبات مكتملة بانتظار مراجعة الهوية وقرار السماح أو المنع</div>
           <div class="stat-value" id="statPendingRequests">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card kpi-card">
           <div class="stat-label">إجمالي آخر 30 يوم</div>
           <div class="stat-value" id="stat30Days">0</div>
         </div>
-        <div class="stat-card green">
+        <div class="stat-card green kpi-card">
           <div class="stat-label">موافق عليهم اليوم</div>
           <div class="stat-value" id="statApprovedToday">0</div>
         </div>
-        <div class="stat-card yellow">
+        <div class="stat-card yellow kpi-card">
           <div class="stat-label">بلاغات جديدة</div>
           <div class="stat-value" id="statNewViolations">0</div>
         </div>
-        <div class="stat-card red">
+        <div class="stat-card red kpi-card">
           <div class="stat-label">مرفوضون</div>
           <div class="stat-value" id="statRejected">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card kpi-card">
           <div class="stat-label">عمليات تحقق QR</div>
           <div class="stat-value" id="statQrVerifications">0</div>
         </div>
       </div>
 
-      <div class="toolbar dashboard-filters" aria-label="فلاتر لوحة الإدارة">
-        <input id="dashboardSearch" type="search" placeholder="البحث بالاسم أو الرقم الوظيفي..." oninput="applyDashboardFilters()" />
-        <select id="dashboardStatus" onchange="applyDashboardFilters()">
-          <option value="">جميع الحالات</option>
-          <option value="PENDING">قيد المراجعة</option>
-          <option value="APPROVED">موافق عليه</option>
-          <option value="REJECTED">مرفوض</option>
-        </select>
-        <select id="dashboardDepartment" onchange="applyDashboardFilters()">
-          <option value="">جميع الأقسام</option>
-        </select>
-        <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
-        <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
-        <button type="button" onclick="exportCsv('registrations')">تصدير</button>
+      <div class="panel shift-panel">
+        <h2 class="panel-title">إحصائيات الشفتات A / B / C</h2>
+        <p class="panel-desc">توزيع عمليات التحقق في اليوم التشغيلي الحالي حسب الشفت. الشفت C محسوب لتاريخ بدايته.</p>
+        <p class="panel-desc">اليوم التشغيلي: <strong id="shiftOpDate">-</strong></p>
+        <div class="shift-grid">
+          <div class="shift-card" id="shiftACard">
+            <div class="shift-head"><strong>SHIFT A</strong><span class="small-muted">07:00 – 15:00</span><span class="badge blue shift-now hidden" id="shiftACurrent">الشفت الحالي</span></div>
+            <div class="shift-total" id="shiftATotal">0</div>
+            <div class="small-muted">إجمالي عمليات التحقق</div>
+            <div class="shift-breakdown" id="shiftABreakdown"></div>
+          </div>
+          <div class="shift-card" id="shiftBCard">
+            <div class="shift-head"><strong>SHIFT B</strong><span class="small-muted">15:00 – 23:00</span><span class="badge blue shift-now hidden" id="shiftBCurrent">الشفت الحالي</span></div>
+            <div class="shift-total" id="shiftBTotal">0</div>
+            <div class="small-muted">إجمالي عمليات التحقق</div>
+            <div class="shift-breakdown" id="shiftBBreakdown"></div>
+          </div>
+          <div class="shift-card" id="shiftCCard">
+            <div class="shift-head"><strong>SHIFT C</strong><span class="small-muted">23:00 – 07:00</span><span class="badge blue shift-now hidden" id="shiftCCurrent">الشفت الحالي</span></div>
+            <div class="shift-total" id="shiftCTotal">0</div>
+            <div class="small-muted">إجمالي عمليات التحقق</div>
+            <div class="shift-breakdown" id="shiftCBreakdown"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="grid-2">
-        <div class="panel">
-          <h2 class="panel-title">آخر 10 دقائق حسب النتيجة</h2>
-          <p class="panel-desc">مفيد لمعرفة ازدحام البوابة أو تكرار الرفض في الوقت الحالي.</p>
+      <div class="analytics-triple-grid">
+        <div class="panel chart-card" id="shiftResultCard">
+          <h2 class="panel-title">نتائج الشفت الحالي</h2>
+          <p class="panel-desc">توزيع نتائج شفت العمليات الحالي.</p>
           <div class="status-chart-layout">
             <div class="status-donut" id="statusDonut"><span id="statusDonutTotal">0</span><small>محاولة</small></div>
             <div class="status-legend" id="statusLegend"></div>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>النتيجة</th>
-                  <th>العدد</th>
-                </tr>
-              </thead>
-              <tbody id="last10Body"></tbody>
-            </table>
+        </div>
+        <div class="panel chart-card" id="permPanel">
+          <h2 class="panel-title">موظفو المستشفى</h2>
+          <p class="panel-desc">الموظفون الدائمون حسب الاختصاص</p>
+          <div class="status-chart-layout">
+            <div class="status-donut perm-donut" id="permDonut"><span id="permDonutTotal">0</span><small>محاولة</small></div>
+            <div class="status-legend" id="permLegend"></div>
           </div>
         </div>
-
-        <div class="panel">
-          <h2 class="panel-title">الإحصائيات حسب الاختصاص</h2>
-          <p class="panel-desc">يعرض عدد محاولات الدخول لكل قسم / اختصاص.</p>
-          <div class="specialty-bars" id="specialtyBars"></div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الاختصاص</th>
-                  <th>العدد</th>
-                </tr>
-              </thead>
-              <tbody id="specialtyStatsBody"></tbody>
-            </table>
-          </div>
+        <div class="panel chart-card" id="externalPanel">
+          <h2 class="panel-title">التسجيلات المؤقتة والخارجية</h2>
+          <div class="external-bars" id="externalEntityBars"></div>
+          <div class="external-bars" id="externalSpecialtyBars"></div>
         </div>
       </div>
+      <details class="analytics-method-details">
+        <summary>طريقة احتساب تصنيف الموظفين</summary>
+        <div class="external-summary" id="externalSummary"></div>
+        <p class="unknown-line" id="unknownSummary"></p>
+        <p class="panel-desc small-muted" id="externalNotice"></p>
+        <p class="panel-desc">نشاط سجلات الدخول المرتبطة بتسجيلات <strong>مؤقت / خارجي (TEMPORARY)</strong> فقط — من البيانات الحالية فقط، بدون تخمين. الموظفون الدائمون (PERMANENT) مستبعدون من رسم التسجيلات المؤقتة، ويُحتسبون في رسم موظفي المستشفى فقط.</p>
+        <p class="panel-desc small-muted">المصدر: gate_access_logs مرتبطة بـ employee_registrations عبر employee_registration_id أولًا ثم employee_id (فريد). logsData لا يحمل registration_category / affiliated_entity / classification مباشرة. السجلات غير المرتبطة تُعرض كبند “غير مرتبط بسجل” ولا تُحتسب كخارجي. الفئات غير المصنفة تبقى UNKNOWN ولا تُحتسب كخارجي ولا كموظف مستشفى.</p>
+      </details>
+
+      <div class="panel" id="limitsUsagePanel">
+        <h2 class="panel-title">استخدام الحدود اليومية</h2>
+        <p class="panel-desc">للاختصاصات التي تعمل بنظام “مسموح جزئيًا”.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الاختصاص</th>
+                <th>الحد اليومي</th>
+                <th>المستخدم اليوم</th>
+                <th>المتبقي</th>
+                <th>الاستخدام %</th>
+                <th>التقدم</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody id="limitsUsageBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel health-compact" id="systemHealthPanel">
+        <h2 class="panel-title">صحة النظام</h2>
+        <p class="panel-desc">ملخص مضغوط من بيانات الأجهزة والمزامنة الحالية — التفاصيل الكاملة بالأسفل.</p>
+        <div class="health-strip" id="systemHealthStrip"></div>
+      </div>
+
+      <div class="panel priority-strip needs-action-secondary">
+        <h2 class="panel-title">يحتاج إجراء</h2>
+        <p class="panel-desc">بنود معلقة من البيانات الحالية — انتقلي مباشرة إلى قسم المراجعة.</p>
+        <div class="toolbar" style="margin-bottom:0">
+          <button type="button" onclick="showTab('registrations', this)">مراجعة طلبات التسجيل</button>
+          <button type="button" class="btn-soft" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">مراجعة تغيير البيانات</button>
+          <button type="button" class="btn-soft" onclick="showTab('violations', this)">مراجعة بلاغات الحارس</button>
+          <button type="button" class="btn-soft" onclick="showTab('logs', this)">سجلات الدخول</button>
+        </div>
+      </div>
+      <details class="panel filters-collapse">
+        <summary class="filters-summary">البحث والفلاتر</summary>
+        <div class="toolbar dashboard-filters" aria-label="فلاتر لوحة الإدارة">
+          <input id="dashboardSearch" type="search" placeholder="البحث بالاسم أو الرقم الوظيفي..." oninput="applyDashboardFilters()" />
+          <select id="dashboardStatus" onchange="applyDashboardFilters()">
+            <option value="">جميع الحالات</option>
+            <option value="PENDING">قيد المراجعة</option>
+            <option value="APPROVED">موافق عليه</option>
+            <option value="REJECTED">مرفوض</option>
+          </select>
+          <select id="dashboardDepartment" onchange="applyDashboardFilters()">
+            <option value="">جميع الأقسام</option>
+          </select>
+          <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
+          <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
+          <button type="button" onclick="exportCsv('registrations')">تصدير</button>
+        </div>
+      </details>
 
       <div class="dashboard-activity-grid">
         <div class="panel">
@@ -1187,9 +250,26 @@
         </div>
       </div>
 
-      <div class="grid-2">
-        <div class="panel">
-          <h2 class="panel-title">أجهزة البوابة</h2>
+      <details class="panel specialty-collapse">
+        <summary class="device-summary">تفاصيل الإحصائيات حسب الاختصاص</summary>
+        <p class="panel-desc">يعرض عدد محاولات الدخول لكل قسم / اختصاص.</p>
+        <div class="specialty-bars" id="specialtyBars"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الاختصاص</th>
+                <th>العدد</th>
+              </tr>
+            </thead>
+            <tbody id="specialtyStatsBody"></tbody>
+          </table>
+        </div>
+      </details>
+
+      <div class="grid-2 device-details">
+        <details class="panel device-collapse">
+          <summary class="device-summary">أجهزة البوابة — تفاصيل موسعة</summary>
           <p class="panel-desc">آخر اتصال لأجهزة الحارس، نسخة الكاش، وتنبيه الجهاز غير النشط.</p>
           <div class="table-wrap">
             <table>
@@ -1208,10 +288,10 @@
               <tbody id="gateDevicesBody"></tbody>
             </table>
           </div>
-        </div>
+        </details>
 
-        <div class="panel">
-          <h2 class="panel-title">حالة مزامنة Offline</h2>
+        <details class="panel device-collapse">
+          <summary class="device-summary">حالة مزامنة Offline — تفاصيل موسعة</summary>
           <p class="panel-desc">تعرض آخر مزامنة وعدد السجلات المعلقة لكل جهاز بوابة.</p>
           <div class="table-wrap">
             <table>
@@ -1227,26 +307,7 @@
               <tbody id="gateSyncBody"></tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">استخدام الحدود اليومية</h2>
-        <p class="panel-desc">للاختصاصات التي تعمل بنظام “مسموح جزئيًا”.</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الاختصاص</th>
-                <th>الحد اليومي</th>
-                <th>المستخدم اليوم</th>
-                <th>المتبقي</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody id="limitsUsageBody"></tbody>
-          </table>
-        </div>
+        </details>
       </div>
     </section>
 
@@ -1300,11 +361,15 @@
         </p>
 
         <div id="superOnlyLimitNotice" class="notice hidden">تعديل الحدود متاح للسوبر أدمن فقط. يمكنك رؤية الحدود الحالية بدون تعديل.</div>
+        <p class="panel-desc small-muted">اختر اختصاصًا موجودًا من القائمة — تُبنى القائمة من قيم specialty_daily_limits والتسجيلات والسجلات الحالية. لا توجد حدود فردية لكل موظف في الـ RPC الحالي.</p>
+        <p class="panel-desc small-muted">PER-EMPLOYEE LIMIT NOT SUPPORTED BY CURRENT RPC.</p>
 
         <div class="form-grid" id="limitFormBox">
           <div>
-            <label for="limitSpecialty">اسم الاختصاص</label>
-            <input id="limitSpecialty" type="text" placeholder="مثال: الأشعة" />
+            <label for="limitSpecialty">اسم الاختصاص (اختيار من الموجود)</label>
+            <select id="limitSpecialty">
+              <option value="">— اختر اختصاصًا موجودًا —</option>
+            </select>
           </div>
           <div>
             <label for="limitCount">العدد اليومي</label>
@@ -2308,6 +1373,7 @@
 
       if (!limitsData.length) {
         body.innerHTML = `<tr><td colspan="5">لا توجد حدود بعد.</td></tr>`;
+        populateLimitSpecialtyOptions();
         return;
       }
 
@@ -2322,6 +1388,7 @@
           </td>
         </tr>
       `).join("");
+      populateLimitSpecialtyOptions();
     }
 
     function renderLogs() {
@@ -2477,19 +1544,260 @@
             }).join("")
           : `<tr><td colspan="5">لا توجد بيانات مزامنة بعد.</td></tr>`;
       }
+      renderSystemHealthCompact();
+    }
+
+    function getShiftInfo(now) {
+      const current = new Date(now);
+      const opDate = new Date(current);
+      if (current.getHours() < 7) opDate.setDate(opDate.getDate() - 1);
+      opDate.setHours(0, 0, 0, 0);
+      const base = opDate.getTime();
+      const hour = 60 * 60 * 1000;
+      const info = {
+        opDate,
+        startA: base + 7 * hour,
+        endA: base + 15 * hour,
+        endB: base + 23 * hour,
+        endC: base + 31 * hour,
+        current: "A"
+      };
+      const t = current.getTime();
+      if (t >= base + 15 * hour && t < base + 23 * hour) info.current = "B";
+      else if (t >= base + 23 * hour) info.current = "C";
+      return info;
+    }
+
+    function classifyLogShift(createdAt, shiftInfo) {
+      const t = new Date(createdAt).getTime();
+      if (Number.isNaN(t)) return null;
+      if (t >= shiftInfo.startA && t < shiftInfo.endA) return "A";
+      if (t >= shiftInfo.endA && t < shiftInfo.endB) return "B";
+      if (t >= shiftInfo.endB && t < shiftInfo.endC) return "C";
+      return null;
+    }
+
+    function buildRegistrationLookup() {
+      const byRegId = new Map();
+      const byEmpId = new Map();
+      (registrationsData || []).forEach((row) => {
+        if (row.id != null) byRegId.set(String(row.id), row);
+        const empKey = String(row.employee_id ?? "").trim();
+        if (empKey && !byEmpId.has(empKey)) byEmpId.set(empKey, row);
+      });
+      return { byRegId, byEmpId };
+    }
+
+    function resolveLogRegistration(logRow, lookup) {
+      if (!logRow) return null;
+      const regId = logRow.employee_registration_id;
+      if (regId != null && String(regId) !== "") {
+        const hit = lookup.byRegId.get(String(regId));
+        if (hit) return { registration: hit, via: "employee_registration_id" };
+      }
+      const empKey = String(logRow.employee_id ?? "").trim();
+      if (empKey) {
+        const hit = lookup.byEmpId.get(empKey);
+        if (hit) return { registration: hit, via: "employee_id" };
+      }
+      return null;
+    }
+
+    function renderExternalChart() {
+      const entityBox = $("externalEntityBars");
+      const specBox = $("externalSpecialtyBars");
+      const summaryBox = $("externalSummary");
+      const noticeBox = $("externalNotice");
+      const permDonut = $("permDonut");
+      const permTotal = $("permDonutTotal");
+      const permLegend = $("permLegend");
+      const unknownLine = $("unknownSummary");
+      if (!entityBox || !specBox) return;
+
+      const lookup = buildRegistrationLookup();
+      const counts = { TEMPORARY: 0, EXCLUDED_PERMANENT: 0, UNCLASSIFIED: 0, UNLINKED: 0 };
+      const entityCounts = {};
+      const externalSpecialtyCounts = {};
+      const permSpecialtyCounts = {};
+      let linkedCount = 0;
+
+      (logsData || []).forEach((log) => {
+        const resolved = resolveLogRegistration(log, lookup);
+        if (!resolved) {
+          counts.UNLINKED += 1;
+          return;
+        }
+        linkedCount += 1;
+        const cat = String(resolved.registration.registration_category || "").toUpperCase();
+        if (cat === "TEMPORARY") {
+          counts.TEMPORARY += 1;
+          const entity = String(resolved.registration.affiliated_entity || "").trim() || "جهة غير مسجلة";
+          entityCounts[entity] = (entityCounts[entity] || 0) + 1;
+          const spec = String(log.specialty || resolved.registration.specialty || "غير محدد").trim() || "غير محدد";
+          externalSpecialtyCounts[spec] = (externalSpecialtyCounts[spec] || 0) + 1;
+        } else if (cat === "PERMANENT") {
+          counts.EXCLUDED_PERMANENT += 1;
+          const pspec = String(log.specialty || resolved.registration.specialty || "غير محدد").trim() || "غير محدد";
+          permSpecialtyCounts[pspec] = (permSpecialtyCounts[pspec] || 0) + 1;
+        } else {
+          counts.UNCLASSIFIED += 1;
+        }
+      });
+
+      const total = (logsData || []).length;
+
+      const entityRows = Object.entries(entityCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const specRows = Object.entries(externalSpecialtyCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      if (!counts.TEMPORARY) {
+        entityBox.innerHTML = `<div class="small-muted">لا توجد سجلات دخول خارجية حالياً.</div>`;
+        specBox.innerHTML = `<div class="small-muted">لا توجد سجلات دخول خارجية حالياً.</div>`;
+      } else {
+        const maxEntity = entityRows[0]?.[1] || 1;
+        entityBox.innerHTML = entityRows.length
+          ? entityRows.map(([name, count]) => {
+              const pct = Math.max(6, (count / maxEntity) * 100);
+              return `<div class="external-bar-row"><span class="external-bar-label">${escapeHtml(name)}</span><div class="external-bar-track"><div class="external-bar-fill ext-entity" style="width:${pct}%"></div></div><strong class="external-bar-count">${count}</strong></div>`;
+            }).join("")
+          : `<div class="small-muted">لا توجد جهات تابعة مرتبطة بنشاط خارجي في البيانات الحالية.</div>`;
+
+        const maxSpec = specRows[0]?.[1] || 1;
+        specBox.innerHTML = specRows.length
+          ? specRows.map(([name, count]) => {
+              const pct = Math.max(6, (count / maxSpec) * 100);
+              return `<div class="external-bar-row"><span class="external-bar-label">${escapeHtml(name)}</span><div class="external-bar-track"><div class="external-bar-fill ext-spec" style="width:${pct}%"></div></div><strong class="external-bar-count">${count}</strong></div>`;
+            }).join("")
+          : `<div class="small-muted">لا توجد اختصاصات خارجية مرتبطة في البيانات الحالية.</div>`;
+      }
+
+      if (summaryBox) {
+        summaryBox.innerHTML = `
+          <span class="badge orange">خارجي: ${counts.TEMPORARY}</span>
+          <span class="badge">غير مصنف: ${counts.UNCLASSIFIED}</span>
+          <span class="badge red">غير مرتبط: ${counts.UNLINKED}</span>
+          <span class="small-muted">إجمالي السجلات: ${total} — مرتبطة: ${linkedCount}</span>
+        `;
+      }
+      if (noticeBox) {
+        if (!total) {
+          noticeBox.textContent = "لا توجد سجلات دخول محملة بعد — الرسم يعتمد على البيانات الحالية فقط.";
+        } else if (!counts.TEMPORARY) {
+          noticeBox.textContent = "لا يوجد نشاط مرتبط بتسجيلات TEMPORARY في البيانات الحالية — لم يتم تخمين أي موظف كخارجي. الموظفون الدائمون مستبعدون من هذا الرسم.";
+        } else {
+          noticeBox.textContent = `نشاط خارجي: ${counts.TEMPORARY} — سجلات غير مرتبطة: ${counts.UNLINKED} — سجلات قديمة غير مصنفة: ${counts.UNCLASSIFIED}`;
+        }
+      }
+      if (unknownLine) {
+        unknownLine.textContent = `غير مصنف: ${counts.UNCLASSIFIED} • غير مرتبط بسجل: ${counts.UNLINKED}`;
+      }
+      const permEntries = Object.entries(permSpecialtyCounts).sort((a, b) => b[1] - a[1]);
+      const permTop = permEntries.slice(0, 5);
+      const permRest = permEntries.slice(5).reduce((sum, [, count]) => sum + count, 0);
+      if (permRest > 0) permTop.push(["أخرى", permRest]);
+      const permTotalCount = permTop.reduce((sum, [, count]) => sum + count, 0);
+      const permPalette = ["#22c55e", "#38bdf8", "#a78bfa", "#facc15", "#fb923c", "#94a3b8"];
+      if (permTotal) permTotal.textContent = permTotalCount;
+      if (permLegend) {
+        permLegend.innerHTML = permTop.length
+          ? permTop.map(([name, count], index) => `<div><span><i style="background:${permPalette[index % permPalette.length]}"></i>${escapeHtml(name)}</span><strong>${count}</strong></div>`).join("")
+          : `<div class="small-muted">لا توجد سجلات دخول لموظفي المستشفى حالياً.</div>`;
+      }
+      if (permDonut) {
+        if (!permTotalCount) {
+          permDonut.style.background = `conic-gradient(#1e293b 0 100%)`;
+        } else {
+          let cursor = 0;
+          const segments = permTop.map(([name, count], index) => {
+            const start = cursor;
+            cursor += (count / permTotalCount) * 100;
+            return `${permPalette[index % permPalette.length]} ${start}% ${cursor}%`;
+          });
+          permDonut.style.background = `conic-gradient(${segments.join(",")})`;
+        }
+      }
+    }
+
+    function renderSystemHealthCompact() {
+      const strip = $("systemHealthStrip");
+      if (!strip) return;
+      const now = Date.now();
+      const devices = gateDevicesData || [];
+      const syncs = gateSyncStatusData || [];
+      let online = 0;
+      devices.forEach((row) => {
+        const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).getTime() : 0;
+        const stale = !row.is_active || !lastSeen || now - lastSeen > 5 * 60 * 1000;
+        if (!stale) online += 1;
+      });
+      const alertDevices = devices.length - online;
+      let pendingTotal = 0;
+      let failedSync = 0;
+      syncs.forEach((row) => {
+        pendingTotal += Number(row.pending_count || 0);
+        if (row.last_sync_status === "FAILED" || row.last_error) failedSync += 1;
+      });
+      strip.innerHTML = `
+        <span class="badge ${alertDevices > 0 ? "red" : "green"}">أجهزة: ${online}/${devices.length} متصلة</span>
+        <span class="badge ${alertDevices > 0 ? "red" : "green"}">تنبيه أجهزة: ${alertDevices}</span>
+        <span class="badge ${pendingTotal > 0 || failedSync > 0 ? "yellow" : "green"}">مزامنة معلقة: ${pendingTotal}</span>
+        <span class="badge ${failedSync > 0 ? "red" : "green"}">مزامنة تحتاج متابعة: ${failedSync}</span>
+      `;
+    }
+
+    function collectKnownSpecialtyValues() {
+      const set = new Set();
+      (limitsData || []).forEach((row) => {
+        const v = String(row.specialty_name || "").trim();
+        if (v) set.add(v);
+      });
+      (registrationsData || []).forEach((row) => {
+        const s = String(row.specialty || "").trim();
+        if (s) set.add(s);
+      });
+      (logsData || []).forEach((row) => {
+        const s = String(row.specialty || "").trim();
+        if (s) set.add(s);
+      });
+      return [...set].sort((a, b) => a.localeCompare(b, "ar"));
+    }
+
+    function populateLimitSpecialtyOptions() {
+      const select = $("limitSpecialty");
+      if (!select) return;
+      const current = String(select.value || "");
+      const values = collectKnownSpecialtyValues();
+      if (!values.length) {
+        select.innerHTML = `<option value="" disabled>لا توجد اختصاصات متاحة</option>`;
+        select.value = "";
+        return;
+      }
+      select.innerHTML = `<option value="">— اختر اختصاصًا موجودًا —</option>`
+        + values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+      if (current && values.includes(current)) {
+        select.value = current;
+      } else if (current && !values.includes(current)) {
+        const opt = document.createElement("option");
+        opt.value = current;
+        opt.textContent = current;
+        select.appendChild(opt);
+        select.value = current;
+      }
+    }
+
+    function getSelectedLimitSpecialty() {
+      const select = $("limitSpecialty");
+      if (!select) return "";
+      return String(select.value || "").trim();
     }
 
     function renderOverview() {
       const now = new Date();
       const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
       const todayStart = new Date(now);
       todayStart.setHours(0, 0, 0, 0);
 
       const last30 = logsData.filter((row) => new Date(row.created_at) >= thirtyDaysAgo);
       const last24 = logsData.filter((row) => new Date(row.created_at) >= dayAgo);
-      const last10 = logsData.filter((row) => new Date(row.created_at) >= tenMinutesAgo);
       const pending = registrationsData.filter((row) => row.status === "PENDING").length;
       const newViolations = violationsData.filter((row) => row.status === "NEW").length;
       const totalEmployees = registrationsData.filter((row) => row.status === "APPROVED").length;
@@ -2503,19 +1811,48 @@
       $("statQrVerifications").textContent = last24.length;
       $("statNewViolations").textContent = newViolations;
 
-      const results = ["ALLOWED", "LIMITED", "DENIED", "PENDING_FIRST_ENTRY"];
-      $("last10Body").innerHTML = results.map((result) => {
-        const count = last10.filter((row) => row.result === result).length;
-        return `<tr><td>${statusBadge(result)}</td><td>${count}</td></tr>`;
-      }).join("");
+      const shiftInfo = getShiftInfo(now);
+      const shiftLogs = { A: [], B: [], C: [] };
+      logsData.forEach((row) => {
+        const key = classifyLogShift(row.created_at, shiftInfo);
+        if (key) shiftLogs[key].push(row);
+      });
+      const shiftMeta = [
+        ["A", "shiftA", "SHIFT A"],
+        ["B", "shiftB", "SHIFT B"],
+        ["C", "shiftC", "SHIFT C"]
+      ];
+      shiftMeta.forEach(([key, prefix]) => {
+        const rows = shiftLogs[key];
+        const totalEl = $(prefix + "Total");
+        if (totalEl) totalEl.textContent = rows.length;
+        const box = $(prefix + "Breakdown");
+        if (box) {
+          const counts = {};
+          rows.forEach((row) => { counts[row.result || "UNKNOWN"] = (counts[row.result || "UNKNOWN"] || 0) + 1; });
+          box.innerHTML = Object.entries(counts).map(([result, count]) => {
+            const color = result === "ALLOWED" ? "#22c55e"
+              : result === "LIMITED" ? "#facc15"
+              : result === "DENIED" ? "#ef4444"
+              : result === "PENDING_FIRST_ENTRY" ? "#38bdf8" : "#94a3b8";
+            return `<div class="shift-row"><span><i style="background:${color}"></i>${escapeHtml(result)}</span><strong>${count}</strong></div>`;
+          }).join("") || `<div class="small-muted">لا توجد محاولات.</div>`;
+        }
+        const card = $(prefix + "Card");
+        if (card) card.classList.toggle("current", shiftInfo.current === key);
+        const badge = $(prefix + "Current");
+        if (badge) badge.classList.toggle("hidden", shiftInfo.current !== key);
+      });
+      if ($("shiftOpDate")) $("shiftOpDate").textContent = formatDate(shiftInfo.opDate) + ` — الشفت الحالي: ${shiftInfo.current}`;
 
+      const currentShiftRows = shiftLogs[shiftInfo.current] || [];
       const statusMeta = [
         ["ALLOWED", "مسموح", "#22c55e"],
         ["LIMITED", "مؤقت", "#facc15"],
         ["DENIED", "مرفوض", "#ef4444"],
         ["PENDING_FIRST_ENTRY", "دخول أول", "#38bdf8"]
       ];
-      const statusCounts = statusMeta.map(([key, label, color]) => ({ key, label, color, count: last10.filter((row) => row.result === key).length }));
+      const statusCounts = statusMeta.map(([key, label, color]) => ({ key, label, color, count: currentShiftRows.filter((row) => row.result === key).length }));
       const statusTotal = statusCounts.reduce((sum, item) => sum + item.count, 0);
       if ($("statusDonutTotal")) $("statusDonutTotal").textContent = statusTotal;
       if ($("statusLegend")) $("statusLegend").innerHTML = statusCounts.map((item) => `<div><span><i style="background:${item.color}"></i>${item.label}</span><strong>${item.count}</strong></div>`).join("");
@@ -2577,17 +1914,25 @@
             const used = todayLimited.filter((log) => log.specialty === limit.specialty_name).length;
             const max = Number(limit.daily_limit || 0);
             const remaining = Math.max(max - used, 0);
+            const percent = max > 0 ? Math.min(Math.round((used / max) * 100), 100) : 0;
+            const barClass = !limit.is_active ? "muted" : (remaining <= 0 ? "full" : (percent >= 80 ? "near" : ""));
             return `
               <tr>
                 <td>${escapeHtml(limit.specialty_name)}</td>
                 <td>${max}</td>
                 <td>${used}</td>
                 <td>${remaining}</td>
+                <td>${percent}%</td>
+                <td><div class="limit-bar-track"><div class="limit-bar-fill ${barClass}" style="width:${percent}%"></div></div></td>
                 <td>${limit.is_active ? statusBadge(remaining > 0 ? "ACTIVE" : "FULL") : `<span class="badge red">غير مفعّل</span>`}</td>
               </tr>
             `;
           }).join("")
-        : `<tr><td colspan="5">لا توجد حدود بعد.</td></tr>`;
+        : `<tr><td colspan="7">لا توجد حدود بعد.</td></tr>`;
+
+      renderExternalChart();
+      renderSystemHealthCompact();
+      populateLimitSpecialtyOptions();
     }
 
     async function updateRegistration(id, status) {
@@ -2613,7 +1958,18 @@
     }
 
     function fillLimit(name, count, active) {
-      $("limitSpecialty").value = name;
+      populateLimitSpecialtyOptions();
+      const select = $("limitSpecialty");
+      if (select) {
+        const exists = [...select.options].some((o) => o.value === name);
+        if (!exists && name) {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        }
+        select.value = name || "";
+      }
       $("limitCount").value = count;
       $("limitActive").value = active ? "true" : "false";
       showToast("تم اختيار الاختصاص للتعديل.", "ok");
@@ -2625,9 +1981,14 @@
         return;
       }
 
-      const name = $("limitSpecialty").value.trim();
+      const name = getSelectedLimitSpecialty();
       const count = Number($("limitCount").value || 0);
       const active = $("limitActive").value === "true";
+
+      if (!name) {
+        showToast("اختر اختصاصًا موجودًا من القائمة أولًا.", "error");
+        return;
+      }
 
       const { data, error } = await supabaseClient.rpc("admin_upsert_specialty_limit", {
         p_specialty_name: name,
@@ -2641,7 +2002,7 @@
       }
 
       showToast(data.message || "تم حفظ الحد.", "ok");
-      $("limitSpecialty").value = "";
+      if ($("limitSpecialty")) $("limitSpecialty").value = "";
       $("limitCount").value = 0;
       $("limitActive").value = "true";
       await loadLimits();
