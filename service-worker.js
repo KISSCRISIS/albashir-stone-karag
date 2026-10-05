@@ -1,4 +1,4 @@
-const CACHE_VERSION = "emergency-room-parking-offline-v15";
+const CACHE_VERSION = "emergency-room-parking-offline-v16";
 
 const OFFLINE_ASSETS = [
   "./",
@@ -25,6 +25,11 @@ const OFFLINE_ASSETS = [
   "./assets/css/responsive.css",
   "./assets/css/components.css",
   "./assets/css/design-system.css",
+  "./index.css",
+  "./verify.css",
+  "./admin_dashboard.css",
+  "./portal.css",
+  "./profile.css",
   "./verify-shared.js",
   "./guard.html",
   "./register.html"
