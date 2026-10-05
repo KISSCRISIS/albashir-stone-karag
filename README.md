@@ -235,6 +235,7 @@ PRODUCTION_MIGRATION_MAPPING.md records high-confidence evidence that Production
 | Guard-device approval | Confirmed |
 | Offline device authentication | Confirmed |
 | Secure two-argument create_qr_session(device_code, device_token) | Confirmed |
+| Authenticated reset_guard_screen(text, text) | Confirmed via migration 20261005075552 (add_authenticated_guard_screen_reset) |
 | Auto employee check | Confirmed |
 | Admin profiles and audit logs | Confirmed |
 | Employee data-change request architecture | Confirmed |
@@ -291,7 +292,7 @@ This patch fixes the client/server signature mismatch for automatic guard-screen
 
 Important production status:
 
-The current PRODUCTION_MIGRATION_MAPPING.md predates explicit confirmation of this reset patch. Therefore, the two-argument reset_guard_screen RPC must still be verified directly in Production before it is marked Production-confirmed.
+The two-argument reset_guard_screen(text, text) RPC is applied and confirmed in Supabase Production via migration 20261005075552, add_authenticated_guard_screen_reset. It is SECURITY DEFINER and callable by anon and authenticated.
 
 ---
 
@@ -495,7 +496,7 @@ Verify the actual Production schedule before marking this complete.
 | Guard-device approval | Production-confirmed |
 | Offline queue and sync code | Implemented |
 | Service Worker v15 | Implemented, but cache-version constants are not unified |
-| Two-argument reset_guard_screen | Implemented in repository/fresh-install script; Production verification pending |
+| Two-argument reset_guard_screen | Applied and confirmed in Production via migration 20261005075552 (add_authenticated_guard_screen_reset) |
 | Permanent vs Temporary/External registration split | Not implemented in current register.html |
 | External/affiliated entity registration field | Not implemented |
 | entry_time in verification success card | Not rendered yet |
@@ -526,7 +527,6 @@ The repository contains test scripts/checklists, but the following should not be
 | Role separation test | Pending acceptance evidence |
 | Employee privacy/guard display test | Pending acceptance evidence |
 | Service Worker upgrade/cache migration test | Pending after cache-version unification |
-| Production reset_guard_screen(text,text) verification | Pending |
 
 ---
 
@@ -559,15 +559,14 @@ Some older statements in supporting docs may lag behind the current repository. 
 Highest-priority technical items before declaring the system fully production-accepted:
 
 1. Unify CACHE_VERSION between service-worker.js, index.html, and verify-shared.js.
-2. Verify reset_guard_screen(text, text) exists and is callable in Production.
-3. Confirm cleanup_expired_qr_sessions is actually scheduled in Production.
-4. Decide and implement the final registration model for Permanent vs Temporary/External employees.
-5. Add entry_time and daily_visits to the verification/guard success renderer if required.
-6. Decide whether guard manual verification remains allowed or enforce scan-only behavior.
-7. Decide employee-photo privacy policy; convert to private/signed URLs if required.
-8. Run and record the outstanding acceptance tests.
-9. Complete legacy RPC consumer inventory before any legacy-grant freeze/removal.
-10. Reconcile Production migration history before introducing a formal supabase/migrations baseline.
+2. Confirm cleanup_expired_qr_sessions is actually scheduled in Production.
+3. Decide and implement the final registration model for Permanent vs Temporary/External employees.
+4. Add entry_time and daily_visits to the verification/guard success renderer if required.
+5. Decide whether guard manual verification remains allowed or enforce scan-only behavior.
+6. Decide employee-photo privacy policy; convert to private/signed URLs if required.
+7. Run and record the outstanding acceptance tests.
+8. Complete legacy RPC consumer inventory before any legacy-grant freeze/removal.
+9. Reconcile Production migration history before introducing a formal supabase/migrations baseline.
 
 ---
 
@@ -581,7 +580,6 @@ The remaining work is primarily:
 
 - a small set of frontend/spec alignment gaps;
 - cache-version alignment;
-- Production verification of the authenticated guard-screen reset;
 - privacy decisions for employee photos;
 - Cron verification;
 - formal acceptance testing;

@@ -2,7 +2,8 @@
 
 **Status:** Documentation-only mapping
 
-**Audit date:** 2026-09-30
+**Audit date:** 2026-09-30  
+**Guard-screen reset confirmation:** 2026-10-05
 
 **Production project:** `ALBASHIR-Gate-Production2026`
 
@@ -21,6 +22,7 @@ This document maps the current Supabase Production state to the repository SQL p
 | Guard device approval | Production has `gate_devices` and `admin_approve_gate_device(text, boolean)`. The function is `SECURITY DEFINER`, requires the admin path, changes `is_active`, and records approval activity. | `schema_patch_offline_gate_mode.sql`; `schema_patch_guard_device_admin_control.sql`; `schema_patch_production_hardening.sql` | `20260930004838_update_upsert_gate_device_heartbeat_require_admin_approval` is directly related to the gate-device approval/registration hardening area, but does not prove every guard-device patch file was applied. | **High** for capability; **Medium** for migration identity |
 | Offline device authentication | `gate_devices`, `offline_device_tokens`, and `gate_sync_status` exist. Production contains device-token hashes, active/revoked state, heartbeat fields, and token validation in the QR/heartbeat paths. | `schema_patch_offline_gate_mode.sql`; `schema_patch_pgcrypto_schema_fix.sql`; `schema_patch_gate_qr_device_auth.sql` | `20260928214412_enable_pgcrypto_for_qr_device_hash`; `20260928214426_refresh_create_qr_session_token_hash`; and `20260930004838_update_upsert_gate_device_heartbeat_require_admin_approval` are functionally related. The exact file-to-migration mapping is not recorded. | **High** for capability; **Medium** for migration identity |
 | Secure QR creation | Production has the two-argument `create_qr_session(p_device_code text, p_device_token text)` overload. Its definition checks active gate state and the non-revoked device-token hash, creates a QR session with a 30-second expiry, and updates gate/token usage timestamps. `qr_sessions` exists. | `schema_patch_gate_qr_device_auth.sql`; `schema_patch_offline_gate_mode.sql`; `schema_patch_pgcrypto_schema_fix.sql`; `schema_patch_production_hardening.sql` | The following recorded migrations are directly related to the QR/device-auth area: `20260928214252_fix_create_qr_session_device_token_signature`; `20260928214412_enable_pgcrypto_for_qr_device_hash`; `20260928214426_refresh_create_qr_session_token_hash`; `20260928215050_fix_qr_session_digest_schema`; `20260928215241_fix_qr_session_wrapper_hash_logic`. They still do not prove that a named repository patch was executed as a whole. | **High** for capability; **High** for functional relationship, not exact file identity |
+| Authenticated guard-screen reset | `reset_guard_screen(text, text)` is applied and confirmed in Production as a `SECURITY DEFINER` function, callable by `anon` and `authenticated`. | `schema_patch_guard_screen_reset_auth.sql` | `20261005075552_add_authenticated_guard_screen_reset` | **High** for capability and migration identity |
 | Auto employee check | Production exposes `auto_employee_check(p_device_token text, p_qr_token text)`. Its definition checks the employee approval state, Trusted Device state, receives the QR token, calls the central manual check, and returns the access decision. | `schema_patch_auto_verify.sql`; `schema_patch_verify_employee_profile.sql`; `schema_patch_trusted_device_registration_flow.sql`; `schema_patch_production_hardening.sql` | `20260929073218_add_qr_employee_identity_access_details` is related to employee identity/access result details. No recorded migration unambiguously represents the complete auto-check implementation. | **High** for capability; **Low/Medium** for migration identity |
 
 ## Current employee/profile architecture
@@ -76,6 +78,7 @@ The following migrations are actually recorded in Supabase Production:
 | `20260928215241` | `fix_qr_session_wrapper_hash_logic` |
 | `20260929073218` | `add_qr_employee_identity_access_details` |
 | `20260930004838` | `update_upsert_gate_device_heartbeat_require_admin_approval` |
+| `20261005075552` | `add_authenticated_guard_screen_reset` |
 
 No recorded migration name exactly matches the repository filenames `schema_patch_*.sql`. The relationship table above is therefore a capability/function mapping, not a claim that the corresponding repository file was executed as a complete unit.
 
