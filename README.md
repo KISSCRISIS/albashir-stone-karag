@@ -148,7 +148,7 @@ Implemented:
 
 Repository status:
 
-Production repository supports PERMANENT / TEMPORARY registration split with affiliated-entity field. Production DB migration is APPLIED AND VERIFIED via 20261005092112 registration_category_split (registration_category and affiliated_entity exist and are nullable, specialty remains NOT NULL, CHECK constraint exists, register_employee_request overloads 8/13/15 present, 15-arg has 0 defaults, anon/authenticated EXECUTE confirmed, old rows were NOT backfilled). The split frontend is DEPLOYED to Production (commit 76608c3): Production register.html uses the 15-argument overload and admin_dashboard.html shows the registration category + affiliated entity columns. Production smoke tests passed for registration UI state switching and deployed JS; admin authenticated live-row rendering was not exercised (no admin session used — static deployed code verified instead).
+Production repository supports PERMANENT / TEMPORARY registration split with affiliated-entity field. Production DB migration is APPLIED AND VERIFIED via 20261005092112 registration_category_split (registration_category and affiliated_entity exist and are nullable, specialty remains NOT NULL, CHECK constraint exists, register_employee_request overloads 8/13/15 present, 15-arg has 0 defaults, anon/authenticated EXECUTE confirmed, old rows were NOT backfilled). The split frontend is DEPLOYED to Production (commit 76608c3): Production register.html uses the 15-argument overload and admin_dashboard.html shows the registration category + affiliated entity columns. Production smoke tests passed for registration UI state switching and deployed JS; admin authenticated live-row rendering test COMPLETE and PASSED on Production as SUPER_ADMIN (طلبات التسجيل opened, نوع التسجيل column visible, legacy NULL registration_category rendered غير مصنف (سجل سابق), الجهة التابعة column visible, NULL affiliated_entity rendered -, no approve/reject action performed).
 
 ### verify.html
 
@@ -513,7 +513,7 @@ schedule_expired_qr_cleanup
 | Service Worker v15 | Implemented; cache-version constants aligned across service-worker.js, index.html, and verify-shared.js |
 | Two-argument reset_guard_screen | Applied and confirmed in Production via migration 20261005075552 (add_authenticated_guard_screen_reset) |
 | Permanent vs Temporary/External registration split | Production DB migration APPLIED AND VERIFIED via 20261005092112 registration_category_split; split frontend DEPLOYED to Production and smoke-tested |
-| External/affiliated entity registration field | Production DB migration APPLIED AND VERIFIED via 20261005092112 registration_category_split; admin column DEPLOYED to Production (live-row rendering not exercised — no admin session used) |
+| External/affiliated entity registration field | Production DB migration APPLIED AND VERIFIED via 20261005092112 registration_category_split; admin column DEPLOYED to Production and live-row rendering PASSED as SUPER_ADMIN (NULL renders -) |
 | entry_time in verification success card | Not rendered yet |
 | daily_visits in verification success card | Not rendered yet |
 | Guard scan-only policy | Not implemented; manual fallback still exists |
@@ -573,7 +573,7 @@ Some older statements in supporting docs may lag behind the current repository. 
 
 Highest-priority technical items before declaring the system fully production-accepted:
 
-1. Permanent vs Temporary/External registration feature: DEPLOYED and smoke-tested (commit 76608c3 on main, Production domain serving the split frontend; DB migration 20261005092112 APPLIED AND VERIFIED). Remaining for this feature: admin authenticated live-row rendering exercise (requires an admin session).
+1. Permanent vs Temporary/External registration feature: DEPLOYED, smoke-tested, and admin live-row rendering exercise COMPLETE and PASSED on Production as SUPER_ADMIN with no approve/reject action performed (commit 76608c3 on main; DB migration 20261005092112 APPLIED AND VERIFIED). This feature acceptance is complete; broader system acceptance work (below) remains.
 2. Add entry_time and daily_visits to the verification/guard success renderer if required.
 3. Decide whether guard manual verification remains allowed or enforce scan-only behavior.
 4. Decide employee-photo privacy policy; convert to private/signed URLs if required.
@@ -602,6 +602,6 @@ The correct status is:
 Core system: Implemented
 Production database core capabilities: Confirmed
 Vercel migration in repository: Implemented
-Registration split feature deployment: Verified for DB + registration frontend smoke tests; admin authenticated live-row exercise pending
+Registration split feature deployment: Verified for DB + registration frontend smoke tests + admin authenticated live-row rendering (PASSED as SUPER_ADMIN)
 Production acceptance: Pending final verification and recorded acceptance tests
 ~~~
