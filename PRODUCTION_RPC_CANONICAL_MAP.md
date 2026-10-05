@@ -13,7 +13,9 @@ The map exists to prevent future patch execution from reintroducing insecure ove
 | Capability | Canonical RPC | Canonical source of definition | Notes |
 |---|---|---|---|
 | Secure QR creation | `create_qr_session(text, text)` | `schema_patch_gate_qr_device_auth.sql` | Requires an active gate device and a valid non-revoked device token before creating a QR session. |
-| Employee registration | `register_employee_request(13 args)` | `schema_patch_trusted_device_registration_flow.sql` | Includes Trusted Device registration metadata and pending-request ownership validation. |
+| Employee registration | `register_employee_request(15 args, 0 defaults)` | `schema_patch_registration_category_split.sql` + migration `20261005092112 registration_category_split` (APPLIED AND VERIFIED) | Production-confirmed registration-category overload (PERMANENT / TEMPORARY via `p_registration_category` + `p_affiliated_entity`). Intended canonical path for the updated register.html after frontend deployment. The currently deployed pre-split frontend still calls the 13-argument overload. |
+| Employee registration (compatibility) | `register_employee_request(13 args)` | `schema_patch_trusted_device_registration_flow.sql` | Preserved compatibility overload, present in Production and still compatible with the currently deployed pre-split frontend. Do not remove now. Includes Trusted Device registration metadata and pending-request ownership validation. |
+| Employee registration (legacy) | `register_employee_request(8 args)` | Historical repository definition | Legacy compatibility overload present in Production. No new callers. |
 | Trusted Device fast login | `trusted_device_profile_login(text)` | `schema_patch_trusted_device_metadata.sql` | The only repository owner of this function definition. Requires an approved, enabled Trusted Device. |
 | Guard device approval | `admin_approve_gate_device(text, boolean)` | Production canonical API from the offline gate flow | Use this API for guard-device approval and status changes. |
 
@@ -33,7 +35,7 @@ These signatures are retained for compatibility and historical reference. They m
 |---|---|---|
 | `create_qr_session()` | Frozen legacy | Do not use for QR creation. The old body must not be reintroduced by production hardening. Freeze its grants in a separately reviewed migration. |
 | `create_qr_session(text)` | Frozen legacy | Production metadata previously reported this overload. Do not add callers. Freeze its grants after confirming external consumers. |
-| `register_employee_request(8 args)` | Frozen legacy | Use the 13-argument Trusted Device registration flow instead. Do not redefine or re-grant this overload from production hardening. |
+| `register_employee_request(8 args)` | Retained (not frozen for removal) | Retained in Production for compatibility. No new callers. Do not redefine or re-grant this overload from production hardening. No cleanup/removal until the updated frontend is deployed, external consumers are inventoried, test tooling is confirmed, and a separate approval is recorded. |
 | `admin_set_guard_device_status(text, boolean)` | Deprecated, non-canonical | Do not apply `schema_patch_guard_device_admin_control.sql` to Production. Use `admin_approve_gate_device(text, boolean)`. |
 
 > **No functions are deleted by this map.** Removal, if ever approved, requires a separate consumer inventory and migration decision.
@@ -55,12 +57,19 @@ For a new controlled environment, use an explicit dependency order rather than e
 
 ## Production rules
 
+Production-confirmed registration state (migration `20261005092112 registration_category_split`, APPLIED AND VERIFIED):
+- `register_employee_request(8 args)`: legacy compatibility overload, present in Production.
+- `register_employee_request(13 args)`: preserved compatibility overload, present in Production and still compatible with the currently deployed pre-split frontend.
+- `register_employee_request(15 args, 0 defaults)`: Production-confirmed registration-category overload; intended canonical path for the updated register.html after frontend deployment.
+
+No cleanup/removal of the 8-arg or 13-arg overloads now. Any future cleanup/removal requires all of: updated frontend deployed, external consumers inventoried, test tooling confirmed, and a separate approval.
+
 The existing Production database must not be rebuilt by rerunning all repository patches. Use a narrowly scoped, reviewed delta migration that:
 
 - preserves `create_qr_session(text, text)` as the canonical QR entry point;
 - prevents the old no-argument QR implementation from being reintroduced;
-- preserves `register_employee_request(13 args)` as the canonical registration entry point;
-- leaves the 8-argument registration overload frozen until consumer inventory is complete;
+- recognizes `register_employee_request(15 args, 0 defaults)` as the Production-confirmed registration-category overload;
+- preserves the 13-argument and 8-argument registration overloads (no removal);
 - installs exactly one body for `trusted_device_profile_login(text)`;
 - uses `admin_approve_gate_device(text, boolean)` for guard-device administration;
 - freezes legacy grants only after confirming external callers;

@@ -115,6 +115,13 @@
     <p class="desc">عبّئ الطلب مرة واحدة، (كل البيانات ادناه اجباريه)، ثم تنتظر موافقة الإدارة. بعد الاعتماد توجّه لبوابة الدخول وامسح رمز QR من شاشة الحارس للدخول.</p>
 
     <form id="registerForm">
+      <label for="registrationCategory">نوع التسجيل</label>
+      <select id="registrationCategory" required>
+        <option value="">اختر نوع التسجيل</option>
+        <option value="PERMANENT">موظف دائم</option>
+        <option value="TEMPORARY">موظف مؤقت / خارجي</option>
+      </select>
+
       <label for="fullName">الاسم الكامل</label>
       <input id="fullName" type="text" placeholder="الاسم الكامل" autocomplete="name" required />
 
@@ -122,47 +129,81 @@
       <input id="employeePhoto" class="file-input" type="file" accept="image/*" required />
       <img id="employeePhotoPreview" class="photo-preview" alt="معاينة الصورة الشخصية" />
 
-      <label for="employeeId">الرقم الوظيفي/الوطني لغير موظفين الوزارة</label>
-      <input id="employeeId" type="text" placeholder="الرقم الوظيفي أو الوطني" inputmode="numeric" required />
+      <label for="employeeId" id="employeeIdLabel">الرقم الوظيفي</label>
+      <input id="employeeId" type="text" placeholder="الرقم الوظيفي" inputmode="numeric" required />
 
       <label for="mobileNumber">رقم الهاتف</label>
       <input id="mobileNumber" type="tel" placeholder="رقم الهاتف" inputmode="tel" autocomplete="tel" required />
 
-      <label for="jobType">الوظيفة</label>
-      <select id="jobType" required>
-        <option value="">اختر الوظيفة</option>
-        <option>طبيب</option>
-        <option>تمريض</option>
-        <option>فنيين: أشعة</option>
-        <option>فنيين: مختبرات</option>
-        <option>فنيين: صيانة</option>
-        <option>أقسام إدارية</option>
-        <option>أمن</option>
-        <option>غير ذلك</option>
-      </select>
+      <div id="jobTypeWrap">
+        <label for="jobType">الوظيفة</label>
+        <select id="jobType" required>
+          <option value="">اختر الوظيفة</option>
+          <option>طبيب</option>
+          <option>تمريض</option>
+          <option>فنيين: أشعة</option>
+          <option>فنيين: مختبرات</option>
+          <option>فنيين: صيانة</option>
+          <option>أقسام إدارية</option>
+          <option>أمن</option>
+          <option>غير ذلك</option>
+        </select>
+      </div>
 
-      <label for="specialty">القسم / الاختصاص</label>
-      <select id="specialty" required>
-        <option value="">اختر القسم / الاختصاص</option>
-        <option value="الإسعاف والطوارئ (DRS/NRS/EMT/MLT)">الإسعاف والطوارئ (DRS/NRS/EMT/MLT)</option>
-        <option>طب عام</option>
-        <option>جراحة عامة</option>
-        <option>باطني</option>
-        <option>أطفال</option>
-        <option>ENT</option>
-        <option>نسائية</option>
-        <option>مسالك بولية</option>
-        <option>عيون</option>
-        <option>جراحة دماغ وأعصاب</option>
-        <option>تخدير</option>
-        <option>جراحة أوعية دموية</option>
-        <option>أشعة</option>
-        <option>مختبرات</option>
-        <option>صيانة</option>
-        <option>إدارة</option>
-        <option>أمن</option>
-        <option>أخرى</option>
-      </select>
+      <div id="departmentWrap">
+        <label for="department">القسم</label>
+        <select id="department" required>
+          <option value="">اختر القسم</option>
+          <option value="الإسعاف والطوارئ (DRS/NRS/EMT/MLT)">الإسعاف والطوارئ (DRS/NRS/EMT/MLT)</option>
+          <option>طب عام</option>
+          <option>جراحة عامة</option>
+          <option>باطني</option>
+          <option>أطفال</option>
+          <option>ENT</option>
+          <option>نسائية</option>
+          <option>مسالك بولية</option>
+          <option>عيون</option>
+          <option>جراحة دماغ وأعصاب</option>
+          <option>تخدير</option>
+          <option>جراحة أوعية دموية</option>
+          <option>أشعة</option>
+          <option>مختبرات</option>
+          <option>صيانة</option>
+          <option>إدارة</option>
+          <option>أمن</option>
+          <option>أخرى</option>
+        </select>
+      </div>
+
+      <div id="specialtyWrap">
+        <label for="specialty">القسم / الاختصاص</label>
+        <select id="specialty" required>
+          <option value="">اختر القسم / الاختصاص</option>
+          <option value="الإسعاف والطوارئ (DRS/NRS/EMT/MLT)">الإسعاف والطوارئ (DRS/NRS/EMT/MLT)</option>
+          <option>طب عام</option>
+          <option>جراحة عامة</option>
+          <option>باطني</option>
+          <option>أطفال</option>
+          <option>ENT</option>
+          <option>نسائية</option>
+          <option>مسالك بولية</option>
+          <option>عيون</option>
+          <option>جراحة دماغ وأعصاب</option>
+          <option>تخدير</option>
+          <option>جراحة أوعية دموية</option>
+          <option>أشعة</option>
+          <option>مختبرات</option>
+          <option>صيانة</option>
+          <option>إدارة</option>
+          <option>أمن</option>
+          <option>أخرى</option>
+        </select>
+      </div>
+
+      <div id="affiliatedEntityWrap">
+        <label for="affiliatedEntity">الجهة / المستشفى التابع له</label>
+        <input id="affiliatedEntity" type="text" placeholder="الجهة / المستشفى التابع له" required />
+      </div>
 
       <label style="display:flex;align-items:flex-start;gap:8px;margin-top:16px;cursor:pointer">
         <input id="confirmDeviceDocs" type="checkbox" required style="width:auto;margin-top:3px" />
@@ -263,10 +304,54 @@
     return supabaseClient.storage.from("employee-photos").getPublicUrl(path).data.publicUrl;
   }
 
+  function updateRegistrationForm() {
+    const categoryEl = $("registrationCategory");
+    if (!categoryEl) return;
+    const category = categoryEl.value;
+    const isPermanent = category === "PERMANENT";
+    const isTemporary = category === "TEMPORARY";
+    const employeeIdLabel = $("employeeIdLabel");
+    const employeeIdInput = $("employeeId");
+    if (employeeIdLabel && employeeIdInput) {
+      if (isTemporary) {
+        employeeIdLabel.textContent = "الرقم الوطني";
+        employeeIdInput.placeholder = "الرقم الوطني";
+      } else if (isPermanent) {
+        employeeIdLabel.textContent = "الرقم الوظيفي";
+        employeeIdInput.placeholder = "الرقم الوظيفي";
+      } else {
+        employeeIdLabel.textContent = "الرقم الوظيفي / الوطني";
+        employeeIdInput.placeholder = "اختر نوع التسجيل أولاً";
+      }
+    }
+    const toggleField = (wrapId, inputId, visible, required) => {
+      const wrap = $(wrapId);
+      const input = $(inputId);
+      if (!wrap || !input) return;
+      wrap.style.display = visible ? "" : "none";
+      input.disabled = !visible;
+      input.required = visible && required;
+      if (!visible) input.value = "";
+    };
+    toggleField("jobTypeWrap", "jobType", isPermanent, true);
+    toggleField("departmentWrap", "department", isPermanent, true);
+    toggleField("specialtyWrap", "specialty", isTemporary, true);
+    toggleField("affiliatedEntityWrap", "affiliatedEntity", isTemporary, true);
+  }
+
+  function setupRegistrationCategoryUI() {
+    const categoryEl = $("registrationCategory");
+    if (!categoryEl) return;
+    categoryEl.addEventListener("change", updateRegistrationForm);
+    updateRegistrationForm();
+  }
+
   $("registerForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!supabaseClient) { setResult("DENIED", "لا يمكن الاتصال بالنظام."); return; }
     if (!navigator.onLine) { setResult("DENIED", "لا يوجد اتصال بالإنترنت. التسجيل يحتاج اتصالاً فعالاً — حاول مرة أخرى عند توفر الشبكة."); return; }
+    const category = $("registrationCategory").value;
+    if (category !== "PERMANENT" && category !== "TEMPORARY") { setResult("DENIED", "الرجاء اختيار نوع التسجيل أولاً."); return; }
 
     try {
       disableButton("registerButton", true, "جارِ رفع الصورة...", "إرسال طلب التسجيل");
@@ -275,28 +360,37 @@
       const photoUrl = await uploadEmployeePhoto(employeeId);
       const pendingDeviceToken = getOrCreatePendingRegistrationToken(employeeId, deviceId);
       disableButton("registerButton", true, "جارِ إرسال الطلب...", "إرسال طلب التسجيل");
+      const isTemporary = category === "TEMPORARY";
       const payload = {
         p_full_name: $("fullName").value.trim(),
         p_employee_id: employeeId,
         p_mobile_number: $("mobileNumber").value.trim(),
-        p_specialty: $("specialty").value.trim(),
+        p_specialty: isTemporary ? $("specialty").value.trim() : null,
         p_qr_token: null,
-        p_job_type: $("jobType").value.trim(),
-        p_department: $("jobType").value.trim(),
+        p_job_type: isTemporary ? null : $("jobType").value.trim(),
+        p_department: isTemporary ? null : $("department").value.trim(),
         p_photo_url: photoUrl,
         p_device_token: pendingDeviceToken,
         p_device_id: deviceId,
         p_device_type: getDeviceType(),
         p_device_name: getDeviceName(),
-        p_user_agent: navigator.userAgent
+        p_user_agent: navigator.userAgent,
+        p_registration_category: category,
+        p_affiliated_entity: isTemporary ? $("affiliatedEntity").value.trim() : null
       };
       const { data, error } = await supabaseClient.rpc("register_employee_request", payload);
       const result = normalizeRpcData(data, "register_employee_request") || data;
       if (error || !result) throw new Error(error?.message || "فشل إرسال الطلب.");
-      setResult(result.result || "PENDING", "تم إرسال طلب التسجيل بنجاح.\nحالة الحساب الآن: قيد المراجعة.\nبعد اعتماد الإدارة توجّه لبوابة الدخول وامسح QR من شاشة الحارس للدخول.", result.employee || null);
+      const resultMessage =
+        result.message ||
+        (result.result === "PENDING"
+          ? "تم إرسال طلب التسجيل بنجاح.\nحالة الحساب الآن: قيد المراجعة.\nبعد اعتماد الإدارة توجّه لبوابة الدخول وامسح QR من شاشة الحارس للدخول."
+          : "تمت معالجة الطلب.");
+      setResult(result.result || "PENDING", resultMessage, result.employee || null);
       if (result.ok === true) {
         saveTrustedDeviceToken(pendingDeviceToken);
         $("registerForm").reset();
+        updateRegistrationForm();
         $("employeePhotoPreview").removeAttribute("src");
         $("employeePhotoPreview").style.display = "none";
       }
@@ -327,6 +421,7 @@
   }
 
   setupEmployeePhotoPreview();
+  setupRegistrationCategoryUI();
   initSupabase();
   updateNetworkState();
   window.addEventListener("online", updateNetworkState);

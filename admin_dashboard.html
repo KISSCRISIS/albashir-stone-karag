@@ -1268,6 +1268,8 @@
                 <th>الهاتف</th>
                 <th>الوظيفة</th>
                 <th>الاختصاص</th>
+                <th>نوع التسجيل</th>
+                <th>الجهة التابعة</th>
                 <th>الحالة</th>
                 <th>الدخول الأول</th>
                 <th>التحقق السريع</th>
@@ -2273,7 +2275,7 @@
       const rows = filteredRegistrationsData;
 
       if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="11">لا توجد طلبات حتى الآن.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="13">لا توجد طلبات حتى الآن.</td></tr>`;
         return;
       }
 
@@ -2285,6 +2287,8 @@
           <td>${escapeHtml(row.mobile_number)}</td>
           <td>${escapeHtml(row.job_type || "-")}</td>
           <td>${escapeHtml(row.specialty)}</td>
+          <td>${row.registration_category === "PERMANENT" ? "موظف دائم" : row.registration_category === "TEMPORARY" ? "مؤقت / خارجي" : "غير مصنف (سجل سابق)"}</td>
+          <td>${escapeHtml(row.affiliated_entity || "-")}</td>
           <td>${statusBadge(row.status)}</td>
           <td>${row.first_entry_used ? `<span class="badge yellow">مستخدم</span><br><span class="small-muted">${formatDate(row.first_entry_at)}</span>` : `<span class="badge blue">غير مستخدم</span>`}</td>
           <td>${renderTrustedDeviceCell(row)}</td>

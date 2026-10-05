@@ -1,7 +1,7 @@
 -- =============================================================================
 -- ALBASHIR Gate — Consolidated Fresh-Install Schema
 -- =============================================================================
--- Generated: 2026-10-04
+-- Updated: 2026-10-05
 --
 -- PURPOSE
 -- This file concatenates schema.sql and every active schema_patch_*.sql file, including the authenticated guard-screen reset patch
@@ -34,11 +34,17 @@
 --      schema_patch_auto_verify.sql AND schema_patch_offline_gate_mode.sql.
 --   3) schema_patch_employee_profiles.sql's own header states it must run
 --      after schema_patch_verify_employee_profile.sql.
---   4) schema_patch_production_hardening.sql's own header says "Run LAST,
---      after schema.sql and every schema_patch_*.sql file" — confirmed by
---      grep: it references trusted_device_token_hash / trusted_device_enabled
+--   4) schema_patch_production_hardening.sql must run after the trusted-device
+--      patches (its own header says "Run LAST, after schema.sql and every
+--      schema_patch_*.sql file", confirmed by grep: it references
+--      trusted_device_token_hash / trusted_device_enabled
 --      / register_trusted_device, all introduced by the trusted-device
---      patches, so it cannot run before them.
+--      patches, so it cannot run before them) — but it is NOT the final layer
+--      of this file anymore. Layers 11-13 intentionally run after it as newer,
+--      narrowly scoped additions:
+--      [11/13] gate_qr_device_auth stays the last layer that defines
+--      create_qr_session; [12/13] guard_screen_reset_auth depends on it;
+--      [13/13] registration_category_split is the current final layer.
 --   5) schema_patch_gate_qr_device_auth.sql only needs
 --      schema_patch_offline_gate_mode.sql and schema_patch_pgcrypto_schema_fix.sql,
 --      and per PRODUCTION_RPC_CANONICAL_MAP.md it must be the final layer
@@ -71,7 +77,7 @@
 
 
 -- =============================================================================
--- [1/11] SOURCE FILE: schema.sql
+-- [1/13] SOURCE FILE: schema.sql
 -- =============================================================================
 
 -- =========================================================
@@ -2192,7 +2198,7 @@ notify pgrst, 'reload schema';
 -- افتحي QR جديد من شاشة الحارس، امسحيه، يجب أن يظهر في صفحة verify أن جلسة QR فعالة.
 
 -- =============================================================================
--- [2/11] SOURCE FILE: schema_patch_pgcrypto_schema_fix.sql
+-- [2/13] SOURCE FILE: schema_patch_pgcrypto_schema_fix.sql
 -- =============================================================================
 
 -- ALBASHIR Gate: pgcrypto schema compatibility fix for existing Supabase projects.
@@ -2225,7 +2231,7 @@ commit;
 notify pgrst, 'reload schema';
 
 -- =============================================================================
--- [3/11] SOURCE FILE: schema_patch_permanent_specialty.sql
+-- [3/13] SOURCE FILE: schema_patch_permanent_specialty.sql
 -- =============================================================================
 
 -- =========================================================
@@ -2571,7 +2577,7 @@ notify pgrst, 'reload schema';
 -- بعد تشغيل الباتش: الموظف APPROVED صاحب هذا الاختصاص سيظهر ALLOWED دائمًا.
 
 -- =============================================================================
--- [4/11] SOURCE FILE: schema_patch_auto_verify.sql
+-- [4/13] SOURCE FILE: schema_patch_auto_verify.sql
 -- =============================================================================
 
 -- =========================================================
@@ -2945,7 +2951,7 @@ grant execute on function public.admin_set_trusted_device(uuid, boolean, boolean
 notify pgrst, 'reload schema';
 
 -- =============================================================================
--- [5/11] SOURCE FILE: schema_patch_offline_gate_mode.sql
+-- [5/13] SOURCE FILE: schema_patch_offline_gate_mode.sql
 -- =============================================================================
 
 -- =========================================================
@@ -3675,7 +3681,7 @@ grant execute on function public.cleanup_old_offline_access_logs(integer) to aut
 notify pgrst, 'reload schema';
 
 -- =============================================================================
--- [6/11] SOURCE FILE: schema_patch_verify_employee_profile.sql
+-- [6/13] SOURCE FILE: schema_patch_verify_employee_profile.sql
 -- =============================================================================
 
 -- =========================================================
@@ -4325,7 +4331,7 @@ $$;
 grant execute on function public.get_guard_employee_result(text) to anon, authenticated;
 
 -- =============================================================================
--- [7/11] SOURCE FILE: schema_patch_employee_profiles.sql
+-- [7/13] SOURCE FILE: schema_patch_employee_profiles.sql
 -- =============================================================================
 
 -- ALBASHIR Gate - employee profile and controlled data-change requests
@@ -4534,7 +4540,7 @@ grant execute on function public.employee_request_data_change(text, text, jsonb,
 grant execute on function public.admin_review_employee_data_change(uuid, text, text) to authenticated;
 
 -- =============================================================================
--- [8/11] SOURCE FILE: schema_patch_trusted_device_registration_flow.sql
+-- [8/13] SOURCE FILE: schema_patch_trusted_device_registration_flow.sql
 -- =============================================================================
 
 -- ALBASHIR Gate: trusted device registration flow fix
@@ -4837,7 +4843,7 @@ grant execute on function public.auto_employee_check(text, text) to anon, authen
 notify pgrst, 'reload schema';
 
 -- =============================================================================
--- [9/11] SOURCE FILE: schema_patch_trusted_device_metadata.sql
+-- [9/13] SOURCE FILE: schema_patch_trusted_device_metadata.sql
 -- =============================================================================
 
 -- ALBASHIR Gate - trusted device metadata and secure device registration
@@ -4995,7 +5001,7 @@ $$;
 grant execute on function public.trusted_device_profile_login(text) to anon, authenticated;
 
 -- =============================================================================
--- [10/11] SOURCE FILE: schema_patch_production_hardening.sql
+-- [10/13] SOURCE FILE: schema_patch_production_hardening.sql
 -- =============================================================================
 
 -- ALBASHIR Gate - production hardening
@@ -5439,7 +5445,7 @@ grant execute on function public.admin_set_trusted_device(uuid,boolean,boolean) 
 notify pgrst, 'reload schema';
 
 -- =============================================================================
--- [11/12] SOURCE FILE: schema_patch_gate_qr_device_auth.sql
+-- [11/13] SOURCE FILE: schema_patch_gate_qr_device_auth.sql
 -- =============================================================================
 
 -- ALBASHIR Gate: require trusted guard device authentication before issuing QR.
@@ -5559,54 +5565,7 @@ grant execute on function public.create_qr_session() to anon, authenticated;
 notify pgrst, 'reload schema';
 
 -- =============================================================================
--- VERIFICATION BLOCK — run after the script above completes successfully.
--- Confirms the canonical signatures exist and the frozen/deprecated ones
--- were not accidentally reintroduced, per PRODUCTION_RPC_CANONICAL_MAP.md.
--- =============================================================================
-
-select
-  'create_qr_session(text,text) canonical exists' as check_name,
-  to_regprocedure('public.create_qr_session(text,text)') is not null as passed
-union all
-select
-  'register_employee_request(13 args) canonical exists',
-  exists (
-    select 1 from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'register_employee_request'
-      and pg_get_function_arguments(p.oid) ilike '%p_device_token%'
-      and array_length(p.proargtypes, 1) = 13
-  )
-union all
-select
-  'trusted_device_profile_login(text) exists exactly once',
-  (
-    select count(*) from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'trusted_device_profile_login'
-  ) = 1
-union all
-select
-  'admin_approve_gate_device(text,boolean) canonical exists',
-  to_regprocedure('public.admin_approve_gate_device(text,boolean)') is not null
-union all
-select
-  'deprecated admin_set_guard_device_status is absent',
-  to_regprocedure('public.admin_set_guard_device_status(text,boolean)') is null;
-
--- All five rows above must read passed = true. If any reads false, stop and
--- investigate before pointing the application at this database — do not
--- proceed to register real employees or approve real gate devices.
-
--- Optional: schedule periodic cleanup (NOT enabled by default — uncomment
--- and run separately if pg_cron is available on this project):
--- select cron.schedule('erp-cleanup-expired-qr-sessions', '*/15 * * * *',
---   $$select public.cleanup_expired_qr_sessions()$$);
--- select cron.schedule('erp-offline-logs-retention', '0 3 1 * *',
---   $$select public.cleanup_old_offline_access_logs(12)$$);
-
--- =============================================================================
--- [12/12] SOURCE FILE: schema_patch_guard_screen_reset_auth.sql
+-- [12/13] SOURCE FILE: schema_patch_guard_screen_reset_auth.sql
 -- =============================================================================
 
 -- ALBASHIR Gate: authenticate reset_guard_screen() to the approved gate device
@@ -5701,3 +5660,385 @@ $$;
 grant execute on function public.reset_guard_screen(text, text) to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+
+-- =============================================================================
+-- [13/13] SOURCE FILE: schema_patch_registration_category_split.sql
+-- =============================================================================
+
+-- =============================================================================
+-- ALBASHIR Gate: registration category split (PERMANENT / TEMPORARY)
+-- Production migration: 20261005092112 registration_category_split
+-- Status: APPLIED AND VERIFIED in Production.
+-- WARNING: this file is now HISTORICAL / REFERENCE inside the repository.
+-- Do NOT re-apply it blindly against Production (columns, constraint and the
+-- 15-argument overload already exist there). Any future change requires a new
+-- narrowly scoped migration, not a re-run of this file.
+-- Depends on: schema_patch_trusted_device_registration_flow.sql (13-arg
+-- register_employee_request is the reference implementation preserved below).
+-- =============================================================================
+-- Purpose:
+-- 1) Add registration_category + affiliated_entity to employee_registrations
+--    (both nullable, no backfill, no NOT NULL).
+-- 2) Add a 15-argument overload of register_employee_request that keeps the
+--    first 13 args identical (names/order) and appends:
+--      p_registration_category text
+--      p_affiliated_entity   text
+--    NOTE: the 15-arg overload uses NO DEFAULTS on any parameter to avoid
+--    PostgreSQL/PostgREST overload ambiguity with the legacy 13-arg overload.
+-- 3) Keep the existing 13-arg implementation untouched in its own file.
+--    This file only ADDS the new overload; it never drops any overload.
+-- 4) Preserve Trusted Device pending flow, ownership validation, APPROVED /
+--    REJECTED / PENDING behavior, first_entry_used, validate_and_use_qr_token,
+--    gate_access_logs, and set_guard_status logic with minimal changes.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1) New columns (idempotent, nullable, no backfill)
+-- ---------------------------------------------------------------------------
+alter table public.employee_registrations
+  add column if not exists registration_category text;
+
+alter table public.employee_registrations
+  add column if not exists affiliated_entity text;
+
+-- ---------------------------------------------------------------------------
+-- 2) CHECK constraint (idempotent via DO block probing pg_constraint).
+--    Allows only PERMANENT / TEMPORARY / NULL. Old rows stay NULL.
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'chk_employee_registrations_registration_category'
+      and conrelid = 'public.employee_registrations'::regclass
+  ) then
+    alter table public.employee_registrations
+      add constraint chk_employee_registrations_registration_category
+      check (
+        registration_category is null
+        or registration_category in ('PERMANENT', 'TEMPORARY')
+      );
+  end if;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 3) 15-argument overload (first 13 args identical to the canonical 13-arg).
+--    Reference body: schema_patch_trusted_device_registration_flow.sql.
+-- ---------------------------------------------------------------------------
+create or replace function public.register_employee_request(
+  p_full_name text,
+  p_employee_id text,
+  p_mobile_number text,
+  p_specialty text,
+  p_qr_token text,
+  p_job_type text,
+  p_department text,
+  p_photo_url text,
+  p_device_token text,
+  p_device_id text,
+  p_device_type text,
+  p_device_name text,
+  p_user_agent text,
+  p_registration_category text,
+  p_affiliated_entity text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  reg record;
+  qr_ok boolean := false;
+  clean_name text := trim(coalesce(p_full_name, ''));
+  clean_emp text := trim(coalesce(p_employee_id, ''));
+  clean_mobile text := trim(coalesce(p_mobile_number, ''));
+  clean_specialty_in text := trim(coalesce(p_specialty, ''));
+  clean_job_in text := nullif(trim(coalesce(p_job_type, '')), '');
+  clean_dept_in text := nullif(trim(coalesce(p_department, '')), '');
+  clean_photo text := trim(coalesce(p_photo_url, ''));
+  clean_device_token text := trim(coalesce(p_device_token, ''));
+  clean_category text := upper(trim(coalesce(p_registration_category, '')));
+  clean_affiliated text := nullif(trim(coalesce(p_affiliated_entity, '')), '');
+  effective_specialty text;
+  store_job_type text;
+  store_department text;
+  store_affiliated text;
+begin
+  -- Backend category validation (never rely on frontend only).
+  if clean_category not in ('PERMANENT', 'TEMPORARY') then
+    return jsonb_build_object(
+      'ok', false,
+      'result', 'DENIED',
+      'message', 'نوع التسجيل غير صالح. اختر موظف دائم أو موظف مؤقت / خارجي'
+    );
+  end if;
+
+  -- Base required fields for both categories.
+  if clean_name = '' or clean_emp = '' or clean_mobile = '' then
+    return jsonb_build_object(
+      'ok', false,
+      'result', 'DENIED',
+      'message', 'الرجاء تعبئة الاسم ورقم الموظف/الوطني ورقم الهاتف'
+    );
+  end if;
+
+  if clean_photo = '' then
+    return jsonb_build_object(
+      'ok', false,
+      'result', 'DENIED',
+      'message', 'الصورة الشخصية مطلوبة'
+    );
+  end if;
+
+  -- Category-specific validation and effective values.
+  if clean_category = 'PERMANENT' then
+    if clean_job_in is null or clean_dept_in is null then
+      return jsonb_build_object(
+        'ok', false,
+        'result', 'DENIED',
+        'message', 'الوظيفة والقسم مطلوبان للموظف الدائم'
+      );
+    end if;
+    -- Keep legacy access rules working: specialty column carries department.
+    effective_specialty := clean_dept_in;
+    store_job_type := clean_job_in;
+    store_department := clean_dept_in;
+    store_affiliated := null;
+  else
+    -- TEMPORARY
+    if clean_specialty_in = '' or clean_affiliated is null then
+      return jsonb_build_object(
+        'ok', false,
+        'result', 'DENIED',
+        'message', 'الاختصاص والجهة التابعة مطلوبان للموظف المؤقت / الخارجي'
+      );
+    end if;
+    effective_specialty := clean_specialty_in;
+    store_job_type := null;
+    store_department := null;
+    store_affiliated := clean_affiliated;
+  end if;
+
+  select *
+  into reg
+  from public.employee_registrations
+  where employee_id = clean_emp
+  limit 1
+  for update;
+
+  if reg.id is null then
+    insert into public.employee_registrations (
+      full_name,
+      employee_id,
+      mobile_number,
+      specialty,
+      job_type,
+      department,
+      employee_photo_url,
+      registration_category,
+      affiliated_entity,
+      status,
+      first_entry_used,
+      first_entry_at,
+      pending_trusted_device_token_hash,
+      pending_trusted_device_id,
+      pending_trusted_device_type,
+      pending_trusted_device_name,
+      pending_trusted_device_user_agent,
+      pending_trusted_device_created_at
+    )
+    values (
+      clean_name,
+      clean_emp,
+      clean_mobile,
+      effective_specialty,
+      store_job_type,
+      store_department,
+      clean_photo,
+      clean_category,
+      store_affiliated,
+      'PENDING',
+      false,
+      null,
+      case when length(clean_device_token) >= 40 then public.hash_trusted_device_token(clean_device_token) else null end,
+      nullif(trim(coalesce(p_device_id, '')), ''),
+      nullif(trim(coalesce(p_device_type, '')), ''),
+      nullif(trim(coalesce(p_device_name, '')), ''),
+      nullif(trim(coalesce(p_user_agent, '')), ''),
+      case when length(clean_device_token) >= 40 then now() else null end
+    )
+    returning * into reg;
+  else
+    if reg.status = 'PENDING' then
+      -- Ownership validation unchanged from the 13-arg implementation.
+      if length(clean_device_token) < 40
+         or reg.pending_trusted_device_token_hash is null
+         or reg.pending_trusted_device_token_hash <> public.hash_trusted_device_token(clean_device_token) then
+        return jsonb_build_object(
+          'ok', false,
+          'result', 'DENIED',
+          'message', 'تعذر التحقق من ملكية الطلب المعلق. استخدم الجهاز الذي أرسل الطلب أو راجع الإدارة'
+        );
+      end if;
+
+      update public.employee_registrations
+      set mobile_number = clean_mobile,
+          specialty = effective_specialty,
+          job_type = store_job_type,
+          department = store_department,
+          employee_photo_url = clean_photo,
+          registration_category = clean_category,
+          affiliated_entity = store_affiliated
+      where id = reg.id
+      returning * into reg;
+    end if;
+  end if;
+
+  if reg.status = 'REJECTED' then
+    insert into public.gate_access_logs (employee_registration_id, employee_id, mobile_number, full_name, specialty, result, reason)
+    values (reg.id, reg.employee_id, reg.mobile_number, reg.full_name, reg.specialty, 'DENIED', 'REJECTED_EMPLOYEE');
+    perform public.set_guard_status('DENIED', reg.full_name, reg.employee_id, 'تم رفض الطلب مسبقًا');
+    return jsonb_build_object('ok', true, 'result', 'DENIED', 'message', 'تم رفض الطلب، يرجى مراجعة الإدارة');
+  end if;
+
+  if reg.status = 'APPROVED' then
+    return public.manual_employee_check(reg.employee_id, reg.mobile_number, p_qr_token);
+  end if;
+
+  if reg.first_entry_used = true then
+    insert into public.gate_access_logs (employee_registration_id, employee_id, mobile_number, full_name, specialty, result, reason)
+    values (reg.id, reg.employee_id, reg.mobile_number, reg.full_name, reg.specialty, 'DENIED', 'PENDING_FIRST_ENTRY_ALREADY_USED');
+    perform public.set_guard_status('DENIED', reg.full_name, reg.employee_id, 'طلب قيد المراجعة — تم استخدام الدخول الأول سابقًا');
+    return jsonb_build_object('ok', true, 'result', 'DENIED', 'message', 'طلبك قيد المراجعة، وتم استخدام الدخول الأول سابقًا');
+  end if;
+
+  qr_ok := public.validate_and_use_qr_token(p_qr_token);
+
+  if qr_ok then
+    update public.employee_registrations
+    set first_entry_used = true,
+        first_entry_at = now()
+    where id = reg.id
+    returning * into reg;
+
+    insert into public.gate_access_logs (employee_registration_id, employee_id, mobile_number, full_name, specialty, result, reason, qr_token)
+    values (reg.id, reg.employee_id, reg.mobile_number, reg.full_name, reg.specialty, 'PENDING_FIRST_ENTRY', 'FIRST_ENTRY_AFTER_REGISTRATION',
+      case when p_qr_token is null or p_qr_token = '' then null else p_qr_token::uuid end);
+    perform public.set_guard_status('LIMITED', reg.full_name, reg.employee_id, 'دخول أول مرة — بانتظار موافقة الإدارة');
+    return jsonb_build_object('ok', true, 'result', 'LIMITED', 'message', 'تم إرسال طلبك. تم السماح بدخول أول مرة فقط، والطلب بانتظار موافقة الإدارة');
+  end if;
+
+  return jsonb_build_object('ok', true, 'result', 'PENDING', 'message', 'تم إرسال طلبك، الرجاء انتظار موافقة الإدارة');
+end;
+$$;
+
+-- Same grants as the 13-arg overload; legacy overload grants untouched.
+grant execute on function public.register_employee_request(text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+  to anon, authenticated;
+
+notify pgrst, 'reload schema';
+
+-- =============================================================================
+-- VERIFICATION BLOCK — run after the script above completes successfully.
+-- Confirms the canonical signatures exist and the frozen/deprecated ones
+-- were not accidentally reintroduced, per PRODUCTION_RPC_CANONICAL_MAP.md.
+-- Includes Layer 13 (registration_category_split) checks.
+-- =============================================================================
+
+select
+  'create_qr_session(text,text) canonical exists' as check_name,
+  to_regprocedure('public.create_qr_session(text,text)') is not null as passed
+union all
+select
+  'register_employee_request(13 args) canonical exists',
+  exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and pg_get_function_arguments(p.oid) ilike '%p_device_token%'
+      and array_length(p.proargtypes, 1) = 13
+  )
+union all
+select
+  'trusted_device_profile_login(text) exists exactly once',
+  (
+    select count(*) from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'trusted_device_profile_login'
+  ) = 1
+union all
+select
+  'admin_approve_gate_device(text,boolean) canonical exists',
+  to_regprocedure('public.admin_approve_gate_device(text,boolean)') is not null
+union all
+select
+  'deprecated admin_set_guard_device_status is absent',
+  to_regprocedure('public.admin_set_guard_device_status(text,boolean)') is null
+union all
+select
+  'registration_category column exists',
+  exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_registrations'
+      and column_name = 'registration_category'
+  )
+union all
+select
+  'affiliated_entity column exists',
+  exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_registrations'
+      and column_name = 'affiliated_entity'
+  )
+union all
+select
+  'chk_employee_registrations_registration_category exists',
+  exists (
+    select 1 from pg_constraint
+    where conname = 'chk_employee_registrations_registration_category'
+      and conrelid = 'public.employee_registrations'::regclass
+  )
+union all
+select
+  'register_employee_request(15 args) exists',
+  exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 15
+  )
+union all
+select
+  'register_employee_request(15 args) has 0 defaults',
+  coalesce((
+    select p.pronargdefaults from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 15
+  ), -1) = 0
+union all
+select
+  'register_employee_request(13 args) still exists',
+  exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 13
+  );
+
+-- All eleven rows above must read passed = true. If any reads false, stop and
+-- investigate before pointing the application at this database — do not
+-- proceed to register real employees or approve real gate devices.
+
+-- Optional: schedule periodic cleanup (NOT enabled by default — uncomment
+-- and run separately if pg_cron is available on this project):
+-- select cron.schedule('erp-cleanup-expired-qr-sessions', '*/15 * * * *',
+--   $$select public.cleanup_expired_qr_sessions()$$);
+-- select cron.schedule('erp-offline-logs-retention', '0 3 1 * *',
+--   $$select public.cleanup_old_offline_access_logs(12)$$);

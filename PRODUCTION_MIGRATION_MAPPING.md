@@ -36,10 +36,32 @@ Production still contains legacy overloads:
 create_qr_session()
 create_qr_session(p_device_token text)
 register_employee_request(8 arguments)
-The approved current runtime paths are:
+Production-confirmed database RPC state:
 create_qr_session(p_device_code text, p_device_token text)
-register_employee_request(13 arguments with Trusted Device fields)
-The legacy overloads are intentionally not removed by this mapping. They are scheduled for a later, separately approved cleanup after all external consumers and test tooling are confirmed to use the approved signatures.
+
+register_employee_request overloads currently present in Production:
+- 8 arguments: legacy compatibility overload
+- 13 arguments: preserved compatibility overload and still compatible with the currently deployed pre-split frontend
+- 15 arguments: new Production-confirmed registration-category overload (0 defaults), intended for the updated register.html after frontend deployment
+The 8-arg and 13-arg overloads are intentionally retained. No cleanup/removal should occur until the updated frontend is deployed and all external consumers/test tooling are confirmed to use the intended signatures.
+Registration category split migration (APPLIED in Production):
+Production migration:
+20261005092112 registration_category_split
+Adds registration_category + affiliated_entity to employee_registrations and a 15-argument register_employee_request overload (PERMANENT / TEMPORARY).
+Status:
+APPLIED AND VERIFIED
+Verified Production state:
+- registration_category exists and is nullable
+- affiliated_entity exists and is nullable
+- specialty remains NOT NULL (preserved)
+- chk_employee_registrations_registration_category CHECK constraint confirmed
+- register_employee_request 8-arg overload preserved
+- register_employee_request 13-arg overload preserved
+- register_employee_request 15-arg overload present
+- 15-arg overload has 0 defaults
+- anon/authenticated EXECUTE confirmed
+- old rows were NOT backfilled
+Note: schema_patch_registration_category_split.sql is now a historical/reference repository migration. Do NOT re-run it blindly against Production. Any future change must be a new narrowly scoped migration.
 Recorded Supabase migration history
 The following migrations are actually recorded in Supabase Production:
 Version	Recorded name
@@ -52,6 +74,7 @@ Version	Recorded name
 20260930004838	update_upsert_gate_device_heartbeat_require_admin_approval
 20261005075552	add_authenticated_guard_screen_reset
 20261005080323	schedule_expired_qr_cleanup
+20261005092112	registration_category_split
 
 
 Confirmed scheduled maintenance

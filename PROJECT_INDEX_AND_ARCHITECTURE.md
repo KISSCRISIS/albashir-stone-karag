@@ -57,6 +57,8 @@ the existing Production project (see `PRODUCTION_MIGRATION_MAPPING.md`).
 9. schema_patch_trusted_device_metadata.sql
 10. schema_patch_production_hardening.sql
 11. schema_patch_gate_qr_device_auth.sql
+12. schema_patch_guard_screen_reset_auth.sql
+13. schema_patch_registration_category_split.sql (layer 13: adds registration_category + affiliated_entity and the 15-argument registration overload; Production migration 20261005092112 registration_category_split — APPLIED AND VERIFIED)
 
 `schema_patch_guard_device_admin_control.sql` is intentionally excluded —
 its own header marks it deprecated/non-canonical
@@ -84,7 +86,9 @@ Migration dependencies:
   `schema_patch_trusted_device_registration_flow.sql` /
   `schema_patch_trusted_device_metadata.sql`. Its own header also says to run
   it last, after every other patch.
-- Run `schema_patch_gate_qr_device_auth.sql` last because it overrides the QR runtime with `create_qr_session(device_code, device_token)` and replaces the unsecured QR-generation flow with trusted guard-device authentication.
+- Run `schema_patch_gate_qr_device_auth.sql` before the guard-screen reset layer because it overrides the QR runtime with `create_qr_session(device_code, device_token)` and replaces the unsecured QR-generation flow with trusted guard-device authentication.
+- Run `schema_patch_guard_screen_reset_auth.sql` after the QR device-auth layer (it uses `hash_offline_device_token()` and `offline_device_tokens` from that layer).
+- Run `schema_patch_registration_category_split.sql` last as layer 13 because it adds `registration_category` + `affiliated_entity` and the 15-argument registration overload on top of the 13-argument Trusted Device flow. Production migration 20261005092112 registration_category_split — APPLIED AND VERIFIED. Database Production state: 15-arg overload exists and is confirmed (0 defaults); 8-arg legacy compatibility and 13-arg preserved compatibility overloads retained (13-arg still supports the currently deployed pre-split frontend). Frontend deployment state: the updated register.html / admin_dashboard.html split changes are still LOCAL only and deployment is pending. In `schema_consolidated_fresh_install.sql`, Layer 13 is present and the final Verification Block runs after Layer 13 (it also checks the two new columns, the CHECK constraint, the 15-arg overload with 0 defaults, and that the 13-arg overload still exists).
 
 ## 4. Critical Tables
 
