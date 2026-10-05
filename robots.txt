@@ -1,4 +1,9 @@
 User-agent: *
+Disallow: /index.html
+Disallow: /verify.html
+Disallow: /register.html
+Disallow: /profile.html
+Disallow: /guard.html
 Disallow: /admin_dashboard.html
 Disallow: /login.html
 Disallow: /portal.html

@@ -24,7 +24,7 @@ const OFFLINE_DB_VERSION = 2;
 const OFFLINE_ACCESS_STORE = "offline_access_queue";
 const OFFLINE_CRYPTO_STORE = "offline_crypto_meta";
 const OFFLINE_CRYPTO_KEY_ID = "offline-sensitive-fields-v1";
-const CACHE_VERSION = "emergency-room-parking-offline-v15";
+const CACHE_VERSION = "emergency-room-parking-offline-v16";
 const APP_VERSION = "2026.09.28-24x7";
 
 let syncingLock = false;
@@ -443,25 +443,20 @@ async function syncGateDeviceHeartbeat() {
     p_app_version: APP_VERSION
   };
   try {
-    const { error } = await supabaseClient.rpc("upsert_gate_device_heartbeat", payload);
+    const { data, error } = await supabaseClient.rpc("upsert_gate_device_heartbeat", payload);
     if (error) throw error;
-  } catch (err) {
-    if (/p_app_version|schema cache|function/i.test(err.message || "")) {
-      try {
-        await supabaseClient.rpc("upsert_gate_device_heartbeat", {
-          p_device_code: device.device_code,
-          p_gate_name: device.gate_name,
-          p_cache_version: CACHE_VERSION,
-          p_user_agent: navigator.userAgent,
-          p_pending_count: pendingCount,
-          p_device_token: payload.p_device_token
-        });
-        return;
-      } catch (fallbackErr) {
-        console.warn("Gate device heartbeat fallback failed:", fallbackErr);
-      }
+    const result = normalizeRpcData(data, "upsert_gate_device_heartbeat");
+    if (!result || typeof result !== "object" || result.error || ("ok" in result && result.ok !== true) ||
+        result.pending_approval === true || result.revoked === true || result.revoked_at ||
+        result.approved === false || result.is_active === false || result.not_approved === true ||
+        ["pending", "revoked", "not-approved", "not_approved"].includes(String(result.status || "").toLowerCase())) {
+      throw new Error(result?.message || "جهاز الحارس غير معتمد أو تعذر تحديث حالته");
     }
-    console.warn("Gate device heartbeat failed:", err);
+  } catch (err) {
+    console.error("Gate device heartbeat failed:", err);
+    if (typeof setConnection === "function") setConnection("النظام غير متاح حالياً", "error");
+    if (typeof showSetupWarning === "function") showSetupWarning("النظام غير متاح حالياً", "error");
+    if (typeof reportHeartbeatIssue === "function") await reportHeartbeatIssue(err);
   }
 }
 

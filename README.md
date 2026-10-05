@@ -1,5 +1,17 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Frontend QR runtime hardening — October 2026
+
+- Expired displayed QR is cleared, including failed-refresh and foreground-resume paths. Only an unexpired server-issued QR may remain visible.
+- Absolute RPC `expires_at` is preferred when supplied; otherwise `expires_in_seconds` is anchored conservatively to the QR request start. Previously persisted QR entries using the old expiry calculation are not restored. No local token or validity extension is introduced.
+- Shared heartbeat errors and returned rejection states are logged and displayed; the silent compatibility retry is removed. Existing audit handling is used only where available.
+- Runtime cache reporting matches Service Worker v16; caching strategy is unchanged.
+- Operational pages are disallowed in robots.txt. The existing portal rule is unchanged.
+- The guard registration shortcut stays in document flow; result overlays scroll internally on short landscape screens.
+- Employee scan CTA already targets verify.html and is unchanged. SQL, RPC contracts, RLS and Register Hardening are unchanged.
+- Validation: `tests/frontend-qr-hardening.cjs` checks delayed/expired QR responses, failed refresh, absolute expiry, heartbeat rejection, and isolated browser layouts at 320/375/390/430px, 568x320, 844x390 and 1024x768. Page startup is disabled during layout checks; no Production calls or real-phone/camera tests are performed. Run with Playwright available on Node's module path.
+
+
 ## Production README — Current Repository State
 
 Last repository review: 2026-10-05
