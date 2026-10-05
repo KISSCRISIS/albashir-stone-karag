@@ -41,9 +41,9 @@ create_qr_session(p_device_code text, p_device_token text)
 
 register_employee_request overloads currently present in Production:
 - 8 arguments: legacy compatibility overload
-- 13 arguments: preserved compatibility overload and still compatible with the currently deployed pre-split frontend
-- 15 arguments: new Production-confirmed registration-category overload (0 defaults), intended for the updated register.html after frontend deployment
-The 8-arg and 13-arg overloads are intentionally retained. No cleanup/removal should occur until the updated frontend is deployed and all external consumers/test tooling are confirmed to use the intended signatures.
+- 13 arguments: preserved compatibility overload (the pre-split frontend path before the split frontend deployment)
+- 15 arguments: Production-confirmed registration-category overload (0 defaults); current Production frontend registration path since the split frontend deployment
+The 8-arg and 13-arg overloads are intentionally retained. No cleanup/removal should occur until all external consumers/test tooling are inventoried, confirmed to use the intended signatures, and separately approved.
 Registration category split migration (APPLIED in Production):
 Production migration:
 20261005092112 registration_category_split
