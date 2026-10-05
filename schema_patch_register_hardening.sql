@@ -16,9 +16,12 @@
 --    revoking its anon/authenticated grants (function NOT dropped).
 -- 2) Harden the 15-argument overload: input length limits, TEMPORARY specialty
 --    must exist in the active specialty allowlist, photo URL must be a storage
---    path or https URL.
+--    path or https URL. PUBLIC execute is revoked (anon/authenticated kept).
 -- 3) Return registration_category from employee_profile_login so profile.html
 --    can display the real category instead of a static placeholder.
+--    PUBLIC execute is revoked (anon/authenticated kept).
+-- 4) Self-verification SELECT block (14 rows) at the end of this file proves
+--    the hardening took effect; all rows must read passed = true.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -277,35 +280,81 @@ $$;
 grant execute on function public.register_employee_request(text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
   to anon, authenticated;
 
+-- CREATE OR REPLACE preserves pre-existing privileges, so explicitly revoke
+-- PUBLIC execute to complete the freeze (anon/authenticated stay granted).
+revoke execute on function public.register_employee_request(text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+  from public;
+
 -- ---------------------------------------------------------------------------
--- 3) employee_profile_login: same body as schema_patch_employee_profiles.sql
---    plus registration_category in the returned profile jsonb.
+-- 3) employee_profile_login: VERBATIM current Production body (rate limiting,
+--    failed/success security audit, SECURITY DEFINER, search_path, qr_history,
+--    change_requests, all returned fields) plus registration_category in the
+--    returned profile jsonb. Nothing else changed.
 -- ---------------------------------------------------------------------------
-create or replace function public.employee_profile_login(
-  p_employee_id text,
-  p_mobile_number text
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $$
+CREATE OR REPLACE FUNCTION public.employee_profile_login(p_employee_id text, p_mobile_number text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
 declare
   reg record;
   clean_id text := trim(coalesce(p_employee_id, ''));
   clean_mobile text := trim(coalesce(p_mobile_number, ''));
 begin
+
+  -- Rate limit
+  IF public.is_rate_limited(
+      'employee_profile_login',
+      clean_id,
+      5,
+      5
+  ) THEN
+
+    RETURN jsonb_build_object(
+      'ok', false,
+      'message', 'تم إيقاف المحاولة مؤقتاً بسبب كثرة المحاولات'
+    );
+
+  END IF;
+
+
   select * into reg
   from public.employee_registrations
-  where employee_id = clean_id and mobile_number = clean_mobile
+  where employee_id = clean_id
+    and mobile_number = clean_mobile
   limit 1;
 
-  if reg.id is null then
-    return jsonb_build_object('ok', false, 'message', 'الرقم الوظيفي أو الهاتف غير صحيح');
-  end if;
 
-  return jsonb_build_object(
+  IF reg.id IS NULL THEN
+
+    PERFORM public.write_security_attempt(
+      'employee_profile_login',
+      clean_id,
+      clean_mobile,
+      false
+    );
+
+
+    RETURN jsonb_build_object(
+      'ok', false,
+      'message', 'الرقم الوظيفي أو الهاتف غير صحيح'
+    );
+
+  END IF;
+
+
+  PERFORM public.write_security_attempt(
+    'employee_profile_login',
+    clean_id,
+    clean_mobile,
+    true
+  );
+
+
+  RETURN jsonb_build_object(
     'ok', true,
+
     'profile', jsonb_build_object(
       'id', reg.id,
       'full_name', reg.full_name,
@@ -323,8 +372,11 @@ begin
       'trusted_device_type', coalesce(reg.trusted_device_type, ''),
       'trusted_device_last_activity_at', reg.trusted_device_last_activity_at
     ),
-    'qr_history', coalesce((
-      select jsonb_agg(to_jsonb(log_row) order by log_row.created_at desc)
+
+    'qr_history',
+    coalesce((
+      select jsonb_agg(to_jsonb(log_row)
+      order by log_row.created_at desc)
       from (
         select created_at, result, reason, specialty
         from public.gate_access_logs
@@ -333,8 +385,11 @@ begin
         limit 30
       ) log_row
     ), '[]'::jsonb),
-    'change_requests', coalesce((
-      select jsonb_agg(to_jsonb(request_row) order by request_row.created_at desc)
+
+    'change_requests',
+    coalesce((
+      select jsonb_agg(to_jsonb(request_row)
+      order by request_row.created_at desc)
       from (
         select id, requested_changes, reason, status, admin_note, created_at, reviewed_at
         from public.employee_data_change_requests
@@ -343,10 +398,143 @@ begin
         limit 10
       ) request_row
     ), '[]'::jsonb)
+
   );
+
+
 end;
-$$;
+$function$;
 
 grant execute on function public.employee_profile_login(text, text) to anon, authenticated;
 
+-- Same PUBLIC-freeze rationale as the 15-arg overload above.
+revoke execute on function public.employee_profile_login(text, text)
+  from public;
+
 notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- 4) Self-verification: run to the end. All sixteen rows must read passed.
+--    Read-only SELECTs; safe to re-run any time.
+-- ---------------------------------------------------------------------------
+select
+  'create_qr_session(text,text) canonical exists' as check_name,
+  to_regprocedure('public.create_qr_session(text,text)') is not null as passed
+union all
+select
+  'register_employee_request(13 args) canonical exists',
+  exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and pg_get_function_arguments(p.oid) ilike '%p_device_token%'
+      and array_length(p.proargtypes, 1) = 13
+  )
+union all
+select
+  'trusted_device_profile_login(text) exists exactly once',
+  (
+    select count(*) from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'trusted_device_profile_login'
+  ) = 1
+union all
+select
+  'admin_approve_gate_device(text,boolean) canonical exists',
+  to_regprocedure('public.admin_approve_gate_device(text,boolean)') is not null
+union all
+select
+  'deprecated admin_set_guard_device_status is absent',
+  to_regprocedure('public.admin_set_guard_device_status(text,boolean)') is null
+union all
+select
+  'registration_category column exists',
+  exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_registrations'
+      and column_name = 'registration_category'
+  )
+union all
+select
+  'affiliated_entity column exists',
+  exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_registrations'
+      and column_name = 'affiliated_entity'
+  )
+union all
+select
+  'chk_employee_registrations_registration_category exists',
+  exists (
+    select 1 from pg_constraint
+    where conname = 'chk_employee_registrations_registration_category'
+      and conrelid = 'public.employee_registrations'::regclass
+  )
+union all
+select
+  'register_employee_request(15 args) exists',
+  exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 15
+  )
+union all
+select
+  'register_employee_request(15 args) has 0 defaults',
+  coalesce((
+    select p.pronargdefaults from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 15
+  ), -1) = 0
+union all
+select
+  'register_employee_request(13 args) still exists',
+  exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 13
+  )
+union all
+select
+  'register_employee_request(13 args) has no anon execute',
+  coalesce(has_function_privilege('anon', (
+    select p.oid from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 13
+  ), 'execute'), true) = false
+union all
+select
+  'register_employee_request(15 args) has no public execute',
+  coalesce(has_function_privilege('public', (
+    select p.oid from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'register_employee_request'
+      and array_length(p.proargtypes, 1) = 15
+  ), 'execute'), true) = false
+union all
+select
+  'employee_profile_login has no public execute',
+  coalesce(has_function_privilege('public', (
+    select p.oid from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'employee_profile_login'
+  ), 'execute'), true) = false
+union all
+select
+  'employee_profile_login retains is_rate_limited',
+  (select to_regprocedure('public.employee_profile_login(text, text)') is not null
+   and position('is_rate_limited' in pg_get_functiondef('public.employee_profile_login(text, text)'::regprocedure)) > 0)
+union all
+select
+  'employee_profile_login retains write_security_attempt',
+  (select to_regprocedure('public.employee_profile_login(text, text)') is not null
+   and position('write_security_attempt' in pg_get_functiondef('public.employee_profile_login(text, text)'::regprocedure)) > 0);
+
+-- All sixteen rows above must read passed = true. If any reads false, stop
+-- and investigate before pointing the application at this database.
