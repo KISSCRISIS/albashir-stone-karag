@@ -1,5 +1,28 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Staged guard RPC hardening — Phase A prepared
+
+Phase A: `supabase/migrations/20261005213927_guard_rpc_phase_a.sql` creates the device-bound result overload and revokes legacy reset execution from PUBLIC/anon/authenticated. Legacy employee-result access stays unchanged so the deployed index.html continues to work. Existing device-bound reset, tables and RLS remain unchanged.
+
+Rollout: apply reviewed Phase A; deploy and confirm index.html sends employee id + existing gate code/token and visibly logs/reports reset failures; only then apply `supabase/migrations/20261005213928_guard_rpc_phase_b.sql` to revoke legacy result execution from PUBLIC/anon/authenticated. Owner/service_role access remains. Do not run both migrations as a batch against existing Production. Canonical/fresh-install currently contain Phase A only. Phase B will be synchronized and committed after live caller confirmation.
+
+Phase A is prepared for application; frontend and Phase B are not yet deployed/applied. Isolated tests verify old/new callers coexist in Phase A, final ACLs in Phase B, device authentication, result contract without mobile_number, and frontend error handling with synthetic data only.
+
+## P0-3 mandatory QR — APPLIED AND VERIFIED 2026-10-06
+
+Applied from committed migration `supabase/migrations/20261005212905_manual_employee_check_require_qr.sql` (commit 9f35245). Live body and ACL verified after application; no real QR consumed. The complete live Production body captured by `pg_get_functiondef` is preserved except for replacing the optional QR block with unconditional validation and `qr_ok IS NOT TRUE` denial. Signature/defaults, existing ACLs, Employee Status, Trusted Device, specialty rules, daily limits and all response fields (including `access.entry_time` and `access.daily_visits`) are preserved.
+
+Canonical candidate: `supabase/canonical/manual_employee_check.sql`. The consolidated fresh-install script ends with this same definition; historical composition layers and patch files remain untouched. The new migrations directory contains this one targeted candidate, NOT a reconciled initial database baseline. Do not run a blanket reset/push or reapply historical patches.
+
+`tests/manual-employee-check-qr.cjs` executes the real PL/pgSQL candidate and captured validator in an isolated PGlite database with synthetic employees/QR tokens and test helper functions. It covers null/empty/whitespace/invalid/expired/consumed QR, valid tokens and claims/replay, rejected/pending employees and revoked devices before consumption, permanent specialties and daily limits. Valid-flow outputs are compared with the captured baseline; existing ACL preservation and exact source-only QR change are asserted. No Production QR is consumed. Run with the pinned test dependency available via Node's module path.
+
+Impact: approved registrations routed into manual checking without QR now receive DENIED; pending first-entry registration remains a separate unchanged path. Trusted-device checking with valid QR continues. Offline logging/sync and Register Hardening are unchanged.
+
+Reproducible SQL test setup: `npm ci --prefix tests`, then `npm --prefix tests test` (PGlite pinned to 0.5.8).
+
+Status: prepared for review, not committed/pushed or applied. Before any approved Production application, re-read the live definition and compare against the captured fixture to avoid overwriting intervening changes. Production acceptance is not claimed.
+
+
 ## Frontend QR runtime hardening — October 2026
 
 - Expired displayed QR is cleared, including failed-refresh and foreground-resume paths. Only an unexpired server-issued QR may remain visible.

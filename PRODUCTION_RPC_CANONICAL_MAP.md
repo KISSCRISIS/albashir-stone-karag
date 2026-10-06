@@ -12,6 +12,7 @@ The map exists to prevent future patch execution from reintroducing insecure ove
 
 | Capability | Canonical RPC | Canonical source of definition | Notes |
 |---|---|---|---|
+| Mandatory QR employee check (APPLIED AND VERIFIED) | `manual_employee_check(text,text,text)` | `supabase/canonical/manual_employee_check.sql`; targeted migration `20261005212905_manual_employee_check_require_qr.sql` | Complete live Production body, only the QR block changed. Consolidated fresh-install final override matches. Production mandatory QR applied and verified on 2026-10-06; historical patches must not be reapplied. |
 | Secure QR creation | `create_qr_session(text, text)` | `schema_patch_gate_qr_device_auth.sql` | Requires an active gate device and a valid non-revoked device token before creating a QR session. |
 | Employee registration | `register_employee_request(15 args, 0 defaults)` | `schema_patch_registration_category_split.sql` + migration `20261005092112 registration_category_split` (APPLIED AND VERIFIED) | Production-confirmed registration-category overload (PERMANENT / TEMPORARY via `p_registration_category` + `p_affiliated_entity`). Current Production frontend registration path (deployed register.html uses it; smoke-tested). |
 | Employee registration (compatibility) | `register_employee_request(13 args)` | `schema_patch_trusted_device_registration_flow.sql` | Preserved compatibility overload, present in Production. No longer the deployed frontend path. Do not remove now. Includes Trusted Device registration metadata and pending-request ownership validation. |

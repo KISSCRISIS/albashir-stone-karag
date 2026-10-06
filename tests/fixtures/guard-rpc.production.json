@@ -1,0 +1,20 @@
+[
+  {
+    "signature": "get_guard_employee_result(text)",
+    "definition": "CREATE OR REPLACE FUNCTION public.get_guard_employee_result(p_employee_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare\r\n  reg public.employee_registrations%rowtype;\r\n  result jsonb;\r\nbegin\r\n  select * into reg from public.employee_registrations\r\n  where employee_id = trim(coalesce(p_employee_id, ''))\r\n  limit 1;\r\n  if reg.id is null then return null; end if;\r\n  result := public.employee_result_details(reg.id);\r\n  return result - 'mobile_number';\r\nend;\r\n$function$\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres"
+  },
+  {
+    "signature": "reset_guard_screen()",
+    "definition": "CREATE OR REPLACE FUNCTION public.reset_guard_screen()\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nbegin\r\n  update public.guard_screen_status\r\n  set current_status = 'READY',\r\n      employee_name = null,\r\n      employee_id = null,\r\n      message = 'QR جاهز للمسح',\r\n      updated_at = now()\r\n  where id = 1;\r\n\r\n  return jsonb_build_object('ok', true);\r\nend;\r\n$function$\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres"
+  },
+  {
+    "signature": "reset_guard_screen(text,text)",
+    "definition": "CREATE OR REPLACE FUNCTION public.reset_guard_screen(p_device_code text, p_device_token text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  clean_device_code text := trim(coalesce(p_device_code, ''));\n  clean_token text := trim(coalesce(p_device_token, ''));\n  clean_token_hash text;\n  gate public.gate_devices%rowtype;\n  token_ok boolean := false;\nbegin\n  if clean_device_code = '' or clean_token = '' then\n    return jsonb_build_object('ok', false, 'message', 'جهاز الحارس غير موثق');\n  end if;\n\n  select * into gate\n  from public.gate_devices\n  where device_code = clean_device_code\n  limit 1;\n\n  if gate.id is null or coalesce(gate.is_active, false) = false then\n    perform public.log_gate_auth_failure(clean_device_code, 'reset_guard_screen: device not approved');\n    return jsonb_build_object('ok', false, 'message', 'جهاز الحارس غير معتمد');\n  end if;\n\n  clean_token_hash := public.hash_offline_device_token(clean_token);\n\n  select exists (\n    select 1\n    from public.offline_device_tokens\n    where gate_device_id = gate.id\n      and device_code = clean_device_code\n      and token_hash = clean_token_hash\n      and is_active = true\n      and revoked_at is null\n  )\n  into token_ok;\n\n  if token_ok = false then\n    perform public.log_gate_auth_failure(clean_device_code, 'reset_guard_screen: invalid token');\n    return jsonb_build_object('ok', false, 'message', 'رمز جهاز الحارس غير صالح');\n  end if;\n\n  update public.guard_screen_status\n  set current_status = 'READY',\n      employee_name = null,\n      employee_id = null,\n      message = 'QR جاهز للمسح',\n      updated_at = now()\n  where id = 1;\n\n  update public.gate_devices\n  set last_seen_at = now(),\n      updated_at = now()\n  where id = gate.id;\n\n  return jsonb_build_object('ok', true);\nend;\n$function$\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres"
+  }
+]
