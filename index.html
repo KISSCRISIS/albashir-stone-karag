@@ -879,12 +879,18 @@
     async function fetchGuardEmployee(employeeId) {
       if (!supabaseClient || !employeeId) return null;
       try {
+        const gateDevice = getGateDevice();
         const { data, error } = await supabaseClient.rpc("get_guard_employee_result", {
-          p_employee_id: employeeId
+          p_employee_id: employeeId,
+          p_device_code: gateDevice.device_code,
+          p_device_token: getOfflineDeviceToken()
         });
-        if (error) return null;
-        return normalizeRpcData(data) || data || null;
-      } catch {
+        const result = normalizeRpcData(data) || data || null;
+        if (error || result?.ok === false) throw error || new Error(result.message || "تعذر التحقق من جهاز الحارس");
+        return result;
+      } catch (err) {
+        console.error("Guard employee result failed:", err);
+        showSetupWarning("تعذر تحميل تفاصيل الموظف. تحقق من اتصال واعتماد جهاز الحارس", "error");
         return null;
       }
     }
@@ -943,21 +949,26 @@
 
     async function resetGuardDisplaySoon() {
       setManagedTimeout("resetGuardDisplay", async () => {
+        let resetFailed = false;
         setDecision("READY", "QR جديد جاهز للمسح.", "", "");
 
         if (supabaseClient) {
           try {
             const gateDevice = getGateDevice();
-            await supabaseClient.rpc("reset_guard_screen", {
+            const { data, error } = await supabaseClient.rpc("reset_guard_screen", {
               p_device_code: gateDevice.device_code,
               p_device_token: getOfflineDeviceToken()
             });
+            const result = normalizeRpcData(data);
+            if (error || result?.ok === false) throw error || new Error(result.message || "تعذر إعادة ضبط شاشة الحارس");
           } catch (err) {
-            console.warn("Reset RPC failed:", err);
+            console.error("Reset RPC failed:", err);
+            resetFailed = true;
           }
         }
 
         await refreshQrNow();
+        if (resetFailed) showSetupWarning("تعذر إعادة ضبط شاشة الحارس. تحقق من اتصال واعتماد الجهاز", "error");
       }, 6000);
     }
 

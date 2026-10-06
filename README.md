@@ -1,12 +1,12 @@
 # ALBASHIR Emergency Hospital Gate
 
-## Staged guard RPC hardening — Phase A prepared
+## Staged guard RPC hardening — Phase A APPLIED AND VERIFIED
 
 Phase A: `supabase/migrations/20261005213927_guard_rpc_phase_a.sql` creates the device-bound result overload and revokes legacy reset execution from PUBLIC/anon/authenticated. Legacy employee-result access stays unchanged so the deployed index.html continues to work. Existing device-bound reset, tables and RLS remain unchanged.
 
 Rollout: apply reviewed Phase A; deploy and confirm index.html sends employee id + existing gate code/token and visibly logs/reports reset failures; only then apply `supabase/migrations/20261005213928_guard_rpc_phase_b.sql` to revoke legacy result execution from PUBLIC/anon/authenticated. Owner/service_role access remains. Do not run both migrations as a batch against existing Production. Canonical/fresh-install currently contain Phase A only. Phase B will be synchronized and committed after live caller confirmation.
 
-Phase A is prepared for application; frontend and Phase B are not yet deployed/applied. Isolated tests verify old/new callers coexist in Phase A, final ACLs in Phase B, device authentication, result contract without mobile_number, and frontend error handling with synthetic data only.
+Phase A was applied and verified on 2026-10-06 from commit 058d89a. Existing result access and device reset body/ACL are preserved; legacy reset access is revoked. The frontend caller switch is validated locally and prepared for deployment; Phase B remains unapplied. Isolated tests verify old/new callers coexist in Phase A, final ACLs in Phase B, device authentication, result contract without mobile_number, and frontend error handling with synthetic data only.
 
 ## P0-3 mandatory QR — APPLIED AND VERIFIED 2026-10-06
 
