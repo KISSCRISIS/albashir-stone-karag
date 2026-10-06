@@ -2,7 +2,7 @@
   "name": "albashir-isolated-sql-regression",
   "private": true,
   "scripts": {
-    "test": "node manual-employee-check-qr.cjs && node guard-phase-a.cjs && node guard-frontend.cjs && node guard-rpc-hardening.cjs"
+    "test": "node manual-employee-check-qr.cjs && node guard-phase-a.cjs && node guard-frontend.cjs && node guard-rpc-hardening.cjs && node offline-sync.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8"

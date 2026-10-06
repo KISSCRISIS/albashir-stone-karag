@@ -1,5 +1,12 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Offline synchronization hardening — 2026-10-06
+
+Shared offline synchronization now sends at most 500 records and 256KiB serialized UTF-8 per batch, leaving headroom below the existing Production 1MB jsonb cap. A batch is deleted locally only after explicit ok=true and a valid synced_count acknowledgement. A zero count remains valid for server-side duplicate handling. Successful batches are removed separately; failures retain and increment retries only for unsent records, with visible/logged errors. Oversized or missing-ID records remain stored for review. Existing encryption, sync lock, RPC authentication, QR decisions, schema and RLS are unchanged.
+
+`tests/offline-sync.cjs` verifies large/Unicode queues, partial failures, malformed responses, duplicate acknowledgements, oversized records and concurrent synchronization without Production calls.
+
+
 ## Staged guard RPC hardening — APPLIED AND VERIFIED 2026-10-06
 
 Phase A: `supabase/migrations/20261005213927_guard_rpc_phase_a.sql` creates the device-bound result overload and revokes legacy reset execution from PUBLIC/anon/authenticated. Legacy employee-result access stays unchanged so the deployed index.html continues to work. Existing device-bound reset, tables and RLS remain unchanged.

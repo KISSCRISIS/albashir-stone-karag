@@ -468,21 +468,47 @@ async function syncOfflineAccessLogs() {
     logs = await readOfflineAccessLogs();
     if (!logs.length) return;
     const rpcLogs = await decryptOfflineAccessLogs(logs);
-    const { data, error } = await supabaseClient.rpc("sync_offline_access_logs", {
-      p_device_code: getGateDevice().device_code,
-      p_logs: rpcLogs,
-      p_device_token: getOfflineDeviceToken()
-    });
-    if (error) throw error;
-    const result = normalizeRpcData(data, "sync_offline_access_logs") || data;
-    if (result && result.ok === false) throw new Error(result.message || "رفضت قاعدة البيانات مزامنة سجلات Offline.");
-    await clearSyncedOfflineAccessLogs(logs);
+    // Production accepts <=500 rows and <=1MB of jsonb. Leave room for
+    // jsonb overhead by limiting serialized UTF-8 payloads to 256KiB.
+    const encoder = new TextEncoder();
+    let offset = 0;
+    while (offset < rpcLogs.length) {
+      const batch = [];
+      let bytes = 2;
+      while (offset + batch.length < rpcLogs.length && batch.length < 500) {
+        const item = rpcLogs[offset + batch.length];
+        if (!String(item.client_log_id || "").trim()) throw new Error("سجل Offline بلا معرف صالح؛ لم يُحذف من الجهاز.");
+        const itemBytes = encoder.encode(JSON.stringify(item)).length + (batch.length ? 1 : 0);
+        if (bytes + itemBytes > 256 * 1024) break;
+        batch.push(item);
+        bytes += itemBytes;
+      }
+      if (!batch.length) throw new Error("حجم سجل Offline يتجاوز حد المزامنة؛ لم يُحذف من الجهاز.");
+      const { data, error } = await supabaseClient.rpc("sync_offline_access_logs", {
+        p_device_code: getGateDevice().device_code,
+        p_logs: batch,
+        p_device_token: getOfflineDeviceToken()
+      });
+      if (error) throw error;
+      const result = normalizeRpcData(data, "sync_offline_access_logs");
+      if (!result || result.ok !== true || result.error || !Number.isInteger(result.synced_count) ||
+          result.synced_count < 0 || result.synced_count > batch.length) {
+        throw new Error(result?.message || "لم تؤكد قاعدة البيانات نجاح المزامنة؛ السجلات محفوظة على الجهاز.");
+      }
+      // A replay can report zero inserts: server conflict handling is idempotent.
+      await clearSyncedOfflineAccessLogs(logs.slice(0, batch.length));
+      logs = logs.slice(batch.length);
+      offset += batch.length;
+      await updateOfflinePendingBadge();
+    }
     await updateOfflinePendingBadge();
     await syncGateDeviceHeartbeat();
   } catch (err) {
     await incrementOfflineRetryCounts(logs).catch(() => {});
     await updateOfflinePendingBadge();
     console.warn("Offline access log sync failed:", err);
+    if (typeof showSetupWarning === "function") showSetupWarning("تعذرت المزامنة؛ السجلات غير المرسلة محفوظة على الجهاز.", "error");
+    if (typeof setConnection === "function") setConnection("تعذرت مزامنة السجلات المحفوظة", "error");
   } finally {
     syncingLock = false;
   }
