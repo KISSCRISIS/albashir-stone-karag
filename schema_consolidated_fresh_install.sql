@@ -6640,7 +6640,7 @@ $function$
 -- select cron.schedule('erp-offline-logs-retention', '0 3 1 * *',
 --   $$select public.cleanup_old_offline_access_logs(12)$$);
 
--- Guard Phase A only: legacy result remains available during frontend transition.
+-- Final guard state: Phase A + Phase B. Existing Production must use staged rollout.
 -- Phase A: approved candidate. NOT APPLIED to Production.
 -- Preserve legacy employee-result access until frontend deployment is confirmed.
 -- No tables/RLS changed; legacy functions retained for owner/service_role.
@@ -6703,3 +6703,7 @@ $function$;
 REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_guard_employee_result(text,text,text) TO anon, authenticated, service_role;
 REVOKE EXECUTE ON FUNCTION public.reset_guard_screen() FROM PUBLIC, anon, authenticated;
+
+-- Phase B: NOT APPLIED. Apply ONLY after Phase A and live frontend confirmation.
+-- Confirm index.html sends employee id, gate code and gate token; retain owner/service_role.
+REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text) FROM PUBLIC, anon, authenticated;

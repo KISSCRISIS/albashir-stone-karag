@@ -7,11 +7,15 @@ const root=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8').replace(/\r\n/g,'\n');
 const fixtures=JSON.parse(read('tests/fixtures/guard-rpc.production.json'));
 const phaseA=read('supabase/migrations/20261005213927_guard_rpc_phase_a.sql');
-const migration=phaseA;
-assert.ok(read('supabase/canonical/guard_rpc_device_hardening.sql').startsWith(migration));
-assert.ok(read('schema_consolidated_fresh_install.sql').includes(migration.trim()));
+const phaseB=read('supabase/migrations/20261005213928_guard_rpc_phase_b.sql');
+const migration=phaseA+'\n'+phaseB;
+assert.doesNotMatch(phaseA,/REVOKE EXECUTE ON FUNCTION public\.get_guard_employee_result\(text\)/);
+assert.equal(phaseB.split('\n').filter(l=>l.trim()&&!l.startsWith('--')).join('\n'),'REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text) FROM PUBLIC, anon, authenticated;');
+assert.equal(migration,read('supabase/canonical/guard_rpc_device_hardening.sql'));
+assert.ok(read('schema_consolidated_fresh_install.sql').trim().endsWith(migration.trim()));
 assert.doesNotMatch(migration,/\b(?:CREATE TABLE|ALTER TABLE|POLICY|DROP FUNCTION)\b/i);
-assert.doesNotMatch(migration,/REVOKE EXECUTE ON FUNCTION public\.get_guard_employee_result\(text\)/);
+assert.equal((migration.match(/CREATE OR REPLACE FUNCTION/g)||[]).length,1);
+assert.ok(fs.readdirSync(path.join(root,'supabase/migrations')).every(f=>['20261005212905_manual_employee_check_require_qr.sql','20261005213927_guard_rpc_phase_a.sql','20261005213928_guard_rpc_phase_b.sql'].includes(f)));
 (async()=>{
 const db=await PGlite.create();
 try{
@@ -41,9 +45,10 @@ for(const role of ['anon','authenticated']){
 }
 assert.equal((await db.query("SELECT EXISTS(SELECT 1 FROM pg_proc p,LATERAL aclexplode(p.proacl) a WHERE p.oid='get_guard_employee_result(text)'::regprocedure AND a.grantee=0 AND a.privilege_type='EXECUTE') allowed")).rows[0].allowed,true);
 console.log('PASS Phase A: old and new frontend contracts coexist; legacy reset denied');
-
+await db.exec(phaseB);
+console.log('PASS Phase B: legacy result revoked after frontend transition');
 assert.equal((await db.query("SELECT pg_get_functiondef('reset_guard_screen(text,text)'::regprocedure) body")).rows[0].body,resetBefore);
-for(const sig of ['reset_guard_screen()']){
+for(const sig of ['reset_guard_screen()','get_guard_employee_result(text)']){
  for(const role of ['anon','authenticated']){
  assert.equal((await db.query('SELECT has_function_privilege($1,$2,\'EXECUTE\') allowed',[role,sig])).rows[0].allowed,false);
  await db.exec('SET ROLE '+role);
@@ -65,6 +70,18 @@ assert.deepEqual(actual,(await db.query("SELECT get_guard_employee_result('EMP')
 await db.exec('SET ROLE anon');assert.equal((await db.query("SELECT reset_guard_screen('GATE','VALID') result")).rows[0].result.ok,true);await db.exec('RESET ROLE');
 assert.equal((await db.query('SELECT current_status FROM guard_screen_status')).rows[0].current_status,'READY');
 console.log('PASS device authentication, exact result contract, no mobile, reset works');
-console.log('ALL PHASE A TESTS PASS. Production untouched by tests.');
+const index=read('index.html');
+const fetchSource=index.slice(index.indexOf('    async function fetchGuardEmployee('),index.indexOf('    function setDecision('));
+const resetSource=index.slice(index.indexOf('    async function resetGuardDisplaySoon('),index.indexOf('    async function processGuardStatusRow('));
+assert.equal((index.match(/rpc\("get_guard_employee_result"/g)||[]).length,1);
+const calls=[],warnings=[],logs=[];
+let response={data:actual,error:null},callback;
+const context={supabaseClient:{rpc:async(name,args)=>{calls.push({name,args});return response;}},getGateDevice:()=>({device_code:'GATE'}),getOfflineDeviceToken:()=> 'VALID',normalizeRpcData:x=>x,showSetupWarning:(...a)=>warnings.push(a),console:{error:(...a)=>logs.push(a)},setManagedTimeout:(name,fn)=>{callback=fn;},setDecision:()=>{},refreshQrNow:async()=>{}};
+vm.createContext(context);vm.runInContext(fetchSource+resetSource,context);
+assert.equal((await context.fetchGuardEmployee('EMP')).full_name,'Synthetic');
+assert.equal(calls[0].args.p_device_code,'GATE');assert.equal(calls[0].args.p_device_token,'VALID');
+for(const failed of [{data:{ok:false,message:'denied'},error:null},{data:null,error:new Error('transport')}]){response=failed;await context.resetGuardDisplaySoon();await callback();assert.ok(warnings.length);assert.ok(logs.length);warnings.length=0;logs.length=0;}
+console.log('PASS secure frontend caller and visible/logged reset errors');
+console.log('ALL GUARD RPC TESTS PASS. Production untouched.');
 }finally{await db.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

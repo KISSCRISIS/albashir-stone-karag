@@ -60,3 +60,7 @@ $function$;
 REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_guard_employee_result(text,text,text) TO anon, authenticated, service_role;
 REVOKE EXECUTE ON FUNCTION public.reset_guard_screen() FROM PUBLIC, anon, authenticated;
+
+-- Phase B: NOT APPLIED. Apply ONLY after Phase A and live frontend confirmation.
+-- Confirm index.html sends employee id, gate code and gate token; retain owner/service_role.
+REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text) FROM PUBLIC, anon, authenticated;
