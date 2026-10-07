@@ -21,3 +21,6 @@ Staging Vercel deployment dpl_GZ5JyxSLVs8baBZHAJ3CB8aNYXzB is READY.
 Existing approved guard-status RPC was also synchronized to Staging so the current index.html can read authenticated status; no Production changes.
 
 Production gate remains BLOCKED by phone/full enrollment acceptance and owner rollout approval. Do not merge to main early: automatic Vercel deployment would expose incompatible callers before Production backend readiness.
+# Final owner policy update — 2026-10-07
+
+Admin approval now activates only the registration-time device directly, with 30-day expiry. This supersedes earlier acceptance criteria requiring an extra QR claim for a newly approved registration. Full isolated tests PASS; hosted rollback smoke confirms pending token preservation, admin approval activation without QR, matching-device fast login and wrong-device denial. Earlier phone evidence confirms QR/manual access but is not acceptance of the new approval flow. New registration → admin approval → same-phone fast login remains owner acceptance NOT RUN. Production unchanged.

@@ -1,0 +1,17 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const {PGlite}=require('@electric-sql/pglite');const {pgcrypto}=require('@electric-sql/pglite/contrib/pgcrypto');
+const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
+(async()=>{const db=new PGlite({extensions:{pgcrypto}});try{
+const source=read('tests/fresh-install-readiness.cjs');const start=source.lastIndexOf('await db.exec(`',source.indexOf('create role anon'))+15;const end=source.indexOf('`);',start);await db.exec(Function('return `'+source.slice(start,end)+'`;')());await db.exec(read('schema_consolidated_fresh_install.sql'));await db.exec(read('supabase/canonical/admin_registration_device_approval.sql'));
+await db.exec("create or replace function public.is_super_admin() returns boolean language sql as $$select true$$;");
+const token='b'.repeat(64);await db.query("insert into employee_registrations(full_name,employee_id,mobile_number,specialty,status,pending_trusted_device_token_hash,pending_trusted_device_id) values('Synthetic approval','APPROVAL-SYN','000-SYN','STAGING AUDIT','PENDING',hash_trusted_device_token($1),'device-A')",[token]);
+assert.equal((await db.query("select verify_trusted_device_credentials($1,'device-A') r",[token])).rows[0].r.ok,false);
+const pending=(await db.query("select trusted_device_profile_login($1,'device-A') r",[token])).rows[0].r;assert.equal(pending.ok,false);assert.equal(pending.pending,true);assert.equal(pending.clear_device,false);assert.equal(pending.profile,undefined);
+assert.equal((await db.query("select trusted_device_profile_login($1,'device-B') r",[token])).rows[0].r.ok,false);
+assert.equal((await db.query("select admin_update_registration_status(id,'APPROVED') r from employee_registrations where employee_id='APPROVAL-SYN'")).rows[0].r.ok,true);
+assert.equal((await db.query("select verify_trusted_device_credentials($1,'device-A') r",[token])).rows[0].r.ok,true);
+assert.equal((await db.query("select verify_trusted_device_credentials($1,'device-B') r",[token])).rows[0].r.ok,false);
+const row=(await db.query("select pending_trusted_device_token_hash, trusted_device_expires_at>now()+interval '29 days' as ttl from employee_registrations where employee_id='APPROVAL-SYN'")).rows[0];assert.equal(row.pending_trusted_device_token_hash,null);assert.equal(row.ttl,true);
+await db.exec("update employee_registrations set trusted_device_revoked_at=now() where employee_id='APPROVAL-SYN'");assert.equal((await db.query("select verify_trusted_device_credentials($1,'device-A') r",[token])).rows[0].r.ok,false);
+console.log('PASS admin approval activates submitted device without QR; pending/wrong-device/revoked denied; TTL and pending cleanup preserved');
+}finally{await db.close();}})().catch(e=>{console.error(e.message);process.exitCode=1});

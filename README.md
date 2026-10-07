@@ -832,3 +832,6 @@ Canonical 15-argument registration body synchronized from the live Production de
 
 ### P2-18 Staging integration candidate (2026-10-07)
 Three reviewed migrations synchronize the Staging enrollment claim, device ID binding and 30-day TTL implementation. Legacy enrollment/login overloads fail closed. Photo actors and Resolver now require device_id, and cache authorization keys include it. Production deployment is NOT approved: main auto-deploys Production frontend, so merge must wait for an approved rollout window and successful Staging phone acceptance. No Production SQL or Resolver deployment is performed during this review. See docs/P2_18_ROLLOUT.md.
+# Registration-device approval — owner decision 2026-10-07
+
+Admin approval now activates the device submitted with the registration request on Staging, with device binding and a 30-day expiry; no extra QR enrollment step is required. QR remains mandatory for gate access. Production is unchanged. See [the final policy and deployment scope](docs/ADMIN_APPROVAL_DEVICE_POLICY.md), which supersedes the earlier registration-device QR-claim requirement.
