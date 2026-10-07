@@ -514,7 +514,7 @@
         </div>
 
         <div class="toolbar">
-          <button class="btn-green" id="saveAdminButton" onclick="saveAdmin()">حفظ المشرف</button>
+          <button class="btn-green" id="saveAdminButton" type="button" onclick="saveAdmin()">إضافة مشرف</button>
           <button class="btn-soft" onclick="clearAdminForm()">تفريغ النموذج</button>
           <button onclick="loadAdmins()">تحديث المشرفين</button>
           <button class="btn-soft" onclick="exportCsv('admins')">تصدير CSV</button>
@@ -2079,6 +2079,7 @@
       $("adminRole").value = "SUB_ADMIN";
       $("adminActive").value = "true";
       applyRoleDefaultPermissions();
+      if ($("saveAdminButton")) $("saveAdminButton").textContent = "إضافة مشرف";
     }
 
     function fillAdminByIndex(index) {
@@ -2090,6 +2091,7 @@
       $("adminRole").value = row.role || "SUB_ADMIN";
       $("adminActive").value = row.is_active ? "true" : "false";
       setPermissionCheckboxes(row.permissions || {});
+      if ($("saveAdminButton")) $("saveAdminButton").textContent = "حفظ التعديل";
       showToast("تم تحميل بيانات المشرف للتعديل.", "ok");
     }
 
