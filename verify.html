@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="apple-touch-icon" href="./logo.jpeg" />
   <link rel="manifest" href="./manifest.json" />
-  <script src="./access-control.js" data-roles="EMPLOYEE"></script>
+  <script src="./access-control.js"></script>
   <script src="./supabase.min.js"></script>
   <script src="./jsqr.min.js"></script>
 
@@ -39,7 +39,7 @@
     <p class="scan-guidance">وجّه كاميرا هاتفك نحو رمز QR المعروض على <strong>شاشة الحارس</strong> مباشرة. يتم التحقق فور المسح وتظهر النتيجة أدناه.</p>
     <button type="button" id="cameraButton" onclick="startQrCamera()">فتح الكاميرا لمسح QR</button>
     <div id="scannerWrap" class="scanner-video-wrap hidden">
-      <video id="qrVideo" playsinline muted></video>
+      <video id="qrVideo" playsinline webkit-playsinline muted></video>
     </div>
     <div id="qrSessionStatus" class="notice hidden"></div>
   </section>
@@ -57,7 +57,7 @@
 
   <div id="setupWarning" class="notice hidden"></div>
 
-  <section id="manualSections">
+  <section id="manualSections" class="hidden">
     <div class="panel">
       <h2>تحقق يدوي</h2>
       <p class="desc">أدخل رقم الموظف ورقم الهاتف.</p>
@@ -204,7 +204,9 @@
       stopQrCamera();
       const video=$("qrVideo");
       $("scannerWrap").classList.remove("hidden");
-      qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+      video.setAttribute("playsinline","");
+      video.setAttribute("webkit-playsinline","");
+      qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
       video.srcObject=qrScanStream;
       await video.play();
       const detector=("BarcodeDetector" in window)
@@ -283,7 +285,7 @@
   async function claimQrSessionIfPresent(){
     if(!activeQrToken){
       qrClaimReady=false;
-      showManualSections(true);
+      showManualSections(false);
       return;
     }
     if(!supabaseClient) return;

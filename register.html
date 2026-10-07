@@ -231,8 +231,8 @@
       </div>
 
       <label style="display:flex;align-items:flex-start;gap:8px;margin-top:16px;cursor:pointer">
-        <input id="confirmDeviceDocs" type="checkbox" required style="width:auto;margin-top:3px" />
-        <span style="color:var(--muted);font-size:13px;line-height:1.6">أقر بأن بيانات هذا الجهاز موثقة باسمي وسأستخدمه للدخول لاحقًا.</span>
+        <input id="rememberTrustedDevice" type="checkbox" checked style="width:auto;margin-top:3px" />
+        <span style="color:var(--muted);font-size:13px;line-height:1.6">حفظ هذا الهاتف للدخول عبر QR بعد موافقة الإدارة. عند تفعيله لن تحتاج لإدخال الرقم الوظيفي أو الهاتف مرة أخرى على هذا الجهاز.</span>
       </label>
       <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
         <input id="confirmAccuracy" type="checkbox" required style="width:auto;margin-top:3px" />
@@ -433,9 +433,10 @@
     try {
       disableButton("registerButton", true, "جارِ رفع الصورة...", "إرسال طلب التسجيل");
       const employeeId = $("employeeId").value.trim();
-      const deviceId = getTrustedDeviceId();
+      const rememberDevice = $("rememberTrustedDevice")?.checked === true;
+      const deviceId = rememberDevice ? getTrustedDeviceId() : "";
       const photoPath = await uploadEmployeePhoto(employeeId);
-      const pendingDeviceToken = getOrCreatePendingRegistrationToken(employeeId, deviceId);
+      const pendingDeviceToken = rememberDevice ? getOrCreatePendingRegistrationToken(employeeId, deviceId) : "";
       disableButton("registerButton", true, "جارِ إرسال الطلب...", "إرسال طلب التسجيل");
       const isTemporary = category === "TEMPORARY";
       const payload = {
@@ -447,11 +448,11 @@
         p_job_type: isTemporary ? null : $("jobType").value.trim(),
         p_department: isTemporary ? null : $("department").value.trim(),
         p_photo_url: photoPath,
-        p_device_token: pendingDeviceToken,
-        p_device_id: deviceId,
-        p_device_type: getDeviceType(),
-        p_device_name: getDeviceName(),
-        p_user_agent: navigator.userAgent,
+        p_device_token: rememberDevice ? pendingDeviceToken : null,
+        p_device_id: rememberDevice ? deviceId : null,
+        p_device_type: rememberDevice ? getDeviceType() : null,
+        p_device_name: rememberDevice ? getDeviceName() : null,
+        p_user_agent: rememberDevice ? navigator.userAgent : null,
         p_registration_category: category,
         p_affiliated_entity: isTemporary ? $("affiliatedEntity").value.trim() : null
       };
@@ -465,7 +466,12 @@
           : "تمت معالجة الطلب.");
       setResult(result.result || "PENDING", resultMessage, result.employee || null);
       if (result.ok === true) {
-        saveTrustedDeviceToken(pendingDeviceToken);
+        if (rememberDevice) {
+          saveTrustedDeviceToken(pendingDeviceToken);
+        } else {
+          clearTrustedDeviceToken();
+          localStorage.removeItem(TRUSTED_DEVICE_ID_STORAGE_KEY);
+        }
         $("registerForm").reset();
         updateRegistrationForm();
         window.updateStepper?.("submitted");
