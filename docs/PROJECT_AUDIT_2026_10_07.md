@@ -28,3 +28,7 @@ Supabase reports leaked-password protection disabled in both environments; enabl
 ## Remaining gates
 Coordinated Production review/deployment still required for PR #5 backend/frontend changes and token invalidation. Real iPhone photo and registration -> administrator approval -> same-device fast login acceptance remain required. Historical secret/key exposure and external legacy service_role integration inventory are not settled by a working-tree scan. Do not disable legacy JWT keys.
 No claim of real-device tests, full penetration testing, staging-to-production parity or unrestricted Production readiness is made.
+
+## Final role and hosted checks
+
+Production is_admin() explicitly permits SUPER_ADMIN/SUB_ADMIN; has_admin_permission checks the active profile permissions; get_my_admin_profile binds auth.uid() to an active profile. Frontend SUB_ADMIN -> ADMIN normalization is a UI alias, not backend authorization. No role policy change was made. Live WebKit Staging test passed both-party QR decisions/photos, replacement panel, 10-second clearing and zero Production/employee gate-heartbeat requests. Cache Storage contained no token query keys.
