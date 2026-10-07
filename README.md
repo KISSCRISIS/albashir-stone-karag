@@ -823,3 +823,6 @@ Owner-reported Staging acceptance (2026-10-07): registration submission complete
 
 ### Guard status privacy — approved staged rollout (2026-10-07)
 Introduce get_guard_screen_status with active gate/token authentication, then deploy index.html using bounded five-second polling. Only after live frontend confirmation apply supabase/guard_status_retire_direct_read.sql to revoke direct SELECT. Fresh installs include the final ACL. QR and Register Hardening remain unchanged. Isolated synthetic tests cover device denial, private reads, contract and frontend concurrency/error handling. No real-phone test is claimed.
+
+### Five search_path warnings — review candidate (2026-10-07)
+Reviewed SQL: supabase/search_path_five_reviewed.sql. Sets pg_catalog only for normalize_specialty_name(text), is_permanently_allowed_specialty(text), default_admin_permissions(text), sync_trusted_device_activity() and prevent_approved_employee_identity_change(). No bodies, grants, ownership, volatility, tables, RLS or JWT keys change. Synthetic regression verifies behavior, hostile caller search_path resistance, approved identity protection and trusted-device activity synchronization. Owner approved the exact five ALTER statements on 2026-10-07; apply only this reviewed SQL and verify bodies/ACLs and advisors afterward.
