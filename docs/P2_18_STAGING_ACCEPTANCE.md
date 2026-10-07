@@ -11,7 +11,7 @@ Scope: Supabase adwvokwucotohwayorgx and https://albashir-staging.vercel.app onl
 | Ordinary portal login | PASS | Existing synthetic fixture logs into profile; zero direct enrollment requests |
 | Own photo display | PASS | Real Staging resolver and Storage, decoded blob image |
 | Device-bound photo invalid credentials | PASS | Live HTTP 403 with opaque DENIED |
-| Device-bound valid photo | PASS locally; live positive NOT RUN | No active Staging tokens remain; missing/wrong device rejected before object lookup in local tests |
+| Device-bound valid photo and IDOR | PASS live and locally | Verified synthetic fixture was temporarily provisioned, own blob photo decoded, wrong device and other employee path returned opaque HTTP 403; original fixture state restored |
 | Responsive browser | PASS | Seven viewports, including landscape; no Production requests |
 | Data preservation | PASS | 5 employees: 3 APPROVED, 2 PENDING, 0 active token rows |
 | Real phone / camera / enrollment return flow | NOT RUN | Owner cannot test phone now; previous phone results are not reused |
