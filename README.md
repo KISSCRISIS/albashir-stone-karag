@@ -835,3 +835,6 @@ Three reviewed migrations synchronize the Staging enrollment claim, device ID bi
 # Registration-device approval — owner decision 2026-10-07
 
 Admin approval now activates the device submitted with the registration request on Staging, with device binding and a 30-day expiry; no extra QR enrollment step is required. QR remains mandatory for gate access. Production is unchanged. See [the final policy and deployment scope](docs/ADMIN_APPROVAL_DEVICE_POLICY.md), which supersedes the earlier registration-device QR-claim requirement.
+# Final trusted-device duration — 2026-10-07
+
+On Staging, the owner-approved registration device remains trusted until administrator revocation while the employee remains approved and device authorization remains valid. The earlier 30-day duration is superseded. QR remains mandatory for gate access. Production unchanged; see [final policy](docs/ADMIN_APPROVAL_DEVICE_POLICY.md).

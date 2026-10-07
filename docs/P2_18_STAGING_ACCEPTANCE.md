@@ -24,3 +24,6 @@ Production gate remains BLOCKED by phone/full enrollment acceptance and owner ro
 # Final owner policy update — 2026-10-07
 
 Admin approval now activates only the registration-time device directly, with 30-day expiry. This supersedes earlier acceptance criteria requiring an extra QR claim for a newly approved registration. Full isolated tests PASS; hosted rollback smoke confirms pending token preservation, admin approval activation without QR, matching-device fast login and wrong-device denial. Earlier phone evidence confirms QR/manual access but is not acceptance of the new approval flow. New registration → admin approval → same-phone fast login remains owner acceptance NOT RUN. Production unchanged.
+# Final duration acceptance
+
+Owner decision: no time expiry for trusted devices; administrator revocation and employee approval still enforced. Latest local and hosted rollback checks PASS for permanent binding, fast login/photo verifier, wrong-device denial and revocation; local employee-status denial PASS. New registration → admin approval → same-phone automatic login still needs owner acceptance. This supersedes 30-day assertions below.

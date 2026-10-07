@@ -23,3 +23,6 @@ Device ID is a client-stored identifier hashed by the backend, not hardware atte
 # Final owner policy update — 2026-10-07
 
 The owner replaced the registration-device QR-claim requirement with direct activation by administrator approval. The final rollout must also apply `20261007112137_admin_approval_activates_submitted_device.sql` after the original three P2-18 migrations within the coordinated backend window. See `ADMIN_APPROVAL_DEVICE_POLICY.md`. Production remains NOT APPROVED/APPLIED for this updated candidate. New-registration acceptance now requires pending device denied, admin approval activates that exact device, matching-device fast login succeeds, and a different device is denied; no additional QR enrollment step. QR remains mandatory for gate access.
+# Final duration override
+
+Apply `20261007113049_trusted_device_admin_revocation_only.sql` after `20261007112137_admin_approval_activates_submitted_device.sql` in the coordinated backend window. The owner requires no device time expiry; revocation and employee/device authorization remain authoritative. Do not finish the rollout at the earlier 30-day policy. Staging applied and regression PASS; Production unchanged.
