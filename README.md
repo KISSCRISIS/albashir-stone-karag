@@ -829,3 +829,6 @@ Reviewed SQL: supabase/search_path_five_reviewed.sql. Sets pg_catalog only for n
 
 ### Registration APPROVED phone validation (2026-10-07)
 Canonical 15-argument registration body synchronized from the live Production definition: APPROVED requests must supply the matching stored mobile number, and manual_employee_check receives clean_mobile. Already applied to Staging and Production; do not reapply historical patches. QR logic unchanged. Owner approved gate-device DEFAULT false for Production and fresh installs. Existing device states remain unchanged. Cache-Control remains a separate open item.
+
+### P2-18 Staging integration candidate (2026-10-07)
+Three reviewed migrations synchronize the Staging enrollment claim, device ID binding and 30-day TTL implementation. Legacy enrollment/login overloads fail closed. Photo actors and Resolver now require device_id, and cache authorization keys include it. Production deployment is NOT approved: main auto-deploys Production frontend, so merge must wait for an approved rollout window and successful Staging phone acceptance. No Production SQL or Resolver deployment is performed during this review. See docs/P2_18_ROLLOUT.md.

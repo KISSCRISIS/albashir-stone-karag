@@ -13,7 +13,7 @@
 // Actors
 //   { type: "admin",           access_token }                      // reviews any employee
 //   { type: "employee",        employee_id, mobile_number }        // own photo only
-//   { type: "employee_device", device_token }                      // own photo only
+//   { type: "employee_device", device_token, device_id }           // own photo only
 //   { type: "guard_device",    device_code, device_token }         // gate screen
 //
 // Cache policy
@@ -71,7 +71,7 @@
     const credentials =
       type === "employee" ? [actor.employee_id, actor.mobile_number] :
       type === "guard_device" ? [actor.device_code, actor.device_token] :
-      type === "employee_device" ? [actor.device_token] :
+      type === "employee_device" ? [actor.device_token, actor.device_id] :
       type === "admin" ? [actor.access_token] : [];
     if (!credentials.length || credentials.some(value => !String(value || "").trim())) return "";
     // Credentials stay only in this page's memory; never log or persist this key.

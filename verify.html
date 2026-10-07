@@ -177,7 +177,7 @@
   // own object path.
   function employeePhotoActor(employee){
     const deviceToken=getTrustedDeviceToken();
-    if(deviceToken && deviceToken.length>=40) return {type:"employee_device",device_token:deviceToken};
+    if(deviceToken && deviceToken.length>=40) return {type:"employee_device",device_token:deviceToken,device_id:getTrustedDeviceId()};
     return {type:"employee",employee_id:(employee&&employee.employee_id)||$("checkEmployeeId")?.value.trim()||"",mobile_number:$("checkMobileNumber")?.value.trim()||""};
   }
   function showManualSections(show=true){
@@ -322,26 +322,8 @@
     setAutoDevicePanel("تم نسيان هذا الجهاز من المتصفح.", "warning", true);
   }
 
-  async function checkTrustedDeviceEligibility(employeeId,mobileNumber){
-    try{
-      const {data,error}=await supabaseClient.rpc("can_register_trusted_device",{
-        p_employee_id:employeeId,p_mobile_number:mobileNumber
-      });
-      const result=normalizeRpcData(data,"can_register_trusted_device");
-      if(!error && result?.eligible===true){
-        lastManualCheck={employeeId,mobileNumber};
-        setAutoDevicePanel(result.message||"يمكن تفعيل هذا الجهاز.","ok",true);
-      }else{
-        lastManualCheck=null;
-        setAutoDevicePanel(result?.message||"هذا الجهاز غير مؤهل للتفعيل.","warning",true);
-      }
-    }catch{
-      setAutoDevicePanel("تعذر فحص أهلية الجهاز.","warning",false);
-    }
-  }
-
   async function enableTrustedDeviceOnThisBrowser(){
-    if(!lastManualCheck){ setAutoDevicePanel("نفّذ تحققًا ناجحًا أولًا.","warning",true); return; }
+    if(!lastManualCheck?.enrollmentClaim){ setAutoDevicePanel("نفّذ تحقق QR ناجحًا أولًا للحصول على صلاحية تفعيل قصيرة المدة.","warning",true); return; }
     const button=$("enableAutoDeviceButton"); button.disabled=true;
     try{
       const token=generateTrustedDeviceToken();
@@ -352,24 +334,23 @@
         p_device_id:getTrustedDeviceId(),
         p_device_type:getDeviceType(),
         p_device_name:getDeviceName(),
-        p_user_agent:navigator.userAgent
+        p_user_agent:navigator.userAgent,
+        p_enrollment_claim:lastManualCheck.enrollmentClaim
       };
-      let response=await supabaseClient.rpc("register_trusted_device_with_metadata",metadata);
-      if(response.error && /function|not found|PGRST202/i.test(response.error.message||"")){
-        response=await supabaseClient.rpc("register_trusted_device",{
-          p_employee_id:lastManualCheck.employeeId,
-          p_mobile_number:lastManualCheck.mobileNumber,
-          p_device_token:token
-        });
-      }
-      const {data,error}=response;
-      const result=normalizeRpcData(data,"register_trusted_device");
-      if(result?.new_device===true){
+      const {data,error}=await supabaseClient.rpc("register_trusted_device_with_metadata",metadata);
+      const result=normalizeRpcData(data,"register_trusted_device_with_metadata");
+      if(result?.new_device===true || result?.admin_reset_required===true){
         clearTrustedDeviceToken();
-        throw new Error(result.message||"تم اكتشاف جهاز جديد ويحتاج موافقة الإدارة قبل اعتماده.");
+        lastManualCheck=null;
+        throw new Error(result.message||"تم اكتشاف جهاز مختلف ويحتاج إلغاء الربط من الإدارة قبل اعتماده.");
+      }
+      if(result?.enrollment_claim_invalid===true){
+        lastManualCheck=null;
+        throw new Error(result.message||"انتهت صلاحية تفعيل الجهاز. أعد التحقق عبر QR.");
       }
       if(error || !result || result.ok!==true) throw new Error(error?.message||result?.message||"فشل تفعيل الجهاز.");
       saveTrustedDeviceToken(token);
+      lastManualCheck=null;
       setAutoDevicePanel(result.message||"تم تفعيل الجهاز. من الآن فصاعدًا يكفي مسح QR فقط.","ok",true);
     }catch(err){
       setAutoDevicePanel("فشل تفعيل الجهاز: "+err.message,"error",true);
@@ -387,7 +368,9 @@
       showManualSections(false);
       setResult("WAITING","جارِ التحقق تلقائيًا من الجهاز الموثوق...");
       const {data,error}=await supabaseClient.rpc("auto_employee_check",{
-        p_device_token:storedToken,p_qr_token:activeQrToken
+        p_device_token:storedToken,
+        p_qr_token:activeQrToken,
+        p_device_id:getTrustedDeviceId()
       });
       const result=normalizeRpcData(data,"auto_employee_check");
       if(error || !result) throw new Error(error?.message||"فشل التحقق التلقائي.");
@@ -432,13 +415,29 @@
 
     disableButton("checkButton",true,"جارِ التحقق...","تحقق من الدخول");
     try{
-      const {data,error}=await supabaseClient.rpc("manual_employee_check",payload);
-      const result=normalizeRpcData(data,"manual_employee_check") || data;
+      const rpcPayload={...payload,p_device_id:getTrustedDeviceId()};
+      const {data,error}=await supabaseClient.rpc("manual_employee_check_with_device",rpcPayload);
+      const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
       setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);
-      if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
-        await checkTrustedDeviceEligibility(payload.p_employee_id,payload.p_mobile_number);
-      }else lastManualCheck=null;
+      if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result) && result.trusted_device_enrollment_claim){
+        lastManualCheck={
+          employeeId:payload.p_employee_id,
+          mobileNumber:payload.p_mobile_number,
+          enrollmentClaim:result.trusted_device_enrollment_claim,
+          enrollmentClaimExpiresAt:result.trusted_device_enrollment_claim_expires_at||null
+        };
+        setAutoDevicePanel("تم التحقق بنجاح. يمكنك تفعيل هذا الجهاز خلال دقيقتين.","ok",true);
+      }else{
+        lastManualCheck=null;
+        if(result.trusted_device_new_device===true){
+          setAutoDevicePanel(result.trusted_device_message||"الجهاز مختلف عن الجهاز المعتمد. يلزم إلغاء الربط من الإدارة.","warning",true);
+        }else if(result.trusted_device_already_linked===true){
+          setAutoDevicePanel("هذا الجهاز موثوق وفعّال بالفعل.","ok",true);
+        }else if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
+          setAutoDevicePanel("تم التحقق، لكن تفعيل Trusted Device غير متاح لهذا الحساب.","warning",true);
+        }
+      }
     }catch(err){
       if(!navigator.onLine || /fetch|network|failed/i.test(err.message||"")){
         const count=await queueOfflineAccessLog(payload,"NETWORK_FAILURE_MANUAL_ATTEMPT");

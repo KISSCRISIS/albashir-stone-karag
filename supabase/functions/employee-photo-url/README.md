@@ -35,7 +35,7 @@ Real Storage acceptance remains NOT RUN; see
 |---|---|---|
 | `admin` | `access_token` (Supabase Auth session) or `Authorization: Bearer` | any employee photo |
 | `employee` | `employee_id` + `mobile_number` | own photo only |
-| `employee_device` | `device_token` (trusted device) | own photo only |
+| `employee_device` | `device_token` + `device_id` | own photo only; P2-18 binding and expiry checked |
 | `guard_device` | `device_code` + `device_token` | any employee photo |
 
 `path` may be an object path or a legacy Storage URL (public or signed); both are

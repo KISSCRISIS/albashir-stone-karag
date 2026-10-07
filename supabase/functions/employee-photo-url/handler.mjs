@@ -101,7 +101,7 @@ export const CORS_PREFLIGHT = { status: 204, body: null, headers: {} };
  * @param {{
  *   verifyAdmin: (accessToken: string) => Promise<{ok:boolean, role?:string, reason?:string}>,
  *   verifyEmployeeCredentials: (employeeId:string, mobileNumber:string) => Promise<{ok:boolean, employeeId?:string, reason?:string}>,
- *   verifyTrustedDevice: (deviceToken:string) => Promise<{ok:boolean, employeeId?:string, reason?:string}>,
+ *   verifyTrustedDevice: (deviceToken:string, deviceId:string) => Promise<{ok:boolean, employeeId?:string, reason?:string}>,
  *   verifyGateDevice: (deviceCode:string, deviceToken:string) => Promise<{ok:boolean, reason?:string}>,
  *   objectExists: (path:string) => Promise<boolean>,
  *   createSignedUrl: (path:string, ttl:number) => Promise<{ok:boolean, url?:string, error?:string}>,
@@ -167,7 +167,9 @@ async function resolveAction(body, input, deps, cors) {
         reason = verified?.reason || "INVALID_EMPLOYEE_CREDENTIALS";
       }
     } else if (actorType === "employee_device") {
-      const verified = await deps.verifyTrustedDevice(String(actor.device_token || ""));
+      const deviceId = String(actor.device_id || "").trim();
+      if (!deviceId) return response(403, { ok: false, error: "DENIED" }, cors);
+      const verified = await deps.verifyTrustedDevice(String(actor.device_token || ""), deviceId);
       if (verified?.ok === true) {
         authorized = pathBelongsToEmployee(path, verified.employeeId);
         reason = authorized ? reason : "NOT_OWNER";

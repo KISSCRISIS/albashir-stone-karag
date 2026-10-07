@@ -61,9 +61,10 @@ const deps = {
     return { ok: true, employeeId: String(result.profile?.employee_id ?? "") };
   },
 
-  async verifyTrustedDevice(deviceToken: string) {
+  async verifyTrustedDevice(deviceToken: string, deviceId: string) {
     const { data, error } = await admin.rpc("verify_trusted_device_credentials", {
-      p_device_token: deviceToken
+      p_device_token: deviceToken,
+      p_device_id: deviceId
     });
     const result = Array.isArray(data) ? data[0] : data;
     if (error || !result?.ok) return { ok: false, reason: result?.reason || "DEVICE_NOT_TRUSTED" };
