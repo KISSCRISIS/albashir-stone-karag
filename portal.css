@@ -41,3 +41,21 @@
   .portal-stage .tabs { height: auto; }
   .portal-stage .role-panel { height: auto; }
 }
+
+/* Main landing: show the hospital reference first, then reveal the login portal on demand. */
+.portal-stage .portal-entry-button{
+  position:absolute;left:50%;top:9.3%;transform:translateX(-50%);z-index:4;
+  min-width:clamp(170px,18cqw,280px);padding:clamp(12px,1.2cqw,18px) clamp(26px,3cqw,46px);
+  border:1px solid rgba(125,211,252,.75);border-radius:999px;
+  background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;
+  font-size:clamp(20px,2cqw,32px);font-weight:950;box-shadow:0 12px 32px rgba(2,132,199,.35);
+  cursor:pointer;
+}
+.portal-stage .portal-entry-button--hidden{display:none!important}
+.portal-stage .portal-login-overlay--closed{display:none!important}
+.portal-stage .portal-guard-entry{display:none!important}
+.portal-stage .tabs .role-tab{font-size:clamp(18px,1.65cqw,26px)}
+@media(max-width:700px){
+  .portal-stage .portal-entry-button{top:3%;min-width:180px;font-size:20px}
+  .portal-stage .tabs .role-tab{font-size:18px}
+}
