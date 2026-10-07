@@ -91,6 +91,7 @@
 </main>
 
 <script src="./verify-shared.js"></script>
+<script src="./employee-photo.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const urlParams = new URLSearchParams(location.search);
@@ -156,6 +157,7 @@
     if(employee){
       details.innerHTML=renderEmployeeDetails(employee);
       details.classList.remove("hidden");
+      hydrateEmployeePhotos(details, employeePhotoActor(employee));
       const profileButton=$("profileButton");
       if(profileButton && employee.employee_id){
         profileButton.href=`./profile.html?employee_id=${encodeURIComponent(employee.employee_id)}`;
@@ -169,6 +171,15 @@
     window.scrollTo({top:0,behavior:"smooth"});
   }
 
+  // The employee scanning the guard QR sees their own photo. A trusted
+  // device token is used when present; otherwise the credentials filled in
+  // the manual panel are used. The resolver only ever signs the caller's
+  // own object path.
+  function employeePhotoActor(employee){
+    const deviceToken=getTrustedDeviceToken();
+    if(deviceToken && deviceToken.length>=40) return {type:"employee_device",device_token:deviceToken};
+    return {type:"employee",employee_id:(employee&&employee.employee_id)||$("checkEmployeeId")?.value.trim()||"",mobile_number:$("checkMobileNumber")?.value.trim()||""};
+  }
   function showManualSections(show=true){
     const sections=$("manualSections");
     if(sections) sections.classList.toggle("hidden", !show);

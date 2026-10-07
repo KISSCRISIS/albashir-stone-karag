@@ -12,10 +12,13 @@ const migration=phaseA+'\n'+phaseB;
 assert.doesNotMatch(phaseA,/REVOKE EXECUTE ON FUNCTION public\.get_guard_employee_result\(text\)/);
 assert.equal(phaseB.split('\n').filter(l=>l.trim()&&!l.startsWith('--')).join('\n'),'REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text) FROM PUBLIC, anon, authenticated;');
 assert.equal(migration,read('supabase/canonical/guard_rpc_device_hardening.sql'));
-assert.ok(read('schema_consolidated_fresh_install.sql').trim().endsWith(migration.trim()));
+const freshInstall=read('schema_consolidated_fresh_install.sql');
+const correctionMarker='\n-- =============================================================================\n-- STAGING READINESS CORRECTION CANDIDATE';
+assert.ok(freshInstall.split(correctionMarker)[0].trim().endsWith(migration.trim()));
+assert.doesNotMatch(freshInstall.split(correctionMarker)[1]||'',/CREATE OR REPLACE FUNCTION public\.(?:get_guard_employee_result|reset_guard_screen)/i);
 assert.doesNotMatch(migration,/\b(?:CREATE TABLE|ALTER TABLE|POLICY|DROP FUNCTION)\b/i);
 assert.equal((migration.match(/CREATE OR REPLACE FUNCTION/g)||[]).length,1);
-assert.ok(fs.readdirSync(path.join(root,'supabase/migrations')).every(f=>['20261005212905_manual_employee_check_require_qr.sql','20261005213927_guard_rpc_phase_a.sql','20261005213928_guard_rpc_phase_b.sql'].includes(f)));
+assert.ok(fs.readdirSync(path.join(root,'supabase/migrations')).every(f=>['20261005212905_manual_employee_check_require_qr.sql','20261005213927_guard_rpc_phase_a.sql','20261005213928_guard_rpc_phase_b.sql','20261006190000_private_employee_photos.sql'].includes(f)));
 (async()=>{
 const db=await PGlite.create();
 try{

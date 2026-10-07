@@ -1,5 +1,16 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Private employee photos — prepared for review, NOT applied 2026-10-06
+
+Branch `security/private-employee-photos`. The `employee-photos` bucket becomes private (2 MiB, JPEG/PNG/WEBP), the two permissive Storage policies are removed, the database stores object paths instead of permanent public URLs, and every display path is exchanged for a 60-second signed URL by the new `employee-photo-url` resolver after it verifies the actor (admin session, employee credentials, trusted device, or gate device). Employee actors can only resolve their own photo. A `private.pending_employee_uploads` ledger plus a service-role-only sweep prevent abandoned uploads from accumulating.
+
+Production state before the change: `employee-photos` was public with `"Anyone can read employee photos"` and `"Anyone can upload employee photos"`, and `employee_registrations.employee_photo_url` held public URLs. Legacy URLs are backfilled to object paths by the migration; unparseable values are left for manual review.
+
+Status: migration, Edge Function, frontend wiring, tests, rollback and documentation are prepared in this branch. **No migration was applied, no function was deployed and Production was not modified.** Coordinated rollout prerequisites and the staging gate are in `docs/PRIVATE_EMPLOYEE_PHOTOS_ARCHITECTURE.md` and `docs/EMPLOYEE_PHOTOS_STAGING_ACCEPTANCE.md`; the pull request description is in `docs/PULL_REQUEST_PRIVATE_EMPLOYEE_PHOTOS.md`. The signed URL is fetched with `cache: "no-store"` and displayed as a blob URL, is never persisted, and is never cached by the service worker. The migration documents the required post-apply check `employee_photo_url like 'http%' = 0`; Production currently holds 2 rows, both parseable public bucket URLs, and 0 uninterpretable values. Verification: `tests/private-employee-photos.cjs` (real migration and rollback in PGlite), `tests/employee-photo-resolver.cjs` (resolver behaviour, mocked Storage API), `tests/employee-photos-static.cjs` (no `getPublicUrl()` remains anywhere).
+
+Storage API HTTP behaviour (expiry rejection, blocked public path), real browser rendering and Production data are explicitly not covered offline and remain part of the staging acceptance work.
+
+
 ## Offline synchronization hardening — 2026-10-06
 
 Shared offline synchronization now sends at most 500 records and 256KiB serialized UTF-8 per batch, leaving headroom below the existing Production 1MB jsonb cap. A batch is deleted locally only after explicit ok=true and a valid synced_count acknowledgement. A zero count remains valid for server-side duplicate handling. Successful batches are removed separately; failures retain and increment retries only for unsent records, with visible/logged errors. Oversized or missing-ID records remain stored for review. Existing encryption, sync lock, RPC authentication, QR decisions, schema and RLS are unchanged.
@@ -392,14 +403,16 @@ Cache-version constants are now aligned.
 The following files use:
 
 ~~~text
-emergency-room-parking-offline-v15
+emergency-room-parking-offline-v17
 ~~~
 
 - service-worker.js
 - index.html
 - verify-shared.js
 
-This alignment was completed in commit 2cc03bf, so heartbeat/cache diagnostics now report the same Service Worker cache version.
+Cache-version constants stay aligned across the three files; the private-photo
+batch moved them to v17 and added ./employee-photo.js to the precache list, so
+heartbeat/cache diagnostics report the same Service Worker cache version.
 
 ---
 
@@ -427,13 +440,13 @@ If these fields are required on the guard/verification success card, the fronten
 
 ## 11. Employee photo privacy status
 
-Current register.html uploads employee images to the employee-photos bucket and calls getPublicUrl().
+Status: private architecture prepared on branch security/private-employee-photos; NOT applied to Production and NOT deployed.
 
-The current repository SQL configures employee-photos as a public bucket.
+Production today (verified 2026-10-06): employee-photos is a public bucket with an unconditional read policy and an unconditional upload policy, and register.html still calls getPublicUrl().
 
-Therefore employee photos are not currently implemented as private signed-URL-only assets.
+The prepared branch converts employee photos to private signed-URL-only assets: private bucket with MIME/size limits, no client read policy, object paths stored instead of URLs, a 60-second employee-photo-url resolver that verifies the actor (and restricts employees to their own photo), a pending-upload ledger with a service-role-only orphan sweep, and a manual rollback.
 
-If private employee photos are a production privacy requirement, this remains a security-hardening task and requires coordinated Storage policy + frontend changes.
+Until the migration and the resolver deployment are executed by the owner, the Production statement above remains the accurate one.
 
 Violation photos are handled separately and use a private bucket with signed URLs in the admin workflow.
 
@@ -574,7 +587,7 @@ schedule_expired_qr_cleanup
 | entry_time in verification success card | Not rendered yet |
 | daily_visits in verification success card | Not rendered yet |
 | Guard scan-only policy | Not implemented; manual fallback still exists |
-| Private signed employee photos | Not implemented; employee-photos is public |
+| Private signed employee photos | Prepared on branch security/private-employee-photos (migration + resolver + tests + rollback); NOT applied to Production |
 | Dedicated leadership photographs in global leadership cards | Not implemented in current global-leadership.js |
 | Full standalone dedication section in portal | Not present in current portal.html |
 | Dedicated DRS quick-filter button | Not present; generic department filter exists |
@@ -634,7 +647,7 @@ Highest-priority technical items before declaring the system fully production-ac
 1. Permanent vs Temporary/External registration feature: DEPLOYED, smoke-tested, and admin live-row rendering exercise COMPLETE and PASSED on Production as SUPER_ADMIN with no approve/reject action performed (commit 76608c3 on main; DB migration 20261005092112 APPLIED AND VERIFIED). This feature acceptance is complete; broader system acceptance work (below) remains.
 2. Add entry_time and daily_visits to the verification/guard success renderer if required.
 3. Decide whether guard manual verification remains allowed or enforce scan-only behavior.
-4. Decide employee-photo privacy policy; convert to private/signed URLs if required.
+4. Employee-photo privacy: architecture prepared on branch security/private-employee-photos; review, then apply the migration and deploy the resolver following docs/PRIVATE_EMPLOYEE_PHOTOS_ARCHITECTURE.md.
 5. Run and record the outstanding acceptance tests.
 6. Complete legacy RPC consumer inventory before any legacy-grant freeze/removal.
 7. Reconcile Production migration history before introducing a formal supabase/migrations baseline.
@@ -750,3 +763,60 @@ These are mandatory rules, not optional recommendations.
 - SQL/migration files must not be deleted merely because they appear old; schema_patch_*.sql files require separate review.
 - No PROJECT_RULES.md, wrangler config, or supabase/ directory was found in the current working folder; do not reference them as authoritative until verified.
 - Repository cleanup must follow the controlled review workflow above.
+
+### Employee photo client review — local candidate only
+
+The private-photo candidate now fails closed when a no-store image fetch fails.
+Images and thumbnail links use blob URLs, with no direct signed-URL fallback.
+Photo cache entries are credential-bound in memory; session changes and logout
+clear displayed blobs and invalidate pending requests. Client regression tests
+cover credential changes and logout during resolver/image requests. The frontend
+QR regression expects this candidate's Service Worker v17. SQL remains unchanged;
+Staging acceptance and Production rollout are not performed or approved here.
+
+### Staging executable review — 2026-10-07
+
+The full fresh-install SQL and photo migration execute in an isolated local
+Supabase-shaped database, but deployment remains BLOCKED: profile helpers are
+missing, the resolver service role cannot execute profile login, and required
+admin table SELECT grants are absent. SDK entry import is pinned to 2.117.2;
+Deno lock/runtime verification remains pending. Migration rollout comments now
+agree with baseline -> verify -> fixtures -> photo migration -> verify ->
+resolver -> Staging frontend -> acceptance. SQL executable logic is unchanged.
+No hosted writes/deployments or Production operations were performed.
+
+### Staging grant correction candidate — review only
+
+Fresh-install now includes SELECT for authenticated on the seven admin tables
+queried by the dashboard and EXECUTE for the backend service role on existing
+profile-login RPC. Existing RLS remains authoritative; no anon table grants,
+guard-screen grants, write grants or function-body changes are introduced.
+Missing rate-limit/audit helper definitions remain a BLOCKER pending an approved
+source. No new migration, hosted SQL execution or Production change.
+
+The fresh-install candidate now restores security_attempt_logs and the exact
+is_rate_limited/write_security_attempt bodies read from Production under explicit
+read-only approval. Helper EXECUTE and direct ledger access are denied to client
+roles and service_role; existing postgres-owned profile login invokes them as
+owner. No raw mobile column is stored; the existing MD5 behavior is preserved
+and is not described as strong anonymization. Production ACLs are not changed.
+
+Validation update: tests/fresh-install-readiness.cjs is part of the isolated
+test command and verifies the complete candidate, live helper bodies, failed-only
+5-in-5-minute limit, audit hashes, backend login, RLS filtering and photo migration
+integration. supabase/functions/deno.lock freezes the SDK dependency graph.
+Deno 2.9.6 frozen-lock TypeScript check and local entry smoke PASS; only type
+annotations were added to the entry. Hosted Staging/17 acceptance checks NOT RUN.
+Earlier missing-helper and pending-lock notes describe the pre-correction state.
+
+## Staging execution checkpoint — 2026-10-07
+
+The reviewed employee-photo baseline, migration and resolver were applied only to adwvokwucotohwayorgx. Authorization and signed-link expiry checks passed. Valid image upload fails the Storage RLS policy; server-side forged-content rejection remains unproven, and response cache headers do not meet the acceptance guarantee. No hosted frontend, Production rollout, commit or CI is claimed. See docs/EMPLOYEE_PHOTOS_STAGING_RESULTS.md for evidence and stop conditions.
+
+## Owner-approved upload correction — 2026-10-07
+
+Apply supabase/employee_photo_upload_compatibility_reviewed.sql after the reviewed private-photo migration. It changes only the upload INSERT predicate for Storage's permission-probe metadata; the private bucket and its real-byte 2MiB/MIME limits remain mandatory. No photo reads or updates are granted. Applied to Staging only. register.html requests max-age=0, no-store for new uploads; client downloads remain no-store and display only blob URLs.
+
+The owner chose administrative photo review instead of server-side content decoding. Status: ACCEPTED BY OWNER / ADMIN REVIEW. This is not an automated content-validation PASS. Storage accepts forged image MIME; SVG and oversize limits remain enforced. Production has not been changed.
+
+Owner-reported Staging acceptance (2026-10-07): registration submission completed on desktop Chrome and iPhone16e Safari with a pending-review success message. This is user-performed evidence; approval, photo rendering and real-device cache checks are separate. See docs/EMPLOYEE_PHOTOS_STAGING_RESULTS.md.

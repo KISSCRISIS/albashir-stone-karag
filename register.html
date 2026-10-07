@@ -247,6 +247,7 @@
 </main>
 
 <script src="./verify-shared.js"></script>
+<script src="./employee-photo.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
 
@@ -282,6 +283,11 @@
     if (employee) {
       details.innerHTML = renderEmployeeDetails(employee);
       details.classList.remove("hidden");
+      hydrateEmployeePhotos(details, {
+        type: "employee",
+        employee_id: employee.employee_id || "",
+        mobile_number: employee.mobile_number || $("mobileNumber")?.value.trim() || ""
+      });
       const profileButton = $("profileButton");
       if (profileButton && employee.employee_id) {
         profileButton.href = `./profile.html?employee_id=${encodeURIComponent(employee.employee_id)}`;
@@ -315,18 +321,40 @@
     });
   }
 
+  // employee-photos is a PRIVATE bucket. This function returns the object
+  // reference (a path), never a permanent public URL. The limits below mirror
+  // the bucket limits and the storage.objects insert policy in the database.
+  const MAX_PHOTO_BYTES = 2097152;
+  const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
   async function uploadEmployeePhoto(employeeId) {
     const file = $("employeePhoto").files?.[0];
     if (!file) throw new Error("الصورة الشخصية مطلوبة.");
+    const mimeType = String(file.type || "").toLowerCase();
+    if (!ALLOWED_PHOTO_TYPES.includes(mimeType)) {
+      throw new Error("صيغة الصورة غير مدعومة. المسموح: JPG أو PNG أو WEBP.");
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      throw new Error("حجم الصورة يجب ألا يتجاوز 2 ميغابايت.");
+    }
     const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
+    if (!["jpg", "jpeg", "png", "webp"].includes(extension)) {
+      throw new Error("امتداد الصورة غير مدعوم. المسموح: jpg أو jpeg أو png أو webp.");
+    }
     const safeEmployeeId = String(employeeId || "employee").replace(/[^\w-]+/g, "-");
     const path = `registrations/${safeEmployeeId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`;
     const upload = await supabaseClient.storage.from("employee-photos").upload(path, file, {
-      cacheControl: "3600",
-      upsert: false
+      cacheControl: "0, no-store",
+      upsert: false,
+      contentType: mimeType
     });
     if (upload.error) throw new Error(upload.error.message);
-    return supabaseClient.storage.from("employee-photos").getPublicUrl(path).data.publicUrl;
+    // Best effort ledger entry: it lets the orphan sweep delete uploads that
+    // are never attached to a registration. A failure here must not block the
+    // applicant, so the registration continues with the path alone.
+    try {
+      await supabaseClient.rpc("register_pending_employee_upload", { p_object_path: path });
+    } catch (_) { /* ignored on purpose */ }
+    return path;
   }
 
   function updateRegistrationForm() {
@@ -405,7 +433,7 @@
       disableButton("registerButton", true, "جارِ رفع الصورة...", "إرسال طلب التسجيل");
       const employeeId = $("employeeId").value.trim();
       const deviceId = getTrustedDeviceId();
-      const photoUrl = await uploadEmployeePhoto(employeeId);
+      const photoPath = await uploadEmployeePhoto(employeeId);
       const pendingDeviceToken = getOrCreatePendingRegistrationToken(employeeId, deviceId);
       disableButton("registerButton", true, "جارِ إرسال الطلب...", "إرسال طلب التسجيل");
       const isTemporary = category === "TEMPORARY";
@@ -417,7 +445,7 @@
         p_qr_token: null,
         p_job_type: isTemporary ? null : $("jobType").value.trim(),
         p_department: isTemporary ? null : $("department").value.trim(),
-        p_photo_url: photoUrl,
+        p_photo_url: photoPath,
         p_device_token: pendingDeviceToken,
         p_device_id: deviceId,
         p_device_type: getDeviceType(),

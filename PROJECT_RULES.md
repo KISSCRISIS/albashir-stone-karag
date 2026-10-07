@@ -71,6 +71,24 @@ Document the rule but do not create/delete anything.
 Violation image storage must be private.
 Use signed URLs in admin_dashboard.html.
 
+### P0-7 — Employee photos must stay private
+
+The `employee-photos` bucket must remain private (`public = false`) with a
+MIME/size limit and no `select` policy for `anon` or `authenticated`.
+
+Mandatory:
+
+- never reintroduce `getPublicUrl()` or any permanent public photo link;
+- store the object path (`registrations/<employee folder>/<file>`), never a URL;
+- every display path goes through the `employee-photo-url` resolver, which
+  verifies the actor first and issues a URL of at most 60 seconds;
+- an employee actor may only resolve their own photo;
+- a resolver failure must never fall back to a public URL;
+- the `private` schema and the sweep RPCs stay service-role only.
+
+Enforced by `tests/employee-photos-static.cjs`,
+`tests/private-employee-photos.cjs` and `tests/employee-photo-resolver.cjs`.
+
 ## P1 — High Priority
 
 ### P1-7
