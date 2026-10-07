@@ -363,13 +363,13 @@
       setQrSessionStatus(result.message || "تم تفعيل QR. أكمل خلال 5 دقائق.","ok");
 
       const storedToken=getTrustedDeviceToken();
-      if(storedToken){
+      if(employeeSession?.role==="EMPLOYEE" && $("checkEmployeeId").value.trim() && $("checkMobileNumber").value.trim()){
+        showManualSections(false);
+        await submitEmployeeVerification();
+      }else if(storedToken){
         showManualSections(false);
         setResult("WAITING","تم التعرف على جهاز محفوظ. جارِ التحقق تلقائيًا...");
         await tryAutoVerifyFromTrustedDevice();
-      }else if(employeeSession?.role==="EMPLOYEE" && $("checkEmployeeId").value.trim() && $("checkMobileNumber").value.trim()){
-        showManualSections(false);
-        await submitEmployeeVerification();
       }else{
         showManualSections(true);
         setResult("READY","QR صالح. أدخل بيانات الموظف لإكمال التحقق.");

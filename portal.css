@@ -1,17 +1,26 @@
-/* portal.css — portal.html only. Scoped visual layer for the approved
-   portal-reference overlay. Does not touch shared design-system CSS.
-   All selectors are scoped under .portal-stage. */
-.portal-stage { position: relative; width: min(100%, 1536px); margin-inline: auto; container-type: inline-size; }
-.portal-reference { display: block; width: 100%; height: auto; }
-/* Measured against the complete 3:4 reference; no cover/cropping. */
-.portal-login-overlay { position: absolute; left: 32.75%; top: 7.8%; width: 43.4%; height: 26.55%; padding: .8cqw; border: .1cqw solid #0787d5; border-radius: 1.1cqw; background: linear-gradient(125deg, #062952, #031b39 70%, #05274b); box-shadow: inset 0 0 1.4cqw #075695; overflow: auto; font-size: 1.2cqw; scrollbar-width: thin; }
+/* Owner-approved layout: prominent login, functional services, dedication and leadership. */
+.portal-stage{width:min(100%,1448px);margin-inline:auto;container-type:inline-size;background:#041a35;color:#eef6ff}
+.portal-hero{position:relative;isolation:isolate;padding:clamp(100px,12vw,175px) 16px 36px;overflow:hidden;background:linear-gradient(180deg,#062448,#03152f)}
+.portal-slice{position:relative;overflow:hidden}
+.portal-slice img{position:absolute;inset:0 auto auto 0;width:100%;max-width:none;height:auto;transform:translateY(var(--slice-offset,0%))}
+.portal-hero-art{position:absolute;inset:0 0 auto;aspect-ratio:1448/432;z-index:-1}
+.portal-login-overlay{position:relative;width:min(100%,640px);margin-inline:auto;padding:clamp(16px,2vw,28px);border:1px solid #0787d5;border-radius:18px;background:linear-gradient(125deg,rgba(6,41,82,.96),rgba(3,27,57,.97));box-shadow:0 18px 48px #020d1ba6;font-size:16px;scroll-margin-top:12px}
+.portal-services{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:20px;background:#061f40}
+.portal-service{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;min-height:145px;padding:16px 10px;border:1px solid #079bff;border-radius:16px;background:linear-gradient(135deg,#092f58,#02182f);color:#eef6ff;text-decoration:none;font:inherit}
+a.portal-service,button.portal-service{cursor:pointer}
+.portal-service span{font-size:32px;color:#ffe277}.portal-service strong{font-size:17px}.portal-service small{font-size:14px;line-height:1.6;color:#bfd7ef}
+.portal-service-qr{border:2px solid #ffe277;box-shadow:0 0 14px #ffe27733}
+.portal-service:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.portal-dedication{aspect-ratio:1448/210;--slice-offset:-39.78%}
+.portal-executives{aspect-ratio:1448/286;--slice-offset:-73.665%}
+.portal-stage .portal-guard-entry{display:none!important}
 .portal-login-overlay button, .portal-login-overlay input { font: inherit; }
 .portal-login-overlay button { cursor: pointer; color: inherit; }
 .portal-login-overlay button:focus-visible, .portal-login-overlay input:focus-visible { outline: .2cqw solid #ffe277; outline-offset: .12cqw; }
-.portal-stage .tabs { display: flex; height: 11.5%; min-height: 34px; gap: .15cqw; }
-.portal-stage .tabs .role-tab { flex: 1; border: .08cqw solid #064d82; border-radius: .8cqw; background: #06264c; font-size: 1.3cqw; color: #bfdbfe; font-weight: 900; cursor: pointer; padding: 10px 6px; }
+.portal-stage .tabs { display: flex; height: auto; min-height: 34px; gap: .15cqw; }
+.portal-stage .tabs .role-tab { flex: 1; border: .08cqw solid #064d82; border-radius: .8cqw; background: #06264c; font-size: 18px; color: #bfdbfe; font-weight: 900; cursor: pointer; padding: 10px 6px; }
 .portal-stage .tabs .role-tab.active { background: linear-gradient(#079bff, #0072ed); border-color: #029bff; color: #fff; }
-.portal-stage .role-panel { display: none; height: 88.5%; padding: 1.15cqw 2.25cqw .3cqw; }
+.portal-stage .role-panel { display: none; height: auto; padding: 1.15cqw 2.25cqw .3cqw; }
 .portal-stage .role-panel.active { display: flex; flex-direction: column; }
 .portal-stage .role-head { margin-bottom: 10px; }
 .portal-stage .role-head h2 { margin: 0 0 5px; font-size: 20px; color: #eef6ff; }
@@ -36,26 +45,8 @@
 .portal-stage .continue.show { display: flex; }
 .portal-stage .continue .action { padding: 8px 14px; font-size: 13px; }
 .portal-stage .footer-note { margin-top: 10px; color: #9fb3c8; font-size: 12px; line-height: 1.7; }
-@media (max-width: 700px) {
-  .portal-login-overlay { left: 4%; width: 92%; top: 4%; height: auto; max-height: 92%; font-size: 14px; }
-  .portal-stage .tabs { height: auto; }
-  .portal-stage .role-panel { height: auto; }
-}
 
-/* Main landing: show the hospital reference first, then reveal the login portal on demand. */
-.portal-stage .portal-entry-button{
-  position:absolute;left:50%;top:9.3%;transform:translateX(-50%);z-index:4;
-  min-width:clamp(170px,18cqw,280px);padding:clamp(12px,1.2cqw,18px) clamp(26px,3cqw,46px);
-  border:1px solid rgba(125,211,252,.75);border-radius:999px;
-  background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;
-  font-size:clamp(20px,2cqw,32px);font-weight:950;box-shadow:0 12px 32px rgba(2,132,199,.35);
-  cursor:pointer;
-}
-.portal-stage .portal-entry-button--hidden{display:none!important}
-.portal-stage .portal-login-overlay--closed{display:none!important}
-.portal-stage .portal-guard-entry{display:none!important}
 .portal-stage .tabs .role-tab{font-size:clamp(18px,1.65cqw,26px)}
-@media(max-width:700px){
-  .portal-stage .portal-entry-button{top:3%;min-width:180px;font-size:20px}
-  .portal-stage .tabs .role-tab{font-size:18px}
-}
+.portal-stage .field label{font-size:15px}.portal-stage .field input{font-size:17px;min-height:48px}
+.portal-stage .action,.portal-stage .qr-button{min-height:48px;font-size:17px}
+@media(max-width:700px){.portal-hero{padding-top:100px}.portal-stage .role-panel{padding:16px 0 0}.portal-stage .onboarding{flex-wrap:wrap}.portal-services{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px;gap:10px}.portal-service-qr{grid-column:1/-1;grid-row:1}.portal-service{min-height:125px}.portal-stage{overflow:hidden}}

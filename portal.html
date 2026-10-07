@@ -19,9 +19,9 @@
 </head>
 <body class="hospital-ui theme-portal">
 <main class="portal-stage" aria-label="بوابة مستشفى البشير">
-  <img class="portal-reference" src="./assets/images/portal-reference.png" width="1536" height="2048" alt="بوابة مستشفى البشير، الإهداء والخدمات والقيادة التنفيذية" />
-  <button id="openPortalLogin" class="portal-entry-button" type="button" aria-controls="portalLoginOverlay" aria-expanded="false" onclick="openPortalLogin()">الدخول</button>
-  <section class="portal-login-overlay portal-login-overlay--closed" id="portalLoginOverlay" aria-label="خيارات الدخول" aria-hidden="true">
+  <section class="portal-hero" aria-label="بوابة الدخول">
+    <div class="portal-slice portal-hero-art" aria-hidden="true"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="" /></div>
+  <section class="portal-login-overlay" id="portalLoginOverlay" aria-label="خيارات الدخول">
     <div id="notice" class="notice"></div>
     <div id="continueSession" class="continue"><span id="continueText"></span><button class="action green" type="button" onclick="continueSession()">متابعة</button></div>
     <div class="tabs" role="tablist" aria-label="نوع المستخدم">
@@ -37,12 +37,24 @@
     <section class="role-panel" id="adminPanel"><div class="role-head"><h2>دخول الإدارة</h2><p>سيتم توجيه SUPER_ADMIN وADMIN تلقائيًا حسب صلاحيات الحساب.</p></div><form class="form" id="adminForm"><div class="field"><label for="adminEmail">البريد الإلكتروني</label><input id="adminEmail" required type="email" autocomplete="username" /></div><div class="field"><label for="adminPassword">كلمة المرور</label><input id="adminPassword" required type="password" autocomplete="current-password" /></div><button class="action" type="submit">فتح لوحة الإدارة</button></form></section>
     <div class="footer-note">تُخفى الصفحات غير المصرح بها ويعاد توجيه المستخدم إلى هذه البوابة.</div>
   </section>
+  </section>
+  <nav class="portal-services" aria-label="خدمات البوابة">
+    <div class="portal-service"><span aria-hidden="true">♢</span><strong>خدمة مخصصة لموظفي المستشفى</strong><small>جميع الميزات والخدمات مصممة خصيصًا لكم</small></div>
+    <a class="portal-service" href="./register.html"><span aria-hidden="true">♙</span><strong>تسجيل الموظفين</strong><small>إرسال طلب تسجيل جديد</small></a>
+    <a class="portal-service portal-service-qr" href="./verify.html"><span aria-hidden="true">▦</span><strong>مسح رمز QR بسرعة</strong><small>مسح رمز الحارس للدخول</small></a>
+    <button class="portal-service" id="openPortalLogin" type="button" onclick="openEmployeeProfile()"><span aria-hidden="true">▤</span><strong>الوصول للصفحة الشخصية</strong><small>عرض البيانات والخدمات الخاصة بك</small></button>
+    <div class="portal-service"><span aria-hidden="true">⚙</span><strong>واجهة واضحة وسهلة الاستخدام</strong><small>تصميم بسيط ومنظم لتجربة أفضل</small></div>
+  </nav>
+  <section class="portal-slice portal-dedication" aria-label="إهداء إلى الصرح الوطني وكوادر مستشفى البشير"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="إهداء إلى الصرح الوطني الكبير وكوادر مستشفى البشير تقديرًا لجهودهم في خدمة الوطن والمواطن. إعداد وبرمجة الدكتور علاء العقرباوي." /></section>
+  <section class="portal-slice portal-executives" aria-label="القيادة التنفيذية"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="القيادة التنفيذية: الدكتور صلاح القزقي، الدكتور سليمان أبو عواد، والدكتور حسن شحاده." /></section>
 </main>
 <script>
   const CONFIG={url:"https://qinsfvlspdticposbvst.supabase.co",key:"sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8"};
   const client=window.supabase?.createClient(CONFIG.url,CONFIG.key);const $=id=>document.getElementById(id);const next=new URLSearchParams(location.search).get("next")||"";
   function show(message,type="error"){const el=$("notice");el.textContent=message;el.className=`notice show ${type}`;}
-  function openPortalLogin(){const overlay=$("portalLoginOverlay"),button=$("openPortalLogin");overlay.classList.remove("portal-login-overlay--closed");overlay.setAttribute("aria-hidden","false");button.setAttribute("aria-expanded","true");button.classList.add("portal-entry-button--hidden");}
+  function openPortalLogin(){const overlay=$("portalLoginOverlay");overlay.scrollIntoView({behavior:"smooth",block:"start"});$("employeeId").focus({preventScroll:true});}
+  function openEmployeeProfile(){const session=ALBASHIRAccess.readSession();if(session?.role==="EMPLOYEE"){location.href="./profile.html";}else{document.querySelector('.role-tab[data-role="employee"]').click();openPortalLogin();}}
+
   function cleanNext(value){const allowed=["index.html","verify.html","register.html","profile.html","admin_dashboard.html"];try{const raw=String(value||"").trim();if(!raw)return"";const parsed=new URL(raw,location.href);if(parsed.origin!==location.origin)return"";const file=parsed.pathname.split("/").pop()||"";return allowed.includes(file)?`${file}${parsed.search}${parsed.hash}`:"";}catch(_){return"";}}
   function targetFor(role){const requested=cleanNext(next);if(requested){if(role==="GUARD"&&/^index\.html(?:[?#]|$)/.test(requested))return requested;if(role==="EMPLOYEE"&&/^(verify|profile)\.html(?:[?#]|$)/.test(requested))return requested;if(role==="EMPLOYEE_ONBOARDING"&&/^register\.html(?:[?#]|$)/.test(requested))return requested;if(["ADMIN","SUPER_ADMIN"].includes(role)&&requested.startsWith("admin_dashboard.html"))return requested;}return role==="GUARD"?"index.html":role==="EMPLOYEE"?"profile.html":role==="EMPLOYEE_ONBOARDING"?"register.html":"admin_dashboard.html";}
   function go(role,extra={}){ALBASHIRAccess.setSession(role,extra);location.replace(`./${targetFor(role)}`);}
