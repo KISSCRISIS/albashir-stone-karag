@@ -153,7 +153,10 @@ begin
     select s.id,q.id into s_id,q_id
     from private.public_guard_sessions s
     join public.qr_sessions q on q.id=s.qr_session_id
-    where (q.token=nullif(trim(p_qr_token),'')::uuid or q.claim_token=nullif(trim(p_qr_token),'')::uuid)
+    where q.claim_token=nullif(trim(p_qr_token),'')::uuid
+      and q.claim_request_id=p_request_id
+      and q.claim_used_at is null
+      and q.claim_expires_at>now()
       and s.expires_at>now()
     limit 1;
   exception when invalid_text_representation then
@@ -237,7 +240,10 @@ begin
     select s.id,q.id into s_id,q_id
     from private.public_guard_sessions s
     join public.qr_sessions q on q.id=s.qr_session_id
-    where (q.token=nullif(trim(p_qr_token),'')::uuid or q.claim_token=nullif(trim(p_qr_token),'')::uuid)
+    where q.claim_token=nullif(trim(p_qr_token),'')::uuid
+      and q.claim_request_id=p_request_id
+      and q.claim_used_at is null
+      and q.claim_expires_at>now()
       and s.expires_at>now()
     limit 1;
   exception when invalid_text_representation then
