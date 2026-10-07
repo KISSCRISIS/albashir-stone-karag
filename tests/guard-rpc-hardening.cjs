@@ -18,7 +18,7 @@ assert.ok(freshInstall.split(correctionMarker)[0].trim().endsWith(migration.trim
 assert.doesNotMatch(freshInstall.split(correctionMarker)[1]||'',/CREATE OR REPLACE FUNCTION public\.(?:get_guard_employee_result|reset_guard_screen)/i);
 assert.doesNotMatch(migration,/\b(?:CREATE TABLE|ALTER TABLE|POLICY|DROP FUNCTION)\b/i);
 assert.equal((migration.match(/CREATE OR REPLACE FUNCTION/g)||[]).length,1);
-assert.ok(fs.readdirSync(path.join(root,'supabase/migrations')).every(f=>['20261005212905_manual_employee_check_require_qr.sql','20261005213927_guard_rpc_phase_a.sql','20261005213928_guard_rpc_phase_b.sql','20261006190000_private_employee_photos.sql'].includes(f)));
+assert.ok(fs.readdirSync(path.join(root,'supabase/migrations')).every(f=>['20261005212905_manual_employee_check_require_qr.sql','20261005213927_guard_rpc_phase_a.sql','20261005213928_guard_rpc_phase_b.sql','20261006190000_private_employee_photos.sql','20261007110000_guard_status_device_auth.sql'].includes(f)));
 (async()=>{
 const db=await PGlite.create();
 try{

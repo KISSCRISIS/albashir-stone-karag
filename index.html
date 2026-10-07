@@ -163,7 +163,7 @@
     const QR_WATCHDOG_SECONDS = 90;
     const QR_RETRY_BACKOFF_SECONDS = [2, 5, 15, 30];
     let qrTimer = QR_REFRESH_SECONDS;
-    let guardStatusChannel = null;
+    let guardStatusPollInFlight = false;
     let lastGuardStatusFingerprint = "";
     const qrRuntime = {
       refreshing: false,
@@ -227,10 +227,6 @@
       lifecycle.timeouts.forEach((id) => clearTimeout(id));
       lifecycle.intervals.clear();
       lifecycle.timeouts.clear();
-      if (supabaseClient && guardStatusChannel) {
-        supabaseClient.removeChannel(guardStatusChannel);
-        guardStatusChannel = null;
-      }
     }
 
     function setText(id, value) {
@@ -1024,60 +1020,30 @@
     }
 
     async function pollGuardStatusFallback() {
-      if (!supabaseClient || !navigator.onLine) return;
-      if (qrRuntime.realtimeStatus === "SUBSCRIBED") return;
-
+      if (!supabaseClient || !navigator.onLine || guardStatusPollInFlight) return;
+      guardStatusPollInFlight = true;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
       try {
-        const { data, error } = await withTimeout(
-          supabaseClient
-            .from("guard_screen_status")
-            .select("*")
-            .eq("id", 1)
-            .maybeSingle(),
-          5000,
-          "انتهت مهلة فحص حالة شاشة الحارس"
-        );
-        if (error) throw error;
-        await processGuardStatusRow(data);
+        const gateDevice = getGateDevice();
+        const { data, error } = await supabaseClient.rpc("get_guard_screen_status", {
+          p_device_code: gateDevice.device_code,
+          p_device_token: getOfflineDeviceToken()
+        }).abortSignal(controller.signal);
+        const result = normalizeRpcData(data);
+        if (error || result?.ok !== true) throw error || new Error("تعذر توثيق جهاز الحارس لعرض النتيجة");
+        qrRuntime.realtimeStatus = "فحص موثق كل 5 ثوانٍ";
+        setQrDiagnostics(qrRuntime.realtimeStatus);
+        await processGuardStatusRow(result.status);
       } catch (error) {
+        qrRuntime.realtimeStatus = "تعذر فحص النتيجة";
+        setQrDiagnostics(qrRuntime.realtimeStatus);
         recordGateError("pollGuardStatusFallback", error);
+        showSetupWarning("تعذر تحميل نتيجة الدخول. تحقق من اتصال واعتماد جهاز الحارس", "error");
+      } finally {
+        clearTimeout(timeout);
+        guardStatusPollInFlight = false;
       }
-    }
-
-    function subscribeToGuardStatus() {
-      if (!supabaseClient) return;
-
-      if (guardStatusChannel) {
-        supabaseClient.removeChannel(guardStatusChannel);
-        guardStatusChannel = null;
-      }
-
-      guardStatusChannel = supabaseClient
-        .channel("guard-screen-status")
-        .on(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "guard_screen_status" },
-          async (payload) => {
-            await processGuardStatusRow(payload.new);
-          }
-        )
-        .subscribe((status) => {
-          qrRuntime.realtimeStatus = status;
-          setQrDiagnostics(status === "SUBSCRIBED" ? "Realtime متصل" : "Realtime: " + status);
-          if (status === "SUBSCRIBED") {
-            setConnection("Realtime متصل", "ready");
-          }
-
-          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-            setConnection("Realtime غير مستقر", "error");
-            showSetupWarning(
-              "Realtime لم يتصل بشكل مستقر. الصفحة ستبقى تعمل، ويمكن تحديثها يدويًا.",
-              "error"
-            );
-            const retryDelay = Math.min(30000, 5000 * Math.max(1, qrRuntime.consecutiveFailures + 1));
-            setManagedTimeout("realtimeReconnect", () => subscribeToGuardStatus(), retryDelay);
-          }
-        });
     }
 
     async function copyQrLink() {
@@ -1202,7 +1168,7 @@
     setManagedInterval("guardStatusPoll", pollGuardStatusFallback, 5000);
     startQrLoop();
     startQrWatchdog();
-    subscribeToGuardStatus();
+    pollGuardStatusFallback();
 
     window.addEventListener("pagehide", cleanupLifecycle);
     window.addEventListener("beforeunload", cleanupLifecycle);
