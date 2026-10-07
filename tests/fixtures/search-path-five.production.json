@@ -1,0 +1,37 @@
+[
+  {
+    "signature": "default_admin_permissions(text)",
+    "definition": "CREATE OR REPLACE FUNCTION public.default_admin_permissions(p_role text)\n RETURNS jsonb\n LANGUAGE sql\n STABLE\nAS $function$\r\n  select case\r\n    when p_role = 'SUPER_ADMIN' then '{\"can_approve_requests\": true, \"can_review_violations\": true, \"can_view_logs\": true, \"can_export_csv\": true, \"can_manage_limits\": true, \"can_view_audit\": true}'::jsonb\r\n    else '{\"can_approve_requests\": true, \"can_review_violations\": true, \"can_view_logs\": true, \"can_export_csv\": false, \"can_manage_limits\": false, \"can_view_audit\": false}'::jsonb\r\n  end;\r\n$function$\n",
+    "body": "\r\n  select case\r\n    when p_role = 'SUPER_ADMIN' then '{\"can_approve_requests\": true, \"can_review_violations\": true, \"can_view_logs\": true, \"can_export_csv\": true, \"can_manage_limits\": true, \"can_view_audit\": true}'::jsonb\r\n    else '{\"can_approve_requests\": true, \"can_review_violations\": true, \"can_view_logs\": true, \"can_export_csv\": false, \"can_manage_limits\": false, \"can_view_audit\": false}'::jsonb\r\n  end;\r\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "prosecdef": false
+  },
+  {
+    "signature": "is_permanently_allowed_specialty(text)",
+    "definition": "CREATE OR REPLACE FUNCTION public.is_permanently_allowed_specialty(p_specialty text)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\r\ndeclare\r\n  v text;\r\nbegin\r\n  v := public.normalize_specialty_name(p_specialty);\r\n\r\n  return v in (\r\n    public.normalize_specialty_name('الإسعاف والطوارئ (DRS/NRS/EMT/MLT)'),\r\n    public.normalize_specialty_name('الإسعاف والطوارئ - DRS/NRS/EMT/MLT'),\r\n    public.normalize_specialty_name('الإسعاف والطوارئ DRS,NRS,EMT/MLT'),\r\n    public.normalize_specialty_name('DRS,NRS,EMT/MLT'),\r\n    public.normalize_specialty_name('DRS/NRS/EMT/MLT'),\r\n    public.normalize_specialty_name('الإسعاف والطوارئ')\r\n  );\r\nend;\r\n$function$\n",
+    "body": "\r\ndeclare\r\n  v text;\r\nbegin\r\n  v := public.normalize_specialty_name(p_specialty);\r\n\r\n  return v in (\r\n    public.normalize_specialty_name('الإسعاف والطوارئ (DRS/NRS/EMT/MLT)'),\r\n    public.normalize_specialty_name('الإسعاف والطوارئ - DRS/NRS/EMT/MLT'),\r\n    public.normalize_specialty_name('الإسعاف والطوارئ DRS,NRS,EMT/MLT'),\r\n    public.normalize_specialty_name('DRS,NRS,EMT/MLT'),\r\n    public.normalize_specialty_name('DRS/NRS/EMT/MLT'),\r\n    public.normalize_specialty_name('الإسعاف والطوارئ')\r\n  );\r\nend;\r\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "prosecdef": false
+  },
+  {
+    "signature": "normalize_specialty_name(text)",
+    "definition": "CREATE OR REPLACE FUNCTION public.normalize_specialty_name(p_specialty text)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\r\ndeclare\r\n  v text;\r\nbegin\r\n  v := upper(trim(coalesce(p_specialty, '')));\r\n\r\n  v := replace(v, 'أ', 'ا');\r\n  v := replace(v, 'إ', 'ا');\r\n  v := replace(v, 'آ', 'ا');\r\n  v := replace(v, 'ٱ', 'ا');\r\n  v := replace(v, 'ة', 'ه');\r\n\r\n  v := regexp_replace(v, '\\s+', '', 'g');\r\n  v := replace(v, '،', ',');\r\n  v := replace(v, '／', '/');\r\n  v := replace(v, '(', '');\r\n  v := replace(v, ')', '');\r\n  v := replace(v, '-', '');\r\n\r\n  return v;\r\nend;\r\n$function$\n",
+    "body": "\r\ndeclare\r\n  v text;\r\nbegin\r\n  v := upper(trim(coalesce(p_specialty, '')));\r\n\r\n  v := replace(v, 'أ', 'ا');\r\n  v := replace(v, 'إ', 'ا');\r\n  v := replace(v, 'آ', 'ا');\r\n  v := replace(v, 'ٱ', 'ا');\r\n  v := replace(v, 'ة', 'ه');\r\n\r\n  v := regexp_replace(v, '\\s+', '', 'g');\r\n  v := replace(v, '،', ',');\r\n  v := replace(v, '／', '/');\r\n  v := replace(v, '(', '');\r\n  v := replace(v, ')', '');\r\n  v := replace(v, '-', '');\r\n\r\n  return v;\r\nend;\r\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "prosecdef": false
+  },
+  {
+    "signature": "prevent_approved_employee_identity_change()",
+    "definition": "CREATE OR REPLACE FUNCTION public.prevent_approved_employee_identity_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n\r\nIF OLD.status = 'APPROVED' THEN\r\n\r\n    IF NEW.full_name IS DISTINCT FROM OLD.full_name\r\n    OR NEW.employee_id IS DISTINCT FROM OLD.employee_id\r\n    OR NEW.mobile_number IS DISTINCT FROM OLD.mobile_number\r\n    OR NEW.specialty IS DISTINCT FROM OLD.specialty\r\n    OR NEW.department IS DISTINCT FROM OLD.department\r\n    OR NEW.job_type IS DISTINCT FROM OLD.job_type\r\n    OR NEW.employee_photo_url IS DISTINCT FROM OLD.employee_photo_url\r\n    THEN\r\n\r\n        RAISE EXCEPTION \r\n        'Approved employee identity fields cannot be modified directly';\r\n\r\n    END IF;\r\n\r\nEND IF;\r\n\r\nRETURN NEW;\r\n\r\nEND;\r\n$function$\n",
+    "body": "\r\nBEGIN\r\n\r\nIF OLD.status = 'APPROVED' THEN\r\n\r\n    IF NEW.full_name IS DISTINCT FROM OLD.full_name\r\n    OR NEW.employee_id IS DISTINCT FROM OLD.employee_id\r\n    OR NEW.mobile_number IS DISTINCT FROM OLD.mobile_number\r\n    OR NEW.specialty IS DISTINCT FROM OLD.specialty\r\n    OR NEW.department IS DISTINCT FROM OLD.department\r\n    OR NEW.job_type IS DISTINCT FROM OLD.job_type\r\n    OR NEW.employee_photo_url IS DISTINCT FROM OLD.employee_photo_url\r\n    THEN\r\n\r\n        RAISE EXCEPTION \r\n        'Approved employee identity fields cannot be modified directly';\r\n\r\n    END IF;\r\n\r\nEND IF;\r\n\r\nRETURN NEW;\r\n\r\nEND;\r\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "prosecdef": false
+  },
+  {
+    "signature": "sync_trusted_device_activity()",
+    "definition": "CREATE OR REPLACE FUNCTION public.sync_trusted_device_activity()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nbegin\r\n  if new.trusted_device_last_used_at is distinct from old.trusted_device_last_used_at then\r\n    new.trusted_device_last_activity_at := new.trusted_device_last_used_at;\r\n  end if;\r\n  return new;\r\nend;\r\n$function$\n",
+    "body": "\r\nbegin\r\n  if new.trusted_device_last_used_at is distinct from old.trusted_device_last_used_at then\r\n    new.trusted_device_last_activity_at := new.trusted_device_last_used_at;\r\n  end if;\r\n  return new;\r\nend;\r\n",
+    "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "prosecdef": false
+  }
+]
