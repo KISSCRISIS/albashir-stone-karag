@@ -38,7 +38,7 @@ async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 
 }
 
 (async () => {
-  const uploadSource = read('register.html').match(/async function uploadEmployeePhoto\(employeeId\) \{[\s\S]*?(?=\r?\n  function updateRegistrationForm)/)[0];
+  const uploadSource = read('register.html').match(/async function uploadEmployeePhoto\(employeeId\) \{[\s\S]*?\n  \}/)[0];
   for (const outcome of ['transport', 'denied', 'exception', 'ok']) {
     const warnings = [];
     const upload = vm.runInNewContext('(' + uploadSource + ')', {
