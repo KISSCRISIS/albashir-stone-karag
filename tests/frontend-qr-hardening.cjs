@@ -16,14 +16,15 @@ for (const name of [...pages, 'portal', 'guard']) {
 }
 new vm.Script(read('verify-shared.js'));
 const sw = read('service-worker.js');
-assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v17"/);
+assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v19"/);
 assert.match(sw, /if \(event.request.method !== "GET"\) return/);
 assert.match(sw, /url.hostname.endsWith\("\.supabase.co"\)/);
 assert.match(read('index.html'), /LIVE_SITE_URL: window.location.origin/);
 assert.match(read('profile.html'), /href="\.\/verify.html">مسح QR من شاشة الحارس/);
-for (const name of ['index', 'verify', 'register', 'profile', 'admin_dashboard', 'guard', 'login']) {
+for (const name of ['index', 'verify', 'register', 'profile', 'admin_dashboard', 'login']) {
   assert.ok(read('robots.txt').includes('Disallow: /' + name + '.html'));
 }
+assert.ok(read('robots.txt').includes('Disallow: /g*.html'));
 const server = http.createServer((req, res) => {
   const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).replace(/^\//, '');
   const file = path.resolve(root, name);

@@ -311,3 +311,7 @@ Before marking a UI page complete:
 ## Owner frontend refinement — 2026-10-07
 
 The public guard page is opened by a direct link distributed to guards only. Public frontend navigation, redirects, comments and service-worker asset lists must not disclose its path. This is presentation policy, not authorization. Backend permissions remain unchanged. Its result replaces the QR panel for 10 seconds; rotation and server expiry continue. Employee verification photos use the credentials of the successful verification path, never an unrelated stored device token. Cache version is v18. Chromium/WebKit emulation is not a real-phone acceptance test.
+
+## Autonomous audit repairs — 2026-10-07
+
+Registration shortcuts must target the current registration page. CSV exports must neutralize formula-like string cells. Service Worker page caches must omit credential-bearing queries and never persist third-party responses. Cache version is v19. The QR/heartbeat/layout browser suite now runs in CI with pinned Playwright. See docs/PROJECT_AUDIT_2026_10_07.md for evidence and unresolved database/Production gates.

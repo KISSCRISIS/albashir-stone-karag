@@ -1,4 +1,4 @@
-const CACHE_VERSION = "emergency-room-parking-offline-v18";
+const CACHE_VERSION = "emergency-room-parking-offline-v19";
 
 const OFFLINE_ASSETS = [
   "./",
@@ -89,11 +89,16 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (request.mode === "navigate") {
+    // Cache the page shell, never the QR/session credentials in its query.
+    const pageKey = new URL(url.pathname, url.origin).href;
     event.respondWith(
       fetch(request)
         .then((response) => {
           const responseCopy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, responseCopy));
+          if (response.status === 200) event.waitUntil(
+            caches.open(CACHE_VERSION).then((cache) => cache.put(pageKey, responseCopy))
+              .catch((error) => console.warn("[SW] Page cache write failed", error))
+          );
           return response;
         })
         .catch(async () => {
@@ -108,7 +113,6 @@ self.addEventListener("fetch", (event) => {
             "profile.html",
             "login.html",
             "admin_dashboard.html",
-
             "register.html"
           ]);
           return caches.match(allowedPages.has(page) ? `./${page}` : "./portal.html");
@@ -123,7 +127,8 @@ self.addEventListener("fetch", (event) => {
         .then((response) => {
           if (response && response.status === 200) {
             const responseCopy = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(request, responseCopy));
+            event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.put(request, responseCopy))
+              .catch((error) => console.warn("[SW] Asset cache write failed", error)));
           }
           return response;
         })
@@ -136,17 +141,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(request).then((response) => {
-        if (response && response.status === 200) {
-          const responseCopy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, responseCopy));
-        }
-        return response;
-      });
-    })
-  );
+  // Third-party responses may carry credentials; never persist them.
+  event.respondWith(fetch(request));
 });

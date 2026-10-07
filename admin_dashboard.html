@@ -2185,8 +2185,9 @@
     }
 
     function csvEscape(value) {
-      const str = String(value ?? "");
-      if (/[",\n]/.test(str)) return `"${str.replaceAll('"', '""')}"`;
+      let str = String(value ?? "");
+      if (typeof value === "string" && /^[\u0000-\u0020]*[=+\-@]/.test(str)) str = "'" + str;
+      if (/[",\r\n]/.test(str)) return '\"' + str.replaceAll('\"', '\"\"') + '\"';
       return str;
     }
 

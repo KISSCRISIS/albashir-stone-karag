@@ -15,3 +15,6 @@ Thumbs.db
 
 # Node dependencies (isolated tests)
 node_modules/
+
+# Supabase CLI local project metadata
+supabase/.temp/

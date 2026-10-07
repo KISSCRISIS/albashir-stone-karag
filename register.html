@@ -352,8 +352,9 @@
     // are never attached to a registration. A failure here must not block the
     // applicant, so the registration continues with the path alone.
     try {
-      await supabaseClient.rpc("register_pending_employee_upload", { p_object_path: path });
-    } catch (_) { /* ignored on purpose */ }
+      const ledger = await supabaseClient.rpc("register_pending_employee_upload", { p_object_path: path });
+      if (ledger.error || ledger.data?.ok === false) console.warn("Upload cleanup ledger unavailable");
+    } catch (_) { console.warn("Upload cleanup ledger unavailable"); }
     return path;
   }
 
