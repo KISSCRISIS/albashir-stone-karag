@@ -98,6 +98,7 @@
   const qrToken = urlParams.get("token");
   let activeQrToken = qrToken;
   let qrClaimReady = false;
+  let activeQrRequestId = null;
   let lastManualCheck = null;
   let verificationLock = false;
   const employeeSession = window.ALBASHIRAccess?.readSession();
@@ -108,8 +109,51 @@
   let qrScanStream = null;
   let qrScanTimer = null;
 
+  function newRequestId(){
+    if(globalThis.crypto?.randomUUID) return crypto.randomUUID();
+    const bytes=new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6]=(bytes[6]&0x0f)|0x40;
+    bytes[8]=(bytes[8]&0x3f)|0x80;
+    const hex=[...bytes].map(v=>v.toString(16).padStart(2,"0")).join("");
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  }
+
   function setActiveQrToken(token) {
-    activeQrToken = extractQrToken(token);
+    const next=extractQrToken(token);
+    if(next && next!==activeQrToken) activeQrRequestId=null;
+    activeQrToken=next;
+  }
+
+  function clearQrTokenFromUrl(){
+    try{
+      const url=new URL(location.href);
+      url.searchParams.delete("token");
+      url.searchParams.delete("public_guard");
+      history.replaceState(history.state,"",url.pathname+url.search+url.hash);
+    }catch(_){}
+  }
+
+  function sleep(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
+
+  async function rpcWithRetry(name,payload,{timeoutMs=8000,maxAttempts=3}={}){
+    let lastError=null;
+    for(let attempt=1;attempt<=maxAttempts;attempt++){
+      try{
+        const call=supabaseClient.rpc(name,payload);
+        const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("RPC_TIMEOUT")),timeoutMs));
+        const response=await Promise.race([call,timeout]);
+        if(!response?.error) return response;
+        const message=response.error?.message||String(response.error);
+        if(!/fetch|network|timeout|502|503|504|temporar/i.test(message)) return response;
+        lastError=response.error;
+      }catch(err){
+        lastError=err;
+        if(!/fetch|network|timeout|502|503|504|temporar/i.test(err?.message||"")) throw err;
+      }
+      if(attempt<maxAttempts) await sleep(attempt===1?500:1500);
+    }
+    throw lastError||new Error("RPC_FAILED");
   }
 
   function setConnection(text, type="ready") {
@@ -292,8 +336,9 @@
 
     try{
       setResult("WAITING","جارِ تفعيل QR والتحقق من صلاحيته...");
-      const {data,error}=await supabaseClient.rpc("claim_qr_session",{p_token:activeQrToken});
-      const result=normalizeRpcData(data,"claim_qr_session");
+      activeQrRequestId ||= newRequestId();
+      const {data,error}=await rpcWithRetry("claim_qr_session_v2",{p_token:activeQrToken,p_request_id:activeQrRequestId},{timeoutMs:5000,maxAttempts:3});
+      const result=normalizeRpcData(data,"claim_qr_session_v2");
 
       if(error || !result || result.ok!==true || !result.claim_token){
         qrClaimReady=false;
@@ -303,6 +348,7 @@
 
       activeQrToken=result.claim_token;
       qrClaimReady=true;
+      clearQrTokenFromUrl();
       setQrSessionStatus(result.message || "تم تفعيل QR. أكمل خلال 5 دقائق.","ok");
 
       const storedToken=getTrustedDeviceToken();
@@ -378,11 +424,13 @@
     try{
       showManualSections(false);
       setResult("WAITING","جارِ التحقق تلقائيًا من الجهاز الموثوق...");
-      const {data,error}=await supabaseClient.rpc("public_guard_auto_employee_check",{
+      if(!activeQrRequestId) activeQrRequestId=newRequestId();
+      const {data,error}=await rpcWithRetry("public_guard_auto_employee_check_v2",{
+        p_request_id:activeQrRequestId,
         p_device_token:storedToken,
         p_qr_token:activeQrToken,
         p_device_id:getTrustedDeviceId()
-      });
+      },{timeoutMs:8000,maxAttempts:3});
       const result=normalizeRpcData(data,"auto_employee_check");
       if(error || !result) throw new Error(error?.message||"فشل التحقق التلقائي.");
       if(result.clear_device===true) clearTrustedDeviceToken();
@@ -428,7 +476,8 @@
     disableButton("checkButton",true,"جارِ التحقق...","تحقق من الدخول");
     try{
       const rpcPayload={...payload,p_device_id:getTrustedDeviceId()};
-      const {data,error}=await supabaseClient.rpc("public_guard_employee_check",rpcPayload);
+      if(!activeQrRequestId) activeQrRequestId=newRequestId();
+      const {data,error}=await rpcWithRetry("public_guard_employee_check_v2",{p_request_id:activeQrRequestId,...rpcPayload},{timeoutMs:8000,maxAttempts:3});
       const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
       setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee",employee_id:payload.p_employee_id,mobile_number:payload.p_mobile_number});
