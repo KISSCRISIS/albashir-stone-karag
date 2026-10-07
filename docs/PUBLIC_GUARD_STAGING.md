@@ -1,5 +1,13 @@
 # Public guard screen — owner-approved Staging candidate
 
+## Scan-to-decision correction
+
+The previous phone test stopped at QR activation because verify did not use the logged-in employee session; the trusted-device auto RPC also bypassed the public-session result recorder. `verify.html` now fills the existing identity fields from its employee session and invokes the same server verification after successful QR claim, without another form submission. Missing sessions remain manual; no device is auto-enrolled by identity login. A verification lock prevents duplicate submissions.
+
+`public_guard_auto_employee_check` delegates unchanged to `auto_employee_check` and records its result for the matching QR session. Invalid token/device never discloses employee fields. A valid retry may replace a denied result with an allowed/limited decision; replay cannot overwrite a successful decision. Both original manual and auto authority bodies are unchanged. Correction migration: `20261007121511_public_guard_auto_result_sync.sql`, after the public-session migration.
+
+Live Staging PASS for scan-to-decision from a logged-in employee session without filling/submitting the form; live trusted-device automatic result/photo also PASS using a temporary synthetic binding restored exactly afterward. Full local regressions PASS. Latest real-phone acceptance still pending; no Production changes.
+
 Open `guard.html` with no login/PIN/gate-device approval. QR is issued by `create_public_guard_qr()` with a 30-second server expiry; there is no client token fallback. The countdown hides and clears an expired QR. `index.html` retains its authenticated device flow.
 
 The issuer returns a separate random 256-bit read key, never included in the QR/employee URL. Its SHA-256 hash is stored in a private RLS table; reads expire after six minutes. The display polls its own current/recent sessions, so parallel screens cannot read one another's employee results. RPC output contains only the decision, event timestamp and name/job/specialty/photo availability. Employee IDs, phones and photo paths are not returned by the result RPC. Photo paths are resolved server-side from the matching read capability, with existing 60-second signed URL and no-store/blob display. Caller-supplied object paths are ignored for this actor.

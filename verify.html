@@ -99,6 +99,12 @@
   let activeQrToken = qrToken;
   let qrClaimReady = false;
   let lastManualCheck = null;
+  let verificationLock = false;
+  const employeeSession = window.ALBASHIRAccess?.readSession();
+  if(employeeSession?.role==="EMPLOYEE"){
+    $("checkEmployeeId").value=String(employeeSession.employeeId||"");
+    $("checkMobileNumber").value=String(employeeSession.mobileNumber||"");
+  }
   let qrScanStream = null;
   let qrScanTimer = null;
 
@@ -302,9 +308,12 @@
         showManualSections(false);
         setResult("WAITING","تم التعرف على جهاز محفوظ. جارِ التحقق تلقائيًا...");
         await tryAutoVerifyFromTrustedDevice();
+      }else if(employeeSession?.role==="EMPLOYEE" && $("checkEmployeeId").value.trim() && $("checkMobileNumber").value.trim()){
+        showManualSections(false);
+        await submitEmployeeVerification();
       }else{
         showManualSections(true);
-        setResult("READY","QR صالح. سجّل الدخول مرة واحدة، ثم فعّل هذا الجهاز للدخول التلقائي لاحقًا.");
+        setResult("READY","QR صالح. أدخل بيانات الموظف لإكمال التحقق.");
       }
     }catch(err){
       qrClaimReady=false;
@@ -367,7 +376,7 @@
     try{
       showManualSections(false);
       setResult("WAITING","جارِ التحقق تلقائيًا من الجهاز الموثوق...");
-      const {data,error}=await supabaseClient.rpc("auto_employee_check",{
+      const {data,error}=await supabaseClient.rpc("public_guard_auto_employee_check",{
         p_device_token:storedToken,
         p_qr_token:activeQrToken,
         p_device_id:getTrustedDeviceId()
@@ -399,8 +408,8 @@
     }
   }
 
-  $("checkForm").addEventListener("submit",async(event)=>{
-    event.preventDefault();
+  async function submitEmployeeVerification(){
+    if(verificationLock)return;
     const payload={
       p_employee_id:$("checkEmployeeId").value.trim(),
       p_mobile_number:$("checkMobileNumber").value.trim(),
@@ -413,6 +422,7 @@
     }
     if(!qrClaimReady){ setResult("WAITING","افتح الكاميرا لمسح QR من شاشة الحارس المناوب."); return; }
 
+    verificationLock=true;
     disableButton("checkButton",true,"جارِ التحقق...","تحقق من الدخول");
     try{
       const rpcPayload={...payload,p_device_id:getTrustedDeviceId()};
@@ -420,6 +430,7 @@
       const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
       setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);
+      if(result.ok!==true || !["ALLOWED","LIMITED"].includes(result.result)) showManualSections(true);
       if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result) && result.trusted_device_enrollment_claim){
         lastManualCheck={
           employeeId:payload.p_employee_id,
@@ -446,9 +457,11 @@
         setResult("DENIED","حدث خطأ: "+err.message);
       }
     }finally{
+      verificationLock=false;
       disableButton("checkButton",false,"جارِ التحقق...","تحقق من الدخول");
     }
-  });
+  }
+  $("checkForm").addEventListener("submit",async(event)=>{event.preventDefault();await submitEmployeeVerification();});
 
   registerOfflineGateMode();
   setActiveQrToken(activeQrToken);
