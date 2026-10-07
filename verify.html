@@ -257,7 +257,7 @@
     }
     if(supabaseClient) setConnection("Supabase جاهز");
     updateOfflinePendingBadge();
-    syncGateDeviceHeartbeat();
+    // Employee verification is not a gate-device approval request.
     syncOfflineAccessLogs();
   }
 
@@ -270,7 +270,7 @@
       return;
     }
     setConnection("Supabase جاهز");
-    syncGateDeviceHeartbeat();
+    // Employee verification is not a gate-device approval request.
     syncOfflineAccessLogs();
   }
 
@@ -416,7 +416,7 @@
     disableButton("checkButton",true,"جارِ التحقق...","تحقق من الدخول");
     try{
       const rpcPayload={...payload,p_device_id:getTrustedDeviceId()};
-      const {data,error}=await supabaseClient.rpc("manual_employee_check_with_device",rpcPayload);
+      const {data,error}=await supabaseClient.rpc("public_guard_employee_check",rpcPayload);
       const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
       setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);

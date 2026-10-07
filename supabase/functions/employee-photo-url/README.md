@@ -102,3 +102,6 @@ No Staging/Production deployment was performed.
 Local check: `deno check --config=supabase/functions/deno.json --frozen-lockfile supabase/functions/employee-photo-url/index.ts`.
 The entry smoke test requires synthetic env values and network permission for
 127.0.0.1:8000 only; it cannot contact a real Supabase project.
+# Public guard session actor — owner-approved Staging update
+
+`{actor:{type:"public_guard_session",read_key:"<256-bit capability>"}}` resolves only the photo associated with the session's completed verification result. The service-only `resolve_public_guard_photo` RPC checks the read-key hash and six-minute session window. An arbitrary requested `path` is ignored for this actor. No device code/token is required; missing, wrong, expired or undecided sessions return opaque DENIED before Storage access. Private bucket, 60-second signed URL and no-store headers remain unchanged. Production unchanged.

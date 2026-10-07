@@ -84,7 +84,7 @@ const ENTRY = "supabase/functions/employee-photo-url/index.ts";
   assert.match(client, /data-photo-ref/, "hydrator must consume data-photo-ref");
   assert.match(client, /data-photo-href/, "hydrator must consume data-photo-href");
 
-  for (const page of ["index.html", "register.html", "verify.html", "guard.html", "profile.html", "admin_dashboard.html"]) {
+  for (const page of ["index.html", "register.html", "verify.html", "profile.html", "admin_dashboard.html"]) {
     assert.match(read(page), /<script src="\.\/employee-photo\.js"><\/script>/, `${page} must load employee-photo.js`);
   }
   console.log("PASS every photo-displaying page loads the shared resolver client");
@@ -116,7 +116,7 @@ const ENTRY = "supabase/functions/employee-photo-url/index.ts";
   assert.match(verify, /hydrateEmployeePhotos\(details, employeePhotoActor\(employee\)\)/);
   assert.match(verify, /type:"employee_device"/);
   const guard = read("guard.html");
-  assert.match(guard, /hydrateEmployeePhotos\(details, guardPhotoActor\(\)\)/);
+  assert.match(guard, /type:'public_guard_session'/);assert.match(guard, /URL.createObjectURL/);assert.match(guard, /cache:'no-store'/);
   console.log("PASS profile, guard screen, verify and guard pages resolve photos with their own actor");
 }
 {

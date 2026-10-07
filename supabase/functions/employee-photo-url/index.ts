@@ -39,6 +39,11 @@ function userScopedClient(accessToken: string) {
 }
 
 const deps = {
+  async verifyPublicGuardSession(readKey: string) {
+    const { data, error } = await admin.rpc("resolve_public_guard_photo", { p_read_key: readKey });
+    const result = Array.isArray(data) ? data[0] : data;
+    return { ok: !error && result?.ok === true, path: String(result?.path || "") };
+  },
   async verifyAdmin(accessToken: string) {
     const client = userScopedClient(accessToken);
     const { data: userData, error: userError } = await client.auth.getUser(accessToken);

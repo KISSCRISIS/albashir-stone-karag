@@ -136,7 +136,13 @@ export async function handleRequest(input, deps) {
 }
 
 async function resolveAction(body, input, deps, cors) {
-  const path = normalizeObjectPath(body.path || body.url || "");
+  let publicSession = null;
+  if (body.actor?.type === "public_guard_session") {
+    try { publicSession = await deps.verifyPublicGuardSession(String(body.actor.read_key || "")); }
+    catch { return response(403, { ok: false, error: "DENIED" }, cors); }
+    if (publicSession?.ok !== true) return response(403, { ok: false, error: "DENIED" }, cors);
+  }
+  const path = normalizeObjectPath(publicSession ? publicSession.path : body.path || body.url || "");
   if (!path) {
     return response(403, { ok: false, error: "DENIED", reason: "INVALID_PHOTO_REFERENCE" }, cors);
   }
@@ -149,7 +155,9 @@ async function resolveAction(body, input, deps, cors) {
   let reason = "NOT_AUTHORIZED";
 
   try {
-    if (actorType === "admin") {
+    if (actorType === "public_guard_session") {
+      authorized = publicSession?.ok === true;
+    } else if (actorType === "admin") {
       const token = String(actor.access_token || bearer || "");
       if (!token) return response(403, { ok: false, error: "DENIED", reason: "MISSING_CREDENTIALS" }, cors);
       const verified = await deps.verifyAdmin(token);

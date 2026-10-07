@@ -838,3 +838,6 @@ Admin approval now activates the device submitted with the registration request 
 # Final trusted-device duration — 2026-10-07
 
 On Staging, the owner-approved registration device remains trusted until administrator revocation while the employee remains approved and device authorization remains valid. The earlier 30-day duration is superseded. QR remains mandatory for gate access. Production unchanged; see [final policy](docs/ADMIN_APPROVAL_DEVICE_POLICY.md).
+# Public guard Staging — 2026-10-07
+
+`guard.html` now displays database-issued QR immediately without login/PIN/gate-device approval. Approved name/photo/job/specialty fields are exposed only for its QR session using a separate short-lived read capability; private Storage and direct-table restrictions remain. Mandatory QR and the original decision function stay unchanged. Staging published; Production unchanged. See [rollout, tests and authorization scope](docs/PUBLIC_GUARD_STAGING.md).

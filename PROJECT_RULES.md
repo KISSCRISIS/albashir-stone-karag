@@ -1,5 +1,9 @@
 # PROJECT RULES — ALBASHIR Gate
 
+## Owner exception — public guard screen, 2026-10-07
+
+For `guard.html` only, the owner explicitly approved database-issued QR and session-scoped result RPCs without login/PIN/gate-device approval or gate-device credentials. This exception supersedes P0-2 for this new public issuance RPC only; the existing authenticated `index.html` flow remains unchanged. Results may expose only the owner's approved fields: name, photo, job and specialty, plus access decision. A separate high-entropy expiring read capability binds those fields to this screen's QR session; never expose the shared latest employee to everyone. Photos stay private and use the resolver with signed URLs of at most 60 seconds. No direct table grants are allowed. `manual_employee_check`, Mandatory QR and P0-3 order stay unchanged. Staging first; Production needs coordinated approval after acceptance.
+
 This file is the authoritative, mandatory, root-level project ruleset.
 Current as of October 2026.
 
