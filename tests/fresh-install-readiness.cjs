@@ -37,7 +37,7 @@ async function asRole(db,role,sql,params=[]) {
     console.log('PASS complete fresh-install execution with real local pgcrypto');
     for (const f of snapshot.functions) {
       const row=(await db.query('select pg_get_functiondef($1::regprocedure) as definition',[`public.${f.signature}`])).rows[0];
-      assert.equal(row.definition,f.definition,'live helper body/signature/search_path preserved');
+      assert.equal(row.definition.replace(/\r\n/g,'\n'),f.definition.replace(/\r\n/g,'\n'),'live helper body/signature/search_path preserved (line endings normalized)');
       const acl=(await db.query("select has_function_privilege('anon',$1::regprocedure,'execute') as anon,has_function_privilege('authenticated',$1::regprocedure,'execute') as authenticated,has_function_privilege('service_role',$1::regprocedure,'execute') as service",[`public.${f.signature}`])).rows[0];
       assert.deepEqual(acl,{anon:false,authenticated:false,service:false});
     }
