@@ -210,7 +210,7 @@
         <div class="toolbar" style="margin-bottom:0">
           <button type="button" onclick="showTab('registrations', this)">مراجعة طلبات التسجيل</button>
           <button type="button" class="btn-soft" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">مراجعة تغيير البيانات</button>
-          <button type="button" class="btn-soft" onclick="showTab('violations', this)">مراجعة بلاغات الحارس</button>
+          <button type="button" class="btn-soft" onclick="showTab('violations', this)">عرض سجل بلاغات الحارس</button>
           <button type="button" class="btn-soft" onclick="showTab('logs', this)">سجلات الدخول</button>
         </div>
       </div>
@@ -336,7 +336,7 @@
                 <th>الدخول الأول</th>
                 <th>التحقق السريع</th>
                 <th>تاريخ الطلب</th>
-                <th>إجراء</th>
+                <th>الوضع</th>
               </tr>
             </thead>
             <tbody id="registrationsBody"></tbody>
@@ -440,7 +440,7 @@
     <section id="violations" class="section">
       <div class="panel">
         <h2 class="panel-title">بلاغات الحارس</h2>
-        <p class="panel-desc">تظهر هنا الصور والملاحظات المرسلة من شاشة الحارس.</p>
+        <p class="panel-desc">سجل تاريخي للبلاغات السابقة — العرض فقط. إرسال البلاغات وتغيير حالتها متوقفان.</p>
         <div class="toolbar">
           <button onclick="loadViolations()">تحديث البلاغات</button>
           <button class="btn-soft" onclick="exportCsv('violations')">تصدير CSV</button>
@@ -547,7 +547,7 @@
     <section id="audit" class="section">
       <div class="panel">
         <h2 class="panel-title">سجل Audit</h2>
-        <p class="panel-desc">تسجيل العمليات المهمة: موافقة، رفض، تغيير حد، إضافة مشرف، مراجعة بلاغ.</p>
+        <p class="panel-desc">تسجيل العمليات المهمة: موافقة، رفض، تغيير حد، وإدارة المشرفين.</p>
         <div class="toolbar">
           <button onclick="loadAudit()">تحديث Audit</button>
           <button class="btn-soft" onclick="exportCsv('audit')">تصدير CSV</button>
@@ -1449,12 +1449,7 @@
           <td style="white-space:normal; min-width:220px">${escapeHtml(row.note || "-")}</td>
           <td>${statusBadge(row.status)}</td>
           <td>${formatDate(row.created_at)}</td>
-          <td>
-            <div class="row-actions">
-              <button class="btn-soft" onclick="updateViolation('${row.id}', 'REVIEWED')">تمت المراجعة</button>
-              <button class="btn-green" onclick="updateViolation('${row.id}', 'RESOLVED')">تم الحل</button>
-            </div>
-          </td>
+          <td><span class="small-muted">عرض فقط</span></td>
         </tr>
       `).join("");
     }
@@ -2167,22 +2162,6 @@
       await loadAudit();
     }
 
-
-    async function updateViolation(id, status) {
-      const { data, error } = await supabaseClient.rpc("admin_update_violation_status", {
-        p_violation_id: id,
-        p_status: status
-      });
-
-      if (error || !data || data.ok !== true) {
-        showToast(error?.message || data?.message || "فشل تحديث البلاغ.", "error");
-        return;
-      }
-
-      showToast(data.message || "تم تحديث البلاغ.", "ok");
-      await loadViolations();
-      await loadAudit();
-    }
 
     function csvEscape(value) {
       const str = String(value ?? "");
