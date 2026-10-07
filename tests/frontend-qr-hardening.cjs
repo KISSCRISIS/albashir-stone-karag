@@ -16,11 +16,11 @@ for (const name of [...pages, 'portal', 'guard']) {
 }
 new vm.Script(read('verify-shared.js'));
 const sw = read('service-worker.js');
-assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v20"/);
+assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v21"/);
 assert.match(sw, /if \(event.request.method !== "GET"\) return/);
 assert.match(sw, /url.hostname.endsWith\("\.supabase.co"\)/);
 assert.match(read('index.html'), /LIVE_SITE_URL: window.location.origin/);
-assert.match(read('profile.html'), /href="\.\/verify.html">مسح QR من شاشة الحارس/);
+assert.match(read('profile.html'), /href="\.\/verify.html\?scan=1">مسح QR من شاشة الحارس/);
 for (const name of ['index', 'verify', 'register', 'profile', 'admin_dashboard', 'login']) {
   assert.ok(read('robots.txt').includes('Disallow: /' + name + '.html'));
 }
@@ -129,10 +129,12 @@ const server = http.createServer((req, res) => {
         const fits=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth);
         assert.ok(fits,name+' page overflow at '+viewport.width);
         if(name==='portal') {
-          assert(await page.locator('#employeeForm').isVisible(),'portal login must be initially visible');
+          assert(await page.locator('#employeeForm').isHidden(),'portal login must be hidden until chosen');
+          await page.locator('#portalLoginOverlay').evaluate(el=>el.classList.remove('portal-login-overlay--closed'));
+          assert(await page.locator('#employeeForm').isVisible());
           const width=await page.locator('#portalLoginOverlay').evaluate(el=>el.getBoundingClientRect().width);
           assert(width>=Math.min(280,viewport.width*.8),'portal login must not shrink into the reference image');
-          assert.equal(await page.locator('.portal-services a[href="./verify.html"]').count(),1);
+          assert.equal(await page.locator('.portal-services a[href="./verify.html?scan=1"]').count(),1);
           assert.equal(await page.locator('.portal-services a[href="./register.html"]').count(),1);
         }
         if(name==='index') {

@@ -1,18 +1,18 @@
 /* Owner-approved layout: prominent login, functional services, dedication and leadership. */
 .portal-stage{width:min(100%,1448px);margin-inline:auto;container-type:inline-size;background:#041a35;color:#eef6ff}
-.portal-hero{position:relative;isolation:isolate;padding:clamp(100px,12vw,175px) 16px 36px;overflow:hidden;background:linear-gradient(180deg,#062448,#03152f)}
+.portal-hero{position:relative;isolation:isolate;aspect-ratio:1448/432;min-height:0;padding:0;overflow:hidden;background:linear-gradient(180deg,#062448,#03152f)}
 .portal-slice{position:relative;overflow:hidden}
 .portal-slice img{position:absolute;inset:0 auto auto 0;width:100%;max-width:none;height:auto;transform:translateY(var(--slice-offset,0%))}
 .portal-hero-art{position:absolute;inset:0 0 auto;aspect-ratio:1448/432;z-index:-1}
-.portal-login-overlay{position:relative;width:min(100%,640px);margin-inline:auto;padding:clamp(16px,2vw,28px);border:1px solid #0787d5;border-radius:18px;background:linear-gradient(125deg,rgba(6,41,82,.96),rgba(3,27,57,.97));box-shadow:0 18px 48px #020d1ba6;font-size:16px;scroll-margin-top:12px}
+.portal-login-overlay{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);z-index:10001;max-height:90dvh;overflow:auto;width:min(calc(100% - 24px),640px);margin-inline:auto;padding:clamp(16px,2vw,28px);border:1px solid #0787d5;border-radius:18px;background:linear-gradient(125deg,rgba(6,41,82,.96),rgba(3,27,57,.97));box-shadow:0 18px 48px #020d1ba6;font-size:16px;scroll-margin-top:12px}
 .portal-services{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:20px;background:#061f40}
 .portal-service{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;min-height:145px;padding:16px 10px;border:1px solid #079bff;border-radius:16px;background:linear-gradient(135deg,#092f58,#02182f);color:#eef6ff;text-decoration:none;font:inherit}
 a.portal-service,button.portal-service{cursor:pointer}
 .portal-service span{font-size:32px;color:#ffe277}.portal-service strong{font-size:17px}.portal-service small{font-size:14px;line-height:1.6;color:#bfd7ef}
 .portal-service-qr{border:2px solid #ffe277;box-shadow:0 0 14px #ffe27733}
 .portal-service:focus-visible{outline:3px solid #fff;outline-offset:3px}
-.portal-dedication{aspect-ratio:1448/210;--slice-offset:-39.78%}
-.portal-executives{aspect-ratio:1448/286;--slice-offset:-73.665%}
+.portal-dedication{aspect-ratio:1536/370;--slice-offset:-34.6%}
+.portal-executives{aspect-ratio:1536/445;--slice-offset:-66.4%}
 .portal-stage .portal-guard-entry{display:none!important}
 .portal-login-overlay button, .portal-login-overlay input { font: inherit; }
 .portal-login-overlay button { cursor: pointer; color: inherit; }
@@ -49,4 +49,9 @@ a.portal-service,button.portal-service{cursor:pointer}
 .portal-stage .tabs .role-tab{font-size:clamp(18px,1.65cqw,26px)}
 .portal-stage .field label{font-size:15px}.portal-stage .field input{font-size:17px;min-height:48px}
 .portal-stage .action,.portal-stage .qr-button{min-height:48px;font-size:17px}
-@media(max-width:700px){.portal-hero{padding-top:100px}.portal-stage .role-panel{padding:16px 0 0}.portal-stage .onboarding{flex-wrap:wrap}.portal-services{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px;gap:10px}.portal-service-qr{grid-column:1/-1;grid-row:1}.portal-service{min-height:125px}.portal-stage{overflow:hidden}}
+@media(max-width:700px){.portal-hero{padding:0}.portal-stage .role-panel{padding:16px 0 0}.portal-stage .onboarding{flex-wrap:wrap}.portal-services{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px;gap:10px}.portal-service-qr{grid-column:1/-1;grid-row:1}.portal-service{min-height:125px}.portal-stage{overflow:hidden}}
+
+.portal-stage .portal-login-overlay--closed{display:none!important}
+.portal-close{display:block;margin-inline-start:auto;border:0;background:transparent;color:#fff;cursor:pointer;padding:8px;font-size:20px}
+.portal-remember{display:flex;align-items:center;gap:8px;margin-block:12px;font-size:15px}
+.portal-remember input{width:20px;height:20px}

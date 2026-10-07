@@ -97,6 +97,7 @@
   }
 
   function render() {
+    if(document.body.dataset.hideLeadership === "true"){ addStyles(); renderRegistrationShortcut(); return; }
     addStyles();
     document.getElementById("globalLeadership")?.remove();
     const data = loadLeadership();

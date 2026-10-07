@@ -214,6 +214,7 @@
       icon.textContent="◆"; title.textContent="تمت العملية";
     }
 
+    if(["ALLOWED","LIMITED"].includes(result)) card.scrollIntoView({behavior:"smooth",block:"start"});
     msg.textContent=result==="PENDING"?"طلبك قيد المراجعة.\nبعد اعتماد الإدارة سيصبح جهازك جاهزًا للدخول عبر QR.":message || "تمت العملية.";
     if(employee){
       details.innerHTML=renderEmployeeDetails(employee);
@@ -538,6 +539,7 @@
     if(document.visibilityState==="visible") updateNetworkState();
   });
   claimQrSessionIfPresent();
+  if(urlParams.get("scan")==="1" && !activeQrToken) startQrCamera();
   updateOfflinePendingBadge();
 </script>
 <script src="./global-leadership.js"></script>

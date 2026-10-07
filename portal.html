@@ -17,11 +17,12 @@
   <script src="./assets/js/app-state.js" defer></script>
   <script src="./assets/js/ui-components.js" defer></script>
 </head>
-<body class="hospital-ui theme-portal">
+<body class="hospital-ui theme-portal" data-hide-leadership="true">
 <main class="portal-stage" aria-label="بوابة مستشفى البشير">
   <section class="portal-hero" aria-label="بوابة الدخول">
     <div class="portal-slice portal-hero-art" aria-hidden="true"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="" /></div>
-  <section class="portal-login-overlay" id="portalLoginOverlay" aria-label="خيارات الدخول">
+  <section class="portal-login-overlay portal-login-overlay--closed" id="portalLoginOverlay" aria-label="خيارات الدخول">
+    <button class="portal-close" type="button" onclick="closePortalLogin()" aria-label="إغلاق نافذة الدخول">✕</button>
     <div id="notice" class="notice"></div>
     <div id="continueSession" class="continue"><span id="continueText"></span><button class="action green" type="button" onclick="continueSession()">متابعة</button></div>
     <div class="tabs" role="tablist" aria-label="نوع المستخدم">
@@ -30,7 +31,7 @@
       <button class="role-tab" data-role="admin" type="button">الإدارة</button>
     </div>
 
-    <section class="role-panel active" id="employeePanel"><div class="role-head"><h2>دخول الموظف</h2><p>الملف الشخصي وبطاقة الوصول ومسح QR من شاشة الحارس.</p></div><button class="qr-button" type="button" onclick="location.href='./verify.html'">▦ مسح بطاقة QR فورًا للدخول</button><div class="separator"><span>أو</span></div><form class="form" id="employeeForm"><div class="field"><label for="employeeId">الرقم الوظيفي/الوطني</label><input id="employeeId" required autocomplete="username" /></div><div class="field"><label for="employeePhone">رقم الهاتف</label><input id="employeePhone" required type="tel" autocomplete="tel" /></div><button class="action" type="submit">دخول الموظف</button></form><div class="onboarding"><span>موظف جديد ولم يتم تسجيله بعد؟</span><button class="action green" type="button" onclick="startOnboarding()">طلب تسجيل جديد</button></div></section>
+    <section class="role-panel active" id="employeePanel"><div class="role-head"><h2>دخول الموظف</h2><p>الملف الشخصي وبطاقة الوصول ومسح QR من شاشة الحارس.</p></div><button class="qr-button" type="button" onclick="location.href='./verify.html?scan=1'">▦ مسح بطاقة QR فورًا للدخول</button><div class="separator"><span>أو</span></div><form class="form" id="employeeForm"><div class="field"><label for="employeeId">الرقم الوظيفي/الوطني</label><input id="employeeId" required autocomplete="username" /></div><div class="field"><label for="employeePhone">رقم الهاتف</label><input id="employeePhone" required type="tel" autocomplete="tel" /></div><label class="portal-remember"><input id="rememberEmployee" type="checkbox" checked /> حفظ دخولي على هذا الجهاز</label><button class="action" type="submit">دخول الموظف</button></form><div class="onboarding"><span>موظف جديد ولم يتم تسجيله بعد؟</span><button class="action green" type="button" onclick="startOnboarding()">طلب تسجيل جديد</button></div></section>
 
     <section class="role-panel portal-guard-entry" id="guardPanel" aria-hidden="true"><div class="role-head"><h2>شاشة الحارس</h2><p>شاشة الحارس مفتوحة ولا تتطلب تسجيل دخول أو بريدًا إلكترونيًا أو كلمة مرور.</p></div><button class="action green" type="button" onclick="openGuardScreen()">فتح شاشة الحارس</button></section>
 
@@ -39,20 +40,21 @@
   </section>
   </section>
   <nav class="portal-services" aria-label="خدمات البوابة">
-    <div class="portal-service"><span aria-hidden="true">♢</span><strong>خدمة مخصصة لموظفي المستشفى</strong><small>جميع الميزات والخدمات مصممة خصيصًا لكم</small></div>
+    <button class="portal-service" type="button" onclick="openPortalLogin('employee')"><span aria-hidden="true">♙</span><strong>دخول الموظف</strong><small>الدخول والبقاء متصلًا</small></button>
     <a class="portal-service" href="./register.html"><span aria-hidden="true">♙</span><strong>تسجيل الموظفين</strong><small>إرسال طلب تسجيل جديد</small></a>
-    <a class="portal-service portal-service-qr" href="./verify.html"><span aria-hidden="true">▦</span><strong>مسح رمز QR بسرعة</strong><small>مسح رمز الحارس للدخول</small></a>
+    <a class="portal-service portal-service-qr" href="./verify.html?scan=1"><span aria-hidden="true">▦</span><strong>مسح رمز QR بسرعة</strong><small>مسح رمز الحارس للدخول</small></a>
     <button class="portal-service" id="openPortalLogin" type="button" onclick="openEmployeeProfile()"><span aria-hidden="true">▤</span><strong>الوصول للصفحة الشخصية</strong><small>عرض البيانات والخدمات الخاصة بك</small></button>
-    <div class="portal-service"><span aria-hidden="true">⚙</span><strong>واجهة واضحة وسهلة الاستخدام</strong><small>تصميم بسيط ومنظم لتجربة أفضل</small></div>
+    <button class="portal-service" type="button" onclick="openPortalLogin('admin')"><span aria-hidden="true">⚙</span><strong>دخول الإدارة</strong><small>لوحة إدارة النظام</small></button>
   </nav>
-  <section class="portal-slice portal-dedication" aria-label="إهداء إلى الصرح الوطني وكوادر مستشفى البشير"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="إهداء إلى الصرح الوطني الكبير وكوادر مستشفى البشير تقديرًا لجهودهم في خدمة الوطن والمواطن. إعداد وبرمجة الدكتور علاء العقرباوي." /></section>
-  <section class="portal-slice portal-executives" aria-label="القيادة التنفيذية"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="القيادة التنفيذية: الدكتور صلاح القزقي، الدكتور سليمان أبو عواد، والدكتور حسن شحاده." /></section>
+  <section class="portal-slice portal-dedication" aria-label="إهداء إلى الصرح الوطني وكوادر مستشفى البشير"><img src="./assets/images/portal-reference.png" width="1536" height="2048" alt="إهداء إلى الصرح الوطني الكبير وكوادر مستشفى البشير تقديرًا لجهودهم في خدمة الوطن والمواطن. إعداد وبرمجة الدكتور علاء العقرباوي." /></section>
+  <section class="portal-slice portal-executives" aria-label="القيادة التنفيذية"><img src="./assets/images/portal-reference.png" width="1536" height="2048" alt="القيادة التنفيذية: الدكتور صلاح القزقي، الدكتور سليمان أبو عواد، والدكتور حسن شحاده." /></section>
 </main>
 <script>
   const CONFIG={url:"https://qinsfvlspdticposbvst.supabase.co",key:"sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8"};
   const client=window.supabase?.createClient(CONFIG.url,CONFIG.key);const $=id=>document.getElementById(id);const next=new URLSearchParams(location.search).get("next")||"";
   function show(message,type="error"){const el=$("notice");el.textContent=message;el.className=`notice show ${type}`;}
-  function openPortalLogin(){const overlay=$("portalLoginOverlay");overlay.scrollIntoView({behavior:"smooth",block:"start"});$("employeeId").focus({preventScroll:true});}
+  function openPortalLogin(role="employee"){const overlay=$("portalLoginOverlay");document.querySelector('.role-tab[data-role="'+role+'"]').click();overlay.classList.remove("portal-login-overlay--closed");overlay.setAttribute("aria-hidden","false");$(role==="admin"?"adminEmail":"employeeId").focus();}
+  function closePortalLogin(){$("portalLoginOverlay").classList.add("portal-login-overlay--closed");$("portalLoginOverlay").setAttribute("aria-hidden","true");}
   function openEmployeeProfile(){const session=ALBASHIRAccess.readSession();if(session?.role==="EMPLOYEE"){location.href="./profile.html";}else{document.querySelector('.role-tab[data-role="employee"]').click();openPortalLogin();}}
 
   function cleanNext(value){const allowed=["index.html","verify.html","register.html","profile.html","admin_dashboard.html"];try{const raw=String(value||"").trim();if(!raw)return"";const parsed=new URL(raw,location.href);if(parsed.origin!==location.origin)return"";const file=parsed.pathname.split("/").pop()||"";return allowed.includes(file)?`${file}${parsed.search}${parsed.hash}`:"";}catch(_){return"";}}
@@ -61,7 +63,7 @@
   document.querySelectorAll(".role-tab").forEach(tab=>tab.addEventListener("click",()=>{document.querySelectorAll(".role-tab").forEach(x=>x.classList.toggle("active",x===tab));document.querySelectorAll(".role-panel").forEach(panel=>panel.classList.toggle("active",panel.id===`${tab.dataset.role}Panel`));}));
   const DEVICE_TOKEN_KEY="erp_trusted_device_token_v1",DEVICE_ID_KEY="erp_trusted_device_id_v1";
   function deviceId(){let id=localStorage.getItem(DEVICE_ID_KEY);if(!id){id="mobile-"+(crypto.randomUUID?.()||Date.now().toString(36)+"-"+Math.random().toString(16).slice(2));localStorage.setItem(DEVICE_ID_KEY,id);}return id;}
-  async function identityLogin(event){event.preventDefault();const button=event.submitter||event.currentTarget.querySelector("button[type=submit]");button.disabled=true;try{if(!client)throw new Error("تعذر الاتصال بالنظام");const employeeId=$("employeeId").value.trim(),mobileNumber=$("employeePhone").value.trim();const {data,error}=await client.rpc("employee_profile_login",{p_employee_id:employeeId,p_mobile_number:mobileNumber});if(error)throw error;const result=Array.isArray(data)?data[0]:data;if(!result?.ok)throw new Error(result?.message||"بيانات الدخول غير صحيحة");go("EMPLOYEE",{employeeId,mobileNumber,fullName:result.profile?.full_name||""});}catch(error){show(error.message||"تعذر تسجيل الدخول");}finally{button.disabled=false;}}
+  async function identityLogin(event){event.preventDefault();const button=event.submitter||event.currentTarget.querySelector("button[type=submit]");button.disabled=true;try{if(!client)throw new Error("تعذر الاتصال بالنظام");const employeeId=$("employeeId").value.trim(),mobileNumber=$("employeePhone").value.trim();const {data,error}=await client.rpc("employee_profile_login",{p_employee_id:employeeId,p_mobile_number:mobileNumber});if(error)throw error;const result=Array.isArray(data)?data[0]:data;if(!result?.ok)throw new Error(result?.message||"بيانات الدخول غير صحيحة");go("EMPLOYEE",{employeeId,mobileNumber,rememberMe:$("rememberEmployee").checked,fullName:result.profile?.full_name||""});}catch(error){show(error.message||"تعذر تسجيل الدخول");}finally{button.disabled=false;}}
   async function adminLogin(event){event.preventDefault();const button=event.submitter||event.currentTarget.querySelector("button[type=submit]");button.disabled=true;try{if(!client)throw new Error("تعذر الاتصال بالنظام");const {data,error}=await client.auth.signInWithPassword({email:$("adminEmail").value.trim(),password:$("adminPassword").value});if(error)throw error;const response=await client.rpc("get_my_admin_profile");if(response.error)throw response.error;const profile=Array.isArray(response.data)?response.data[0]:response.data;if(!profile?.ok)throw new Error(profile?.message||"الحساب غير مصرح له بالإدارة");const role=profile.role==="SUPER_ADMIN"?"SUPER_ADMIN":"ADMIN";go(role,{email:data.user.email});}catch(error){show(error.message||"تعذر تسجيل الدخول");}finally{button.disabled=false;}}
   $("employeeForm").addEventListener("submit",identityLogin);$("adminForm").addEventListener("submit",adminLogin);
   function openGuardScreen(){ALBASHIRAccess.setSession("GUARD",{openAccess:true});location.replace("./index.html");}

@@ -5,8 +5,8 @@ const css=fs.readFileSync(path.join(root,"portal.css"),"utf8");
 const guard=fs.readFileSync(path.join(root,"guard.html"),"utf8");
 
 assert(portal.includes('id="openPortalLogin"') && portal.includes("openEmployeeProfile()"),"profile card must route to login or employee profile");
-assert(!portal.includes('portal-login-overlay--closed'),"login must be visible without a top entry button");
-assert(portal.includes("function openPortalLogin()"),"landing button must reveal login overlay");
+assert(portal.includes('portal-login-overlay--closed'),"login must open only from service cards");
+assert(portal.includes("function openPortalLogin(role="),"landing button must reveal login overlay");
 assert(!portal.includes("\n  fastTrustedLogin();"),"trusted phone must not auto-skip the main landing screen");
 assert(portal.includes('class="role-tab portal-guard-entry" data-role="guard"'),"guard tab must remain in code but be hidden");
 assert(portal.includes('class="role-panel portal-guard-entry" id="guardPanel"'),"guard panel must remain in code but be hidden");
