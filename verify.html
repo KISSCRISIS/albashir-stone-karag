@@ -99,6 +99,7 @@
   let activeQrToken = qrToken;
   let qrClaimReady = false;
   let activeQrRequestId = null;
+  let activeVerificationRequest = null;
   let lastManualCheck = null;
   let verificationLock = false;
   const employeeSession = window.ALBASHIRAccess?.readSession();
@@ -121,7 +122,7 @@
 
   function setActiveQrToken(token) {
     const next=extractQrToken(token);
-    if(next && next!==activeQrToken) activeQrRequestId=null;
+    if(next && next!==activeQrToken){ activeQrRequestId=null; activeVerificationRequest=null; }
     activeQrToken=next;
   }
 
@@ -136,12 +137,22 @@
 
   function sleep(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
 
+  function verificationRequestId(mode,payload){
+    const identity=JSON.stringify([mode,payload]);
+    if(!activeVerificationRequest || activeVerificationRequest.identity!==identity){
+      const id=activeVerificationRequest ? newRequestId() : (activeQrRequestId || newRequestId());
+      activeVerificationRequest={identity,id};
+    }
+    return activeVerificationRequest.id;
+  }
+
   async function rpcWithRetry(name,payload,{timeoutMs=8000,maxAttempts=3}={}){
     let lastError=null;
     for(let attempt=1;attempt<=maxAttempts;attempt++){
+      let timeoutId;
       try{
         const call=supabaseClient.rpc(name,payload);
-        const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error("RPC_TIMEOUT")),timeoutMs));
+        const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error("RPC_TIMEOUT")),timeoutMs);});
         const response=await Promise.race([call,timeout]);
         if(!response?.error) return response;
         const message=response.error?.message||String(response.error);
@@ -150,7 +161,7 @@
       }catch(err){
         lastError=err;
         if(!/fetch|network|timeout|502|503|504|temporar/i.test(err?.message||"")) throw err;
-      }
+      }finally{ clearTimeout(timeoutId); }
       if(attempt<maxAttempts) await sleep(attempt===1?500:1500);
     }
     throw lastError||new Error("RPC_FAILED");
@@ -425,11 +436,13 @@
       showManualSections(false);
       setResult("WAITING","جارِ التحقق تلقائيًا من الجهاز الموثوق...");
       if(!activeQrRequestId) activeQrRequestId=newRequestId();
-      const {data,error}=await rpcWithRetry("public_guard_auto_employee_check_v2",{
-        p_request_id:activeQrRequestId,
+      const autoPayload={
         p_device_token:storedToken,
         p_qr_token:activeQrToken,
         p_device_id:getTrustedDeviceId()
+      };
+      const {data,error}=await rpcWithRetry("public_guard_auto_employee_check_v2",{
+        p_request_id:verificationRequestId("AUTO",autoPayload),...autoPayload
       },{timeoutMs:8000,maxAttempts:3});
       const result=normalizeRpcData(data,"auto_employee_check");
       if(error || !result) throw new Error(error?.message||"فشل التحقق التلقائي.");
@@ -477,7 +490,7 @@
     try{
       const rpcPayload={...payload,p_device_id:getTrustedDeviceId()};
       if(!activeQrRequestId) activeQrRequestId=newRequestId();
-      const {data,error}=await rpcWithRetry("public_guard_employee_check_v2",{p_request_id:activeQrRequestId,...rpcPayload},{timeoutMs:8000,maxAttempts:3});
+      const {data,error}=await rpcWithRetry("public_guard_employee_check_v2",{p_request_id:verificationRequestId("MANUAL",rpcPayload),...rpcPayload},{timeoutMs:8000,maxAttempts:3});
       const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
       setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee",employee_id:payload.p_employee_id,mobile_number:payload.p_mobile_number});

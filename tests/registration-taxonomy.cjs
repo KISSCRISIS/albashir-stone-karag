@@ -1,13 +1,13 @@
 const fs=require("fs"),path=require("path"),assert=require("assert/strict");
 const root=path.resolve(__dirname,"..");
 const html=fs.readFileSync(path.join(root,"register.html"),"utf8");
-const migration=fs.readFileSync(path.join(root,"supabase/migrations/20261007160500_registration_taxonomy_permanent_departments.sql"),"utf8");
+const migration=fs.readFileSync(path.join(root,"supabase/canonical/registration_taxonomy_permanent_departments.sql"),"utf8");
 for(const value of [
 "الإسعاف والطوارئ (DRS/NRS/EMT/MLT)","أطباء امتياز","ممرضو رعاية حثيثة (ICU)",
 "فنيو أشعة وتصوير طبي","فنيو مختبرات طبية","صيادلة ومساعدو صيادلة","مسعفون",
 "موظفو سجلات طبية واستعلامات","موظفو محاسبة ودخول","مدخلو بيانات","كوادر أمن وحماية",
-"عمال خدمات ونظافة","أخرى"]) {
-  assert(html.includes(`<option>${value}</option>`) || html.includes(`<option value="${value}">${value}</option>`),`missing permanent department: ${value}`);
+"عمال خدمات ونظافة","أخرى (موظف دائم)"]) {
+  assert(html.includes(`<option>${value}</option>`) || html.includes(`<option value="${value}">${value==="أخرى (موظف دائم)"?"أخرى":value}</option>`),`missing permanent department: ${value}`);
   assert(migration.includes(`normalize_specialty_name('${value}')`),`backend permanent allowlist missing: ${value}`);
 }
 assert(!html.includes('<option>طب عام</option>\n          <option>جراحة عامة</option>\n          <option>باطني</option>\n          <option>أطفال</option>\n          <option>ENT</option>\n          <option>نسائية</option>\n          <option>مسالك بولية</option>\n          <option>عيون</option>\n          <option>جراحة دماغ وأعصاب</option>\n          <option>تخدير</option>\n          <option>جراحة أوعية دموية</option>\n          <option>أشعة</option>\n          <option>مختبرات</option>\n          <option>صيانة</option>\n          <option>إدارة</option>\n          <option>أمن</option>\n          <option>أخرى</option>\n        </select>\n      </div>\n\n      <div id="specialtyWrap">'),"legacy permanent department list must be removed");

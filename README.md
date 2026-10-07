@@ -851,3 +851,9 @@ The public guard page is opened by a direct link distributed to guards only. Pub
 ## Autonomous audit repairs — 2026-10-07
 
 Registration shortcuts must target the current registration page. CSV exports must neutralize formula-like string cells. Service Worker page caches must omit credential-bearing queries and never persist third-party responses. Cache version is v19. The QR/heartbeat/layout browser suite now runs in CI with pinned Playwright. See docs/PROJECT_AUDIT_2026_10_07.md for evidence and unresolved database/Production gates.
+
+## QR v2 compatibility review — 2026-10-07
+
+Verification retries retain their request ID only while the mode and payload remain identical. Correcting credentials or switching from automatic to manual verification creates a new request ID; transport retries remain idempotent. Guard WAITING polling preserves QR generation failure messages. Isolated SQL coverage exercises the real v2 definitions, claim replay, credential correction and single access-event behavior.
+
+The owner-approved Staging correction uses a distinct permanent Other department value, while temporary `أخرى` retains its configured limit of 7. No existing Other registrations required conversion. The original authority-function body and ACL remain unchanged. Deployment is currently BLOCKED by Vercel authorization (`Not authorized`); the live Staging alias has not been updated. Production is unchanged. Local regression and browser emulation passes do not constitute a real-phone acceptance result.
