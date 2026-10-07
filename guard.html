@@ -144,6 +144,7 @@
 </main>
 
 <script src="./verify-shared.js"></script>
+<script src="./employee-photo.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const urlParams = new URLSearchParams(location.search);
@@ -181,6 +182,12 @@
     el.classList.remove("hidden");
   }
 
+  // Employee photos are private. This page authenticates with its own gate
+  // device credentials before a 60-second signed URL is issued.
+  function guardPhotoActor(){
+    const device=getGateDevice();
+    return {type:"guard_device",device_code:(device&&device.device_code)||"",device_token:getOfflineDeviceToken()};
+  }
   function setResult(result,message,employee=null) {
     const card=$("resultCard"), icon=$("resultIcon"), title=$("resultTitle"), msg=$("resultMessage"), details=$("resultDetails");
     card.className="result-card";
@@ -206,6 +213,7 @@
     if(employee){
       details.innerHTML=renderEmployeeDetails(employee);
       details.classList.remove("hidden");
+      hydrateEmployeePhotos(details, guardPhotoActor());
     }else{
       details.innerHTML="";
       details.classList.add("hidden");

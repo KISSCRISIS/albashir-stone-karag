@@ -6707,3 +6707,95 @@ REVOKE EXECUTE ON FUNCTION public.reset_guard_screen() FROM PUBLIC, anon, authen
 -- Phase B: NOT APPLIED. Apply ONLY after Phase A and live frontend confirmation.
 -- Confirm index.html sends employee id, gate code and gate token; retain owner/service_role.
 REVOKE EXECUTE ON FUNCTION public.get_guard_employee_result(text) FROM PUBLIC, anon, authenticated;
+
+-- =============================================================================
+-- STAGING READINESS CORRECTION CANDIDATE — REVIEW ONLY, NOT APPLIED
+-- Target for any separately approved execution: EMPTY adwvokwucotohwayorgx.
+-- No Production execution. No grants to anon, no guard-screen grants, no RLS
+-- or changes to existing RPC bodies. Helpers below restore missing dependencies.
+-- =============================================================================
+-- Existing Production helper definitions captured read-only with owner approval.
+-- Fresh-install candidate ONLY; no Production change. Preserve the exact live
+-- counting policy and MD5 mobile hash; do not invent replacement auth behavior.
+CREATE TABLE IF NOT EXISTS public.security_attempt_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  action text NOT NULL,
+  employee_id text,
+  mobile_hash text,
+  success boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT security_attempt_logs_pkey PRIMARY KEY (id)
+);
+ALTER TABLE public.security_attempt_logs OWNER TO postgres;
+ALTER TABLE public.security_attempt_logs ENABLE ROW LEVEL SECURITY;
+-- Internal ledger: no client table grant or read policy is required.
+REVOKE ALL ON TABLE public.security_attempt_logs FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.is_rate_limited(p_action text, p_employee_id text, p_max_attempts integer, p_minutes integer)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  attempts integer;
+BEGIN
+
+  SELECT count(*)
+  INTO attempts
+  FROM public.security_attempt_logs
+  WHERE action = p_action
+    AND employee_id = p_employee_id
+    AND success = false
+    AND created_at >= now() - make_interval(mins => p_minutes);
+
+  RETURN attempts >= p_max_attempts;
+
+END;
+$function$;
+ALTER FUNCTION public.is_rate_limited(text,text,integer,integer) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.is_rate_limited(text,text,integer,integer) FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.write_security_attempt(p_action text, p_employee_id text, p_mobile text, p_success boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+
+INSERT INTO public.security_attempt_logs
+(
+ action,
+ employee_id,
+ mobile_hash,
+ success
+)
+VALUES
+(
+ p_action,
+ p_employee_id,
+ md5(coalesce(p_mobile,'')),
+ p_success
+);
+
+END;
+$function$;
+ALTER FUNCTION public.write_security_attempt(text,text,text,boolean) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.write_security_attempt(text,text,text,boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+-- Only tables actually queried by admin_dashboard.html; existing RLS still
+-- decides which authenticated users can see rows. Writes remain behind RPCs.
+GRANT SELECT ON TABLE
+  public.employee_registrations,
+  public.specialty_daily_limits,
+  public.gate_access_logs,
+  public.violation_reports,
+  public.admin_profiles,
+  public.admin_audit_logs,
+  public.employee_data_change_requests
+TO authenticated;
+
+-- The backend photo resolver authenticates employee credentials via this RPC.
+-- service_role is server-only. PUBLIC stays revoked; browser grants unchanged.
+GRANT EXECUTE ON FUNCTION public.employee_profile_login(text,text) TO service_role;

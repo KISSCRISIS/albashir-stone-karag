@@ -24,7 +24,7 @@ const OFFLINE_DB_VERSION = 2;
 const OFFLINE_ACCESS_STORE = "offline_access_queue";
 const OFFLINE_CRYPTO_STORE = "offline_crypto_meta";
 const OFFLINE_CRYPTO_KEY_ID = "offline-sensitive-fields-v1";
-const CACHE_VERSION = "emergency-room-parking-offline-v16";
+const CACHE_VERSION = "emergency-room-parking-offline-v17";
 const APP_VERSION = "2026.09.28-24x7";
 
 let syncingLock = false;
@@ -62,7 +62,7 @@ function renderEmployeeDetails(employee) {
   const photo = employee.photo_url || employee.employee_photo_url || "";
   return `
     <div class="employee-card">
-      ${photo ? `<img class="employee-photo" src="${escapeHtml(photo)}" alt="صورة الموظف" />` : `<div class="employee-photo"></div>`}
+      ${photo ? `<img class="employee-photo" data-photo-ref="${escapeHtml(photo)}" data-photo-fallback="./logo.jpeg" alt="صورة الموظف" />` : `<div class="employee-photo"></div>`}
       <div class="employee-info">
         <div class="employee-field"><span>الاسم</span><strong>${escapeHtml(employee.full_name || "-")}</strong></div>
         <div class="employee-field"><span>الرقم الوظيفي/الوطني</span><strong>${escapeHtml(employee.employee_id || "-")}</strong></div>
@@ -73,6 +73,15 @@ function renderEmployeeDetails(employee) {
       </div>
     </div>
   `;
+}
+
+/* Employee photos live in a private bucket. The stored value is an object
+   reference, not a permanent URL, so it is exchanged for a 60-second signed
+   URL by the employee-photo-url resolver using the caller's own credentials
+   (employee session, trusted device, or gate device). */
+function hydrateEmployeePhotos(scope, actor) {
+  if (!scope || !actor || !window.EmployeePhoto) return;
+  window.EmployeePhoto.hydrate(scope, actor, APP_CONFIG);
 }
 
 function createSupabaseClient() {

@@ -12,3 +12,6 @@ FINAL_CHECK_REPORT.txt
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Node dependencies (isolated tests)
+node_modules/

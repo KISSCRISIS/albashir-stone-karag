@@ -12,6 +12,7 @@
   <!-- QR rendering is local, but every displayed URL must come from a validated Supabase session. -->
   <script src="./supabase.min.js"></script>
   <script src="./qrcode.min.js"></script>
+  <script src="./employee-photo.js"></script>
 
   <link rel="stylesheet" href="./index.css" />
   <link rel="stylesheet" href="./global-theme.css" />
@@ -179,7 +180,7 @@
       heartbeatLastError: "",
       startedAt: Date.now()
     };
-    const CACHE_VERSION = "emergency-room-parking-offline-v16";
+    const CACHE_VERSION = "emergency-room-parking-offline-v17";
     const LAST_VALID_QR_STORAGE_KEY = "erp_last_valid_qr_v3";
     const GATE_ERROR_RING_KEY = "erp_gate_error_ring_v1";
     const GATE_AUDIT_QUEUE_KEY = "erp_gate_audit_queue_v1";
@@ -876,6 +877,30 @@
       return job || specialty || "-";
     }
 
+    function guardPhotoActor() {
+      const device = getGateDevice();
+      return {
+        type: "guard_device",
+        device_code: device?.device_code || "",
+        device_token: getOfflineDeviceToken()
+      };
+    }
+    // Employee photos live in a private bucket. The guard screen exchanges the
+    // stored object reference for a 60-second signed URL, authenticated with
+    // its own gate-device credentials. On failure the logo is shown instead.
+    function showGuardPhoto(reference) {
+      const photo = $("scanPhoto");
+      if (!photo) return;
+      const clean = String(reference || "").trim();
+      if (!clean || !window.EmployeePhoto) {
+        photo.removeAttribute("data-photo-ref");
+        photo.src = "./logo.jpeg";
+        return;
+      }
+      photo.setAttribute("data-photo-fallback", "./logo.jpeg");
+      photo.setAttribute("data-photo-ref", clean);
+      EmployeePhoto.hydrate(photo, guardPhotoActor(), APP_CONFIG);
+    }
     async function fetchGuardEmployee(employeeId) {
       if (!supabaseClient || !employeeId) return null;
       try {
@@ -929,9 +954,9 @@
       const displayName = displayEmployee.full_name || employeeName || "-";
       const displayId = displayEmployee.employee_id || employeeId || "-";
       const displayDepartment = displayEmployee.department || displayEmployee.specialty || "-";
-      const displayPhoto = displayEmployee.photo_url || "./logo.jpeg";
+      const displayPhoto = displayEmployee.photo_url || "";
 
-      $("scanPhoto").src = displayPhoto;
+      showGuardPhoto(displayPhoto);
       $("scanName").textContent = displayName;
       $("scanEmployeeId").textContent = displayId;
       $("scanDepartment").textContent = displayDepartment;

@@ -25,12 +25,14 @@
   }
 
   function setSession(role, extra = {}) {
+    window.EmployeePhoto?.clearCache();
     const session = { role: normalizeRole(role), createdAt: Date.now(), expiresAt: Date.now() + 8 * 60 * 60 * 1000, ...extra };
     sessionStorage.setItem(KEY, JSON.stringify(session));
     return session;
   }
 
   function clearSession() {
+    window.EmployeePhoto?.clearCache();
     sessionStorage.removeItem(KEY);
     Object.keys(localStorage).filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token")).forEach((key) => localStorage.removeItem(key));
   }

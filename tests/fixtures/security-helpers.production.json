@@ -1,0 +1,80 @@
+{
+  "table": {
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+    "rls": true,
+    "owner": "postgres",
+    "force_rls": false
+  },
+  "columns": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "identity": "",
+      "not_null": true
+    },
+    {
+      "name": "action",
+      "type": "text",
+      "default": null,
+      "identity": "",
+      "not_null": true
+    },
+    {
+      "name": "employee_id",
+      "type": "text",
+      "default": null,
+      "identity": "",
+      "not_null": false
+    },
+    {
+      "name": "mobile_hash",
+      "type": "text",
+      "default": null,
+      "identity": "",
+      "not_null": false
+    },
+    {
+      "name": "success",
+      "type": "boolean",
+      "default": "false",
+      "identity": "",
+      "not_null": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "default": "now()",
+      "identity": "",
+      "not_null": false
+    }
+  ],
+  "indexes": [
+    {
+      "name": "security_attempt_logs_pkey",
+      "definition": "CREATE UNIQUE INDEX security_attempt_logs_pkey ON public.security_attempt_logs USING btree (id)"
+    }
+  ],
+  "policies": null,
+  "triggers": null,
+  "functions": [
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "signature": "is_rate_limited(text,text,integer,integer)",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_rate_limited(p_action text, p_employee_id text, p_max_attempts integer, p_minutes integer)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  attempts integer;\r\nBEGIN\r\n\r\n  SELECT count(*)\r\n  INTO attempts\r\n  FROM public.security_attempt_logs\r\n  WHERE action = p_action\r\n    AND employee_id = p_employee_id\r\n    AND success = false\r\n    AND created_at >= now() - make_interval(mins => p_minutes);\r\n\r\n  RETURN attempts >= p_max_attempts;\r\n\r\nEND;\r\n$function$\n"
+    },
+    {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "signature": "write_security_attempt(text,text,text,boolean)",
+      "definition": "CREATE OR REPLACE FUNCTION public.write_security_attempt(p_action text, p_employee_id text, p_mobile text, p_success boolean)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n\r\nINSERT INTO public.security_attempt_logs\r\n(\r\n action,\r\n employee_id,\r\n mobile_hash,\r\n success\r\n)\r\nVALUES\r\n(\r\n p_action,\r\n p_employee_id,\r\n md5(coalesce(p_mobile,'')),\r\n p_success\r\n);\r\n\r\nEND;\r\n$function$\n"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "security_attempt_logs_pkey",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ]
+}

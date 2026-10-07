@@ -11,6 +11,7 @@
   <script src="./access-control.js" data-roles="SUPER_ADMIN,ADMIN"></script>
 
   <script src="./supabase.min.js"></script>
+  <script src="./employee-photo.js"></script>
 
   <link rel="stylesheet" href="./admin_dashboard.css" />
   <link rel="stylesheet" href="./global-theme.css" />
@@ -1352,7 +1353,7 @@
 
       body.innerHTML = rows.map((row) => `
         <tr>
-          <td>${(() => { const u = safeImageUrl(row.employee_photo_url); return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(u)}" alt="صورة شخصية" /></a>` : "-"; })()}</td>
+          <td>${(() => { const ref = String(row.employee_photo_url ?? "").trim(); return ref ? `<a data-photo-href="${escapeHtml(ref)}" target="_blank" rel="noopener"><img class="photo-thumb" data-photo-ref="${escapeHtml(ref)}" alt="صورة شخصية" /></a>` : "-"; })()}</td>
           <td>${escapeHtml(row.full_name)}</td>
           <td>${escapeHtml(row.employee_id)}</td>
           <td>${escapeHtml(row.mobile_number)}</td>
@@ -1372,6 +1373,19 @@
           </td>
         </tr>
       `).join("");
+      hydrateAdminPhotos(body);
+    }
+    // Employee photos are private: an admin session token is exchanged for a
+    // short-lived signed URL per photo through the employee-photo-url resolver.
+    async function hydrateAdminPhotos(scope) {
+      if (!scope || !window.EmployeePhoto || !supabaseClient) return;
+      let accessToken = "";
+      try {
+        const { data } = await supabaseClient.auth.getSession();
+        accessToken = data?.session?.access_token || "";
+      } catch { accessToken = ""; }
+      if (!accessToken) return;
+      EmployeePhoto.hydrate(scope, { type: "admin", access_token: accessToken }, APP_CONFIG);
     }
 
     function renderLimits() {
@@ -2234,6 +2248,7 @@
     }
 
     async function logout() {
+      window.EmployeePhoto?.clearCache();
       if (!supabaseClient) return;
       await supabaseClient.auth.signOut();
       sessionStorage.setItem("alb_skip_fast_device_once", "1");
