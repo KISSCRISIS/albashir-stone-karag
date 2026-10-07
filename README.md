@@ -826,3 +826,6 @@ Introduce get_guard_screen_status with active gate/token authentication, then de
 
 ### Five search_path warnings — review candidate (2026-10-07)
 Reviewed SQL: supabase/search_path_five_reviewed.sql. Sets pg_catalog only for normalize_specialty_name(text), is_permanently_allowed_specialty(text), default_admin_permissions(text), sync_trusted_device_activity() and prevent_approved_employee_identity_change(). No bodies, grants, ownership, volatility, tables, RLS or JWT keys change. Synthetic regression verifies behavior, hostile caller search_path resistance, approved identity protection and trusted-device activity synchronization. Owner approved the exact five ALTER statements on 2026-10-07; apply only this reviewed SQL and verify bodies/ACLs and advisors afterward.
+
+### Registration APPROVED phone validation (2026-10-07)
+Canonical 15-argument registration body synchronized from the live Production definition: APPROVED requests must supply the matching stored mobile number, and manual_employee_check receives clean_mobile. Already applied to Staging and Production; do not reapply historical patches. QR logic unchanged. Gate-device DEFAULT false exists in Staging; Production change is a separate reviewed SQL candidate, not applied by this commit. Cache-Control remains a separate open item.
