@@ -154,6 +154,15 @@
       <input id="employeePhoto" class="file-input" type="file" accept="image/*" required />
       <img id="employeePhotoPreview" class="photo-preview" alt="معاينة الصورة الشخصية" />
 
+      <div id="employeeIdTypeWrap" style="display:none">
+        <label for="employeeIdType">نوع الرقم</label>
+        <select id="employeeIdType">
+          <option value="">اختر نوع الرقم</option>
+          <option value="NATIONAL">رقم وطني</option>
+          <option value="EMPLOYEE">رقم وظيفي</option>
+        </select>
+      </div>
+
       <label for="employeeId" id="employeeIdLabel">الرقم الوظيفي</label>
       <input id="employeeId" type="text" placeholder="الرقم الوظيفي" inputmode="numeric" required />
 
@@ -180,22 +189,17 @@
         <select id="department" required>
           <option value="">اختر القسم</option>
           <option value="الإسعاف والطوارئ (DRS/NRS/EMT/MLT)">الإسعاف والطوارئ (DRS/NRS/EMT/MLT)</option>
-          <option>طب عام</option>
-          <option>جراحة عامة</option>
-          <option>باطني</option>
-          <option>أطفال</option>
-          <option>ENT</option>
-          <option>نسائية</option>
-          <option>مسالك بولية</option>
-          <option>عيون</option>
-          <option>جراحة دماغ وأعصاب</option>
-          <option>تخدير</option>
-          <option>جراحة أوعية دموية</option>
-          <option>أشعة</option>
-          <option>مختبرات</option>
-          <option>صيانة</option>
-          <option>إدارة</option>
-          <option>أمن</option>
+          <option>أطباء امتياز</option>
+          <option>ممرضو رعاية حثيثة (ICU)</option>
+          <option>فنيو أشعة وتصوير طبي</option>
+          <option>فنيو مختبرات طبية</option>
+          <option>صيادلة ومساعدو صيادلة</option>
+          <option>مسعفون</option>
+          <option>موظفو سجلات طبية واستعلامات</option>
+          <option>موظفو محاسبة ودخول</option>
+          <option>مدخلو بيانات</option>
+          <option>كوادر أمن وحماية</option>
+          <option>عمال خدمات ونظافة</option>
           <option>أخرى</option>
         </select>
       </div>
@@ -204,8 +208,6 @@
         <label for="specialty">القسم / الاختصاص</label>
         <select id="specialty" required>
           <option value="">اختر القسم / الاختصاص</option>
-          <option value="الإسعاف والطوارئ (DRS/NRS/EMT/MLT)">الإسعاف والطوارئ (DRS/NRS/EMT/MLT)</option>
-          <option>طب عام</option>
           <option>جراحة عامة</option>
           <option>باطني</option>
           <option>أطفال</option>
@@ -227,7 +229,21 @@
 
       <div id="affiliatedEntityWrap">
         <label for="affiliatedEntity">الجهة / المستشفى التابع له</label>
-        <input id="affiliatedEntity" type="text" placeholder="الجهة / المستشفى التابع له" required />
+        <select id="affiliatedEntity" required>
+          <option value="">اختر الجهة / المستشفى</option>
+          <option>مستشفى الجراحة والجراحات التخصصية</option>
+          <option>مستشفى النسائية والتوليد والأطفال</option>
+          <option>مستشفى الباطني والأشعة والجلدية: العناية القلبية وغسيل الكلى</option>
+          <option>مستشفى الأورام والأشعة العلاجية</option>
+          <option>أمن</option>
+          <option>صيانة</option>
+          <option>عيادات</option>
+          <option value="OTHER">أخرى</option>
+        </select>
+        <div id="affiliatedEntityOtherWrap" style="display:none">
+          <label for="affiliatedEntityOther">اكتب الجهة / المستشفى</label>
+          <input id="affiliatedEntityOther" type="text" placeholder="اكتب اسم الجهة / المستشفى" />
+        </div>
       </div>
 
       <label style="display:flex;align-items:flex-start;gap:8px;margin-top:16px;cursor:pointer">
@@ -358,26 +374,67 @@
     return path;
   }
 
+  function updateEmployeeIdPresentation() {
+    const category = $("registrationCategory")?.value || "";
+    const type = $("employeeIdType")?.value || "";
+    const label = $("employeeIdLabel");
+    const input = $("employeeId");
+    if (!label || !input) return;
+    if (category === "PERMANENT") {
+      label.textContent = "الرقم الوظيفي";
+      input.placeholder = "أدخل الرقم الوظيفي";
+      return;
+    }
+    if (category === "TEMPORARY") {
+      if (type === "NATIONAL") {
+        label.textContent = "الرقم الوطني";
+        input.placeholder = "أدخل الرقم الوطني";
+      } else if (type === "EMPLOYEE") {
+        label.textContent = "الرقم الوظيفي";
+        input.placeholder = "أدخل الرقم الوظيفي";
+      } else {
+        label.textContent = "الرقم";
+        input.placeholder = "اختر نوع الرقم ثم أدخل الرقم";
+      }
+      return;
+    }
+    label.textContent = "الرقم الوظيفي / الوطني";
+    input.placeholder = "اختر نوع التسجيل أولاً";
+  }
+
+  function updateAffiliatedEntityOther() {
+    const selected = $("affiliatedEntity")?.value || "";
+    const wrap = $("affiliatedEntityOtherWrap");
+    const input = $("affiliatedEntityOther");
+    if (!wrap || !input) return;
+    const show = selected === "OTHER";
+    wrap.style.display = show ? "" : "none";
+    input.disabled = !show;
+    input.required = show;
+    if (!show) input.value = "";
+  }
+
+  function selectedAffiliatedEntity() {
+    return $("affiliatedEntity")?.value === "OTHER"
+      ? $("affiliatedEntityOther")?.value.trim() || ""
+      : $("affiliatedEntity")?.value.trim() || "";
+  }
+
   function updateRegistrationForm() {
     const categoryEl = $("registrationCategory");
     if (!categoryEl) return;
     const category = categoryEl.value;
     const isPermanent = category === "PERMANENT";
     const isTemporary = category === "TEMPORARY";
-    const employeeIdLabel = $("employeeIdLabel");
-    const employeeIdInput = $("employeeId");
-    if (employeeIdLabel && employeeIdInput) {
-      if (isTemporary) {
-        employeeIdLabel.textContent = "الرقم الوطني";
-        employeeIdInput.placeholder = "الرقم الوطني";
-      } else if (isPermanent) {
-        employeeIdLabel.textContent = "الرقم الوظيفي";
-        employeeIdInput.placeholder = "الرقم الوظيفي";
-      } else {
-        employeeIdLabel.textContent = "الرقم الوظيفي / الوطني";
-        employeeIdInput.placeholder = "اختر نوع التسجيل أولاً";
-      }
+    const idTypeWrap = $("employeeIdTypeWrap");
+    const idType = $("employeeIdType");
+    if (idTypeWrap && idType) {
+      idTypeWrap.style.display = isTemporary ? "" : "none";
+      idType.disabled = !isTemporary;
+      idType.required = isTemporary;
+      if (!isTemporary) idType.value = "";
     }
+    updateEmployeeIdPresentation();
     const toggleField = (wrapId, inputId, visible, required) => {
       const wrap = $(wrapId);
       const input = $(inputId);
@@ -391,6 +448,7 @@
     toggleField("departmentWrap", "department", isPermanent, true);
     toggleField("specialtyWrap", "specialty", isTemporary, true);
     toggleField("affiliatedEntityWrap", "affiliatedEntity", isTemporary, true);
+    updateAffiliatedEntityOther();
   }
 
   // Stepper: device review is a real pending workflow state — never mark completed here.
@@ -420,6 +478,8 @@
     const categoryEl = $("registrationCategory");
     if (!categoryEl) return;
     categoryEl.addEventListener("change", updateRegistrationForm);
+    $("employeeIdType")?.addEventListener("change", updateEmployeeIdPresentation);
+    $("affiliatedEntity")?.addEventListener("change", updateAffiliatedEntityOther);
     updateRegistrationForm();
   }
 
@@ -454,7 +514,7 @@
         p_device_name: rememberDevice ? getDeviceName() : null,
         p_user_agent: rememberDevice ? navigator.userAgent : null,
         p_registration_category: category,
-        p_affiliated_entity: isTemporary ? $("affiliatedEntity").value.trim() : null
+        p_affiliated_entity: isTemporary ? selectedAffiliatedEntity() : null
       };
       const { data, error } = await supabaseClient.rpc("register_employee_request", payload);
       const result = normalizeRpcData(data, "register_employee_request") || data;
