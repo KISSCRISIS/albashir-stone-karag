@@ -820,3 +820,6 @@ Apply supabase/employee_photo_upload_compatibility_reviewed.sql after the review
 The owner chose administrative photo review instead of server-side content decoding. Status: ACCEPTED BY OWNER / ADMIN REVIEW. This is not an automated content-validation PASS. Storage accepts forged image MIME; SVG and oversize limits remain enforced. Production has not been changed.
 
 Owner-reported Staging acceptance (2026-10-07): registration submission completed on desktop Chrome and iPhone16e Safari with a pending-review success message. This is user-performed evidence; approval, photo rendering and real-device cache checks are separate. See docs/EMPLOYEE_PHOTOS_STAGING_RESULTS.md.
+
+### Guard status privacy — approved staged rollout (2026-10-07)
+Introduce get_guard_screen_status with active gate/token authentication, then deploy index.html using bounded five-second polling. Only after live frontend confirmation apply supabase/guard_status_retire_direct_read.sql to revoke direct SELECT. Fresh installs include the final ACL. QR and Register Hardening remain unchanged. Isolated synthetic tests cover device denial, private reads, contract and frontend concurrency/error handling. No real-phone test is claimed.
