@@ -20,18 +20,19 @@
 <body class="hospital-ui theme-portal">
 <main class="portal-stage" aria-label="بوابة مستشفى البشير">
   <img class="portal-reference" src="./assets/images/portal-reference.png" width="1536" height="2048" alt="بوابة مستشفى البشير، الإهداء والخدمات والقيادة التنفيذية" />
-  <section class="portal-login-overlay" aria-label="خيارات الدخول">
+  <button id="openPortalLogin" class="portal-entry-button" type="button" aria-controls="portalLoginOverlay" aria-expanded="false" onclick="openPortalLogin()">الدخول</button>
+  <section class="portal-login-overlay portal-login-overlay--closed" id="portalLoginOverlay" aria-label="خيارات الدخول" aria-hidden="true">
     <div id="notice" class="notice"></div>
     <div id="continueSession" class="continue"><span id="continueText"></span><button class="action green" type="button" onclick="continueSession()">متابعة</button></div>
     <div class="tabs" role="tablist" aria-label="نوع المستخدم">
       <button class="role-tab active" data-role="employee" type="button">موظف</button>
-      <button class="role-tab" data-role="guard" type="button">حارس</button>
+      <button class="role-tab portal-guard-entry" data-role="guard" type="button" aria-hidden="true" tabindex="-1">حارس</button>
       <button class="role-tab" data-role="admin" type="button">الإدارة</button>
     </div>
 
     <section class="role-panel active" id="employeePanel"><div class="role-head"><h2>دخول الموظف</h2><p>الملف الشخصي وبطاقة الوصول ومسح QR من شاشة الحارس.</p></div><button class="qr-button" type="button" onclick="location.href='./verify.html'">▦ مسح بطاقة QR فورًا للدخول</button><div class="separator"><span>أو</span></div><form class="form" id="employeeForm"><div class="field"><label for="employeeId">الرقم الوظيفي/الوطني</label><input id="employeeId" required autocomplete="username" /></div><div class="field"><label for="employeePhone">رقم الهاتف</label><input id="employeePhone" required type="tel" autocomplete="tel" /></div><button class="action" type="submit">دخول الموظف</button></form><div class="onboarding"><span>موظف جديد ولم يتم تسجيله بعد؟</span><button class="action green" type="button" onclick="startOnboarding()">طلب تسجيل جديد</button></div></section>
 
-    <section class="role-panel" id="guardPanel"><div class="role-head"><h2>شاشة الحارس</h2><p>شاشة الحارس مفتوحة ولا تتطلب تسجيل دخول أو بريدًا إلكترونيًا أو كلمة مرور.</p></div><button class="action green" type="button" onclick="openGuardScreen()">فتح شاشة الحارس</button></section>
+    <section class="role-panel portal-guard-entry" id="guardPanel" aria-hidden="true"><div class="role-head"><h2>شاشة الحارس</h2><p>شاشة الحارس مفتوحة ولا تتطلب تسجيل دخول أو بريدًا إلكترونيًا أو كلمة مرور.</p></div><button class="action green" type="button" onclick="openGuardScreen()">فتح شاشة الحارس</button></section>
 
     <section class="role-panel" id="adminPanel"><div class="role-head"><h2>دخول الإدارة</h2><p>سيتم توجيه SUPER_ADMIN وADMIN تلقائيًا حسب صلاحيات الحساب.</p></div><form class="form" id="adminForm"><div class="field"><label for="adminEmail">البريد الإلكتروني</label><input id="adminEmail" required type="email" autocomplete="username" /></div><div class="field"><label for="adminPassword">كلمة المرور</label><input id="adminPassword" required type="password" autocomplete="current-password" /></div><button class="action" type="submit">فتح لوحة الإدارة</button></form></section>
     <div class="footer-note">تُخفى الصفحات غير المصرح بها ويعاد توجيه المستخدم إلى هذه البوابة.</div>
@@ -41,6 +42,7 @@
   const CONFIG={url:"https://qinsfvlspdticposbvst.supabase.co",key:"sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8"};
   const client=window.supabase?.createClient(CONFIG.url,CONFIG.key);const $=id=>document.getElementById(id);const next=new URLSearchParams(location.search).get("next")||"";
   function show(message,type="error"){const el=$("notice");el.textContent=message;el.className=`notice show ${type}`;}
+  function openPortalLogin(){const overlay=$("portalLoginOverlay"),button=$("openPortalLogin");overlay.classList.remove("portal-login-overlay--closed");overlay.setAttribute("aria-hidden","false");button.setAttribute("aria-expanded","true");button.classList.add("portal-entry-button--hidden");}
   function cleanNext(value){const allowed=["index.html","verify.html","register.html","profile.html","admin_dashboard.html"];try{const raw=String(value||"").trim();if(!raw)return"";const parsed=new URL(raw,location.href);if(parsed.origin!==location.origin)return"";const file=parsed.pathname.split("/").pop()||"";return allowed.includes(file)?`${file}${parsed.search}${parsed.hash}`:"";}catch(_){return"";}}
   function targetFor(role){const requested=cleanNext(next);if(requested){if(role==="GUARD"&&/^index\.html(?:[?#]|$)/.test(requested))return requested;if(role==="EMPLOYEE"&&/^(verify|profile)\.html(?:[?#]|$)/.test(requested))return requested;if(role==="EMPLOYEE_ONBOARDING"&&/^register\.html(?:[?#]|$)/.test(requested))return requested;if(["ADMIN","SUPER_ADMIN"].includes(role)&&requested.startsWith("admin_dashboard.html"))return requested;}return role==="GUARD"?"index.html":role==="EMPLOYEE"?"profile.html":role==="EMPLOYEE_ONBOARDING"?"register.html":"admin_dashboard.html";}
   function go(role,extra={}){ALBASHIRAccess.setSession(role,extra);location.replace(`./${targetFor(role)}`);}
@@ -55,7 +57,6 @@
   function continueSession(){const session=ALBASHIRAccess.readSession();if(session)location.replace(`./${targetFor(session.role)}`);}
   const active=ALBASHIRAccess.readSession();if(active){$("continueText").textContent=`جلسة فعالة بدور ${active.role}`;$("continueSession").classList.add("show");}
   async function fastTrustedLogin(){if(active||sessionStorage.getItem("alb_skip_fast_device_once")==="1"){sessionStorage.removeItem("alb_skip_fast_device_once");return;}const token=localStorage.getItem(DEVICE_TOKEN_KEY);if(!token||!client)return;try{const {data,error}=await client.rpc("trusted_device_profile_login",{p_device_token:token,p_device_id:deviceId()});const result=Array.isArray(data)?data[0]:data;if(error)throw error;if(!result?.ok){if(result?.clear_device)localStorage.removeItem(DEVICE_TOKEN_KEY);return;}go("EMPLOYEE",{employeeId:result.profile.employee_id,mobileNumber:result.profile.mobile_number,fullName:result.profile.full_name||""});}catch(error){show("تعذر الدخول السريع من الجهاز الموثوق. استخدم الرقم الوظيفي والهاتف مرة واحدة.","error");} }
-  fastTrustedLogin();
   if("serviceWorker" in navigator)navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
 </script>
 <script src="./global-leadership.js"></script>
