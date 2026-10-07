@@ -1,4 +1,4 @@
-const CACHE_VERSION = "emergency-room-parking-offline-v17";
+const CACHE_VERSION = "emergency-room-parking-offline-v18";
 
 const OFFLINE_ASSETS = [
   "./",
@@ -32,7 +32,7 @@ const OFFLINE_ASSETS = [
   "./profile.css",
   "./verify-shared.js",
   "./employee-photo.js",
-  "./guard.html",
+
   "./register.html"
 ];
 
@@ -108,7 +108,7 @@ self.addEventListener("fetch", (event) => {
             "profile.html",
             "login.html",
             "admin_dashboard.html",
-            "guard.html",
+
             "register.html"
           ]);
           return caches.match(allowedPages.has(page) ? `./${page}` : "./portal.html");

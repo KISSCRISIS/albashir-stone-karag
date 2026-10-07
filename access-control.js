@@ -70,7 +70,7 @@
       : session.role === "EMPLOYEE_ONBOARDING"
         ? [["طلب تسجيل", "./register.html"]]
         : session.role === "GUARD"
-          ? [["شاشة الحارس", "./index.html"], ["تحقق يدوي", "./guard.html"]]
+          ? [["شاشة الحارس", "./index.html"]]
           : [["لوحة الإدارة", "./admin_dashboard.html"]];
     items.forEach(([label, href]) => { const link = document.createElement("a"); link.textContent = label; link.href = href; links.appendChild(link); });
     const logout = document.createElement("button");

@@ -113,7 +113,7 @@ const ENTRY = "supabase/functions/employee-photo-url/index.ts";
   assert.match(index, /showGuardPhoto\(displayPhoto\)/);
   assert.match(index, /type: "guard_device"/);
   const verify = read("verify.html");
-  assert.match(verify, /hydrateEmployeePhotos\(details, employeePhotoActor\(employee\)\)/);
+  assert.match(verify, /hydrateEmployeePhotos\(details, photoActor \|\| employeePhotoActor\(employee\)\)/);
   assert.match(verify, /type:"employee_device"/);
   const guard = read("guard.html");
   assert.match(guard, /type:'public_guard_session'/);assert.match(guard, /URL.createObjectURL/);assert.match(guard, /cache:'no-store'/);

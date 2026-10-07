@@ -843,3 +843,7 @@ On Staging, the owner-approved registration device remains trusted until adminis
 Scan-to-decision correction: a logged-in employee now proceeds to server verification after QR scan without re-entering identity; trusted-device automatic results also reach the matching guard session. Both flows were verified live on Staging; real-phone retest remains pending. No authority-function or Production changes.
 
 `guard.html` now displays database-issued QR immediately without login/PIN/gate-device approval. Approved name/photo/job/specialty fields are exposed only for its QR session using a separate short-lived read capability; private Storage and direct-table restrictions remain. Mandatory QR and the original decision function stay unchanged. Staging published; Production unchanged. See [rollout, tests and authorization scope](docs/PUBLIC_GUARD_STAGING.md).
+
+## Owner frontend refinement — 2026-10-07
+
+The public guard page is opened by a direct link distributed to guards only. Public frontend navigation, redirects, comments and service-worker asset lists must not disclose its path. This is presentation policy, not authorization. Backend permissions remain unchanged. Its result replaces the QR panel for 10 seconds; rotation and server expiry continue. Employee verification photos use the credentials of the successful verification path, never an unrelated stored device token. Cache version is v18. Chromium/WebKit emulation is not a real-phone acceptance test.

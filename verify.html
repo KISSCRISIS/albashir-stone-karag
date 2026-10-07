@@ -136,7 +136,7 @@
     el.classList.remove("hidden");
   }
 
-  function setResult(result,message,employee=null) {
+  function setResult(result,message,employee=null,photoActor=null) {
     const card=$("resultCard"), icon=$("resultIcon"), title=$("resultTitle"), msg=$("resultMessage"), details=$("resultDetails");
     card.className="result-card";
     card.classList.remove("hidden");
@@ -163,7 +163,7 @@
     if(employee){
       details.innerHTML=renderEmployeeDetails(employee);
       details.classList.remove("hidden");
-      hydrateEmployeePhotos(details, employeePhotoActor(employee));
+      hydrateEmployeePhotos(details, photoActor || employeePhotoActor(employee));
       const profileButton=$("profileButton");
       if(profileButton && employee.employee_id){
         profileButton.href=`./profile.html?employee_id=${encodeURIComponent(employee.employee_id)}`;
@@ -389,7 +389,7 @@
         throw new Error(result.message||"تم اكتشاف جهاز جديد. يرجى التحقق اليدوي أو مراجعة الإدارة.");
       }
 
-      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);
+      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee_device",device_token:storedToken,device_id:getTrustedDeviceId()});
 
       if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
         showManualSections(false);
@@ -429,7 +429,7 @@
       const {data,error}=await supabaseClient.rpc("public_guard_employee_check",rpcPayload);
       const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
-      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);
+      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee",employee_id:payload.p_employee_id,mobile_number:payload.p_mobile_number});
       if(result.ok!==true || !["ALLOWED","LIMITED"].includes(result.result)) showManualSections(true);
       if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result) && result.trusted_device_enrollment_claim){
         lastManualCheck={

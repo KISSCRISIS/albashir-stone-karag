@@ -1,28 +1,33 @@
-# P2-18 Staging integration and Production decision
+# Final Staging candidate and Production rollout
 
-Production is not approved by this task. Do not apply these migrations there or merge the frontend into main before the rollout decision: main automatically deploys the Production frontend.
+Production remains unchanged. Do not merge into main before coordinated approval: main automatically deploys the Production frontend.
 
-## Acceptance
-- Isolated regression suite and PR CI pass.
-- Staging backend already contains the supplied migration sequence; compare final definitions before deployment, do not reapply it.
-- Deploy the updated employee-photo-url to Staging only, then deploy the separate Staging frontend.
-- Verify registration, ordinary login, QR-to-claim, enrollment, device login and own photo/IDOR against synthetic fixtures.
-- Human phone acceptance: Safari/iPhone registration, QR scan, claim enrollment, return fast login and photo display. NOT RUN until user reports this new build was tested. Previous phone results do not validate P2-18.
+## Current owner policy
+Administrator approval activates the device submitted with registration. It stays trusted until administrative revocation, subject to employee approval, device enablement and fingerprint checks. Additional QR enrollment is not required for that registration device. Mandatory QR remains required for gate access.
+The separate public guard display opens via a direct distributed link only. Removing application navigation is presentation policy, not security. Backend capability checks and private photos remain unchanged.
 
-## Production rollout requiring approval
-Use a planned maintenance window; callers are incompatible during the transition. Notify gate operators through the owner's existing process. Pause online gate operations, retain the existing offline policy without redesign.
-1. Capture current function bodies/ACLs and counts without employee data exports. Confirm no divergence and explicit approval for invalidating existing trusted-device tokens, as migration 1 does.
-2. Apply the three reviewed migrations in order in ONE database transaction. Intermediate migration 1 approval/token-promotion logic must not be exposed alone; migration 3 supplies the final behavior.
-3. Deploy the device-bound photo Resolver to Production.
-4. Merge the reviewed PR and wait for Vercel READY for that exact commit. Verify live caller signatures and no legacy enrollment fallback.
-5. Synthetic checks and owner-operated phone/guard acceptance, then resume operations.
+## Verification
+- All 18 isolated regression suites PASS.
+- Staging live Chromium/WebKit tests: own employee photo, guard photo, automatic QR verification, result replacing QR panel, 10-second clearing, countdown and responsive widths PASS.
+- Owner confirmed phone QR access and both-party result; owner confirmed 10-second clearing.
+- Latest-build real iPhone photo confirmation remains REQUIRED: the earlier phone screenshot showed a missing photo. WebKit did not reproduce it. Photo authorization now uses the successful verification actor rather than an unrelated stored token; cache v18 retires older assets.
+- New registration -> administrator approval -> same-phone fast login acceptance remains required for final device policy.
+- No production requests in the browser test; no Backend/Auth changes in the latest frontend commit.
 
-Do not restore old enrollment functions as a fallback. On failure, keep operations paused and review recovery. No destructive automatic rollback is authorized.
+## Approved-candidate order (requires final Production approval)
+Use a coordinated maintenance window; incompatible legacy callers require operations to pause during backend/frontend transition. Owner handles operator notification.
+1. Compare complete live Production definitions/ACLs with reviewed baselines. Stop on divergence. Confirm approval for invalidating existing trusted-device tokens as original migration 1 does.
+2. Apply only these reviewed candidate migrations in order within the coordinated backend transaction:
+   - 20261007094821_p2_18_trusted_device_binding_ttl.sql
+   - 20261007095927_p2_18_reenroll_keep_eligibility.sql
+   - 20261007101501_p2_18_enrollment_claim_acl_hardening.sql
+   - 20261007112137_admin_approval_activates_submitted_device.sql
+   - 20261007113049_trusted_device_admin_revocation_only.sql
+   - 20261007114535_public_guard_session_rpc.sql
+   - 20261007121511_public_guard_auto_result_sync.sql
+   Do not expose intermediate policy versions. Do not reapply historical patches or perform a broad db push.
+3. Deploy the reviewed photo Resolver supporting device_id and public-guard session capabilities.
+4. Merge reviewed PR, wait for Vercel READY for that exact commit, and compare actual live runtime callers/cache v18.
+5. Run synthetic authorization/QR/photo checks and owner phone/guard acceptance before resuming operations.
 
-Device ID is a client-stored identifier hashed by the backend, not hardware attestation. Copying both token and device ID remains outside the protection provided by this binding.
-# Final owner policy update — 2026-10-07
-
-The owner replaced the registration-device QR-claim requirement with direct activation by administrator approval. The final rollout must also apply `20261007112137_admin_approval_activates_submitted_device.sql` after the original three P2-18 migrations within the coordinated backend window. See `ADMIN_APPROVAL_DEVICE_POLICY.md`. Production remains NOT APPROVED/APPLIED for this updated candidate. New-registration acceptance now requires pending device denied, admin approval activates that exact device, matching-device fast login succeeds, and a different device is denied; no additional QR enrollment step. QR remains mandatory for gate access.
-# Final duration override
-
-Apply `20261007113049_trusted_device_admin_revocation_only.sql` after `20261007112137_admin_approval_activates_submitted_device.sql` in the coordinated backend window. The owner requires no device time expiry; revocation and employee/device authorization remain authoritative. Do not finish the rollout at the earlier 30-day policy. Staging applied and regression PASS; Production unchanged.
+On failure keep operations paused; no automatic rollback or legacy enrollment fallback is authorized. Device binding is a stored identifier, not hardware attestation; copying both credentials remains a limitation.
