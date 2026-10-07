@@ -1222,4 +1222,3 @@ revoke all on function public.admin_set_trusted_device(uuid,boolean,boolean) fro
 grant execute on function public.admin_set_trusted_device(uuid,boolean,boolean) to authenticated;
 
 notify pgrst, 'reload schema';
-
