@@ -16,7 +16,7 @@ for (const name of [...pages, 'portal', 'guard']) {
 }
 new vm.Script(read('verify-shared.js'));
 const sw = read('service-worker.js');
-assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v21"/);
+assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v22"/);
 assert.match(sw, /if \(event.request.method !== "GET"\) return/);
 assert.match(sw, /url.hostname.endsWith\("\.supabase.co"\)/);
 assert.match(read('index.html'), /LIVE_SITE_URL: window.location.origin/);

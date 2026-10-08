@@ -70,6 +70,8 @@
         <label for="checkMobileNumber">رقم الهاتف</label>
         <input id="checkMobileNumber" type="tel" placeholder="رقم الهاتف" inputmode="tel" required />
 
+        <label><input id="rememberVerifiedEmployee" type="checkbox" checked /> حفظ دخولي على هذا الجهاز للمسح التالي</label>
+
         <button type="submit" id="checkButton">تحقق من الدخول</button>
       </form>
 
@@ -102,10 +104,11 @@
   let activeVerificationRequest = null;
   let lastManualCheck = null;
   let verificationLock = false;
-  const employeeSession = window.ALBASHIRAccess?.readSession();
+  let employeeSession = window.ALBASHIRAccess?.readSession();
   if(employeeSession?.role==="EMPLOYEE"){
     $("checkEmployeeId").value=String(employeeSession.employeeId||"");
     $("checkMobileNumber").value=String(employeeSession.mobileNumber||"");
+    $("rememberVerifiedEmployee").checked=employeeSession.rememberMe===true;
   }
   let qrScanStream = null;
   let qrScanTimer = null;
@@ -219,7 +222,7 @@
     if(employee){
       details.innerHTML=renderEmployeeDetails(employee);
       details.classList.remove("hidden");
-      hydrateEmployeePhotos(details, photoActor || employeePhotoActor(employee));
+      loadResultPhoto(details, photoActor || employeePhotoActor(employee));
       const profileButton=$("profileButton");
       if(profileButton && employee.employee_id){
         profileButton.href=`./profile.html?employee_id=${encodeURIComponent(employee.employee_id)}`;
@@ -231,6 +234,28 @@
       $("profileButton")?.classList.add("hidden");
     }
     window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  async function loadResultPhoto(details,actor){
+    const image=details.querySelector("img[data-photo-ref]");
+    if(!image)return;
+    const reference=image.getAttribute("data-photo-ref");
+    const status=document.createElement("p");status.setAttribute("role","status");
+    status.textContent="جارِ تحميل الصورة…";details.appendChild(status);
+    const retry=document.createElement("button");retry.type="button";
+    retry.textContent="إعادة تحميل الصورة";retry.hidden=true;details.appendChild(retry);
+    async function load(force=false){
+      retry.hidden=true;status.textContent="جارِ تحميل الصورة…";
+      image.setAttribute("data-photo-ref",reference);
+      await window.EmployeePhoto?.hydrate(details,actor,APP_CONFIG,{force});
+      if(!image.isConnected)return;
+      let loaded=false;
+      if(image.src.startsWith("blob:"))try{await image.decode();loaded=image.naturalWidth>0;}catch(_){}
+      status.textContent=loaded?"":"تعذر تحميل الصورة. أعد المحاولة.";
+      retry.hidden=loaded;
+    }
+    retry.addEventListener("click",()=>load(true));
+    await load();
   }
 
   // The employee scanning the guard QR sees their own photo. A trusted
@@ -494,6 +519,15 @@
       const {data,error}=await rpcWithRetry("public_guard_employee_check_v2",{p_request_id:verificationRequestId("MANUAL",rpcPayload),...rpcPayload},{timeoutMs:8000,maxAttempts:3});
       const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
+      if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
+        // Remember only after the server has accepted these credentials and QR.
+        // Set before rendering: setSession clears old photo authorization/blob URLs.
+        employeeSession=window.ALBASHIRAccess?.setSession("EMPLOYEE",{
+          employeeId:payload.p_employee_id,mobileNumber:payload.p_mobile_number,
+          rememberMe:$("rememberVerifiedEmployee").checked
+        });
+        showManualSections(false);
+      }
       setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee",employee_id:payload.p_employee_id,mobile_number:payload.p_mobile_number});
       if(result.ok!==true || !["ALLOWED","LIMITED"].includes(result.result)) showManualSections(true);
       if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result) && result.trusted_device_enrollment_claim){

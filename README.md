@@ -875,3 +875,8 @@ Staging release 4db3094: deployment dpl_DbH8F58wJ67UtZjSsQiNNcDwpQWX READY, CI P
 ## External phone camera verification — 2026-10-08
 
 The guard QR already encodes a same-origin HTTPS verification link, so phone cameras/QR readers can open it without the in-app scanner. Chromium and WebKit tests decoded the actual displayed QR, cleared the tab session, opened that link with the remembered browser identity, and confirmed automatic server verification and both private photos with no app camera request. No database changes were needed. See [final Staging acceptance procedure](docs/FINAL_STAGING_ACCEPTANCE_2026_10_08.md) for reproducible phone steps, supported browser boundaries and the remaining real-phone gate.
+# تصحيح اختبار الهاتف — 8 تشرين الأول 2026
+
+صفحة التحقق تحفظ هوية الموظف بعد نجاح تحقق QR اليدوي (`ALLOWED` أو `LIMITED`) عند اختيار «حفظ دخولي على هذا الجهاز للمسح التالي». المسح التالي يستعيد هذه الهوية حتى في تبويب جديد، ثم يعيد التحقق عبر RPC الحالية؛ الحفظ لا يمنح تفويضًا ولا يغير اعتماد الجهاز أو Mandatory QR. الطلب المرفوض لا يُحفظ، وخيار عدم الحفظ والخروج يبقيان متاحين. تعيين الجلسة يسبق تحميل الصورة كي لا يُلغى رابط blob الجديد عند تنظيف صور الجلسة القديمة.
+
+تحميل صورة النتيجة يعرض حالة انتظار، وفشل التحميل يعرض زر إعادة محاولة عبر Resolver نفسه وfetch بلا cache. لا توجد قراءة مباشرة من Storage أو كتابة رابط موقّع في التخزين. نسخة cache أصبحت v22 لتحديث الواجهة السابقة على الأجهزة. اختبار regression يغطي حفظ التحقق الناجح فقط واحترام عدم الحفظ؛ اختبار Staging في Chromium/WebKit يغطي أول تحقق يدوي ثم QR جديد تلقائيًا، وانقطاع طلب الصورة ثم نجاح إعادة تحميلها. اختبار الهاتف الفعلي ما زال يحتاج إعادة تجربة الإصدار الجديد. لا تغيير Backend أو Production.
