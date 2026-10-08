@@ -16,8 +16,10 @@ for (const name of [...pages, 'portal', 'guard']) {
 }
 new vm.Script(read('verify-shared.js'));
 const sw = read('service-worker.js');
-assert.match(sw, /CACHE_VERSION = "emergency-room-parking-offline-v22"/);
-assert.match(sw, /if \(event.request.method !== "GET"\) return/);
+const cacheVersion = sw.match(/CACHE_VERSION = "emergency-room-parking-offline-(v\d+)"/)[1];
+assert.ok(read('verify-shared.js').includes(cacheVersion), 'verify cache version must match Service Worker');
+assert.ok(read('index.html').includes(cacheVersion), 'gate cache version must match Service Worker');
+assert.match(sw, /if \(request.method !== "GET"\) return/);
 assert.match(sw, /url.hostname.endsWith\("\.supabase.co"\)/);
 assert.match(read('index.html'), /LIVE_SITE_URL: window.location.origin/);
 assert.match(read('profile.html'), /href="\.\/verify.html\?scan=1">مسح QR من شاشة الحارس/);
