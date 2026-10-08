@@ -18,3 +18,5 @@ node_modules/
 
 # Supabase CLI local project metadata
 supabase/.temp/
+
+/public-runtime/
