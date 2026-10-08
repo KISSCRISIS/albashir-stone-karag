@@ -63,10 +63,11 @@
       ]
     }
   ],
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "/portal.html"
+      "destination": "/portal.html",
+      "permanent": false
     }
   ]
 }
