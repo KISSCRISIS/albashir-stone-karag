@@ -2,7 +2,7 @@ name: Employee photos regression
 on:
   pull_request:
   push:
-    branches: [security/private-employee-photos-staging-validated]
+    branches: [main, security/private-employee-photos-staging-validated]
 permissions:
   contents: read
 jobs:

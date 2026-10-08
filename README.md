@@ -1,5 +1,9 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Latest cache review correction — 2026-10-08
+
+Branch `fix/review-latest-cache` corrects the Service Worker Cache-Control word-boundary check so `private` and `no-store` responses are not persisted. The runtime regression now expects pathname cache keys and verifies these directives for both page navigation and JavaScript assets. Backend/Auth permissions are unchanged. The separate mobile-photo branch was checked with simulated browser conversion/compression; actual HEIC decoding remains dependent on the phone browser.
+
 ## Private employee photos — prepared for review, NOT applied 2026-10-06
 
 Branch `security/private-employee-photos`. The `employee-photos` bucket becomes private (2 MiB, JPEG/PNG/WEBP), the two permissive Storage policies are removed, the database stores object paths instead of permanent public URLs, and every display path is exchanged for a 60-second signed URL by the new `employee-photo-url` resolver after it verifies the actor (admin session, employee credentials, trusted device, or gate device). Employee actors can only resolve their own photo. A `private.pending_employee_uploads` ledger plus a service-role-only sweep prevent abandoned uploads from accumulating.

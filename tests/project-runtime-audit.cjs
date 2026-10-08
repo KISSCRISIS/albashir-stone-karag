@@ -21,14 +21,14 @@ const link = vm.runInNewContext('(' + registration + ')()', {
 });
 assert.equal(link, 'https://staging.example/register.html');
 
-async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 200, quota = false } = {}) {
+async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 200, quota = false, cacheControl = '' } = {}) {
   const listeners = {}, writes = [], waits = [], warnings = [];
   let response;
   const request = { url, method, mode };
   vm.runInNewContext(read('service-worker.js'), {
     URL, console: { warn: (...args) => warnings.push(args) },
-    self: { location: { origin: 'https://app.example' }, addEventListener: (type, fn) => { listeners[type] = fn; } },
-    fetch: async () => ({ status, clone() { return this; } }),
+    self: { location: { origin: 'https://app.example', href: 'https://app.example/service-worker.js' }, addEventListener: (type, fn) => { listeners[type] = fn; } },
+    fetch: async () => ({ status, headers: { get: () => cacheControl }, clone() { return this; } }),
     caches: { open: async () => ({ put: async key => { if (quota) throw Error('quota'); writes.push(typeof key === 'string' ? key : key.url); } }) }
   });
   listeners.fetch({ request, respondWith: promise => { response = promise; }, waitUntil: promise => waits.push(promise) });
@@ -67,8 +67,15 @@ async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 
   assert.deepEqual(roles, ['EMPLOYEE']);
   assert.equal(button.disabled, false);
   const page = await workerRequest('https://app.example/verify.html?token=RAW_QR&claim=SECRET');
-  assert.deepEqual(page.writes, ['https://app.example/verify.html']);
+  assert.deepEqual(page.writes, []); // QR token URLs are never cached
   assert.equal((await workerRequest('https://app.example/index.html', { status: 500 })).writes.length, 0);
+  assert.deepEqual((await workerRequest('https://app.example/portal.html')).writes, ['/portal.html']);
+  for (const cacheControl of ['no-store', 'private', 'max-age=0, PRIVATE', 'private, no-store']) {
+    for (const [pathname, mode] of [['portal.html', 'navigate'], ['verify-shared.js', 'cors']]) {
+      assert.deepEqual((await workerRequest(`https://app.example/${pathname}`, { mode, cacheControl })).writes, []);
+    }
+  }
+  assert.equal((await workerRequest('https://app.example/private-data', { mode: 'cors' })).intercepted, false);
   assert.equal((await workerRequest('https://db.supabase.co/rest/v1/rpc/test')).writes.length, 0);
   assert.equal((await workerRequest('https://cdn.example/image?token=SIGNED', { mode: 'cors' })).writes.length, 0);
   assert.equal((await workerRequest('https://app.example/data', { method: 'POST' })).intercepted, false);
