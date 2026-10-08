@@ -43,7 +43,7 @@ async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 
     const warnings = [];
     const upload = vm.runInNewContext('(' + uploadSource + ')', {
       $: () => ({ files: [{ type: 'image/png', size: 68, name: 'test.png' }] }),
-      prepareEmployeePhoto: async file => ({ file, mimeType: 'image/png', extension: 'png' }),
+      ALLOWED_PHOTO_TYPES: ['image/png'], MAX_PHOTO_BYTES: 2097152,
       console: { warn: message => warnings.push(message) },
       supabaseClient: {
         storage: { from: () => ({ upload: async () => ({ error: null }) }) },
