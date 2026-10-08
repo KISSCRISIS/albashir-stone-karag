@@ -27,8 +27,8 @@ async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 
   const request = { url, method, mode };
   vm.runInNewContext(read('service-worker.js'), {
     URL, console: { warn: (...args) => warnings.push(args) },
-    self: { location: { origin: 'https://app.example' }, addEventListener: (type, fn) => { listeners[type] = fn; } },
-    fetch: async () => ({ status, clone() { return this; } }),
+    self: { location: { origin: 'https://app.example', href: 'https://app.example/service-worker.js' }, addEventListener: (type, fn) => { listeners[type] = fn; } },
+    fetch: async () => ({ status, headers: { get: () => '' }, clone() { return this; } }),
     caches: { open: async () => ({ put: async key => { if (quota) throw Error('quota'); writes.push(typeof key === 'string' ? key : key.url); } }) }
   });
   listeners.fetch({ request, respondWith: promise => { response = promise; }, waitUntil: promise => waits.push(promise) });
@@ -43,7 +43,7 @@ async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 
     const warnings = [];
     const upload = vm.runInNewContext('(' + uploadSource + ')', {
       $: () => ({ files: [{ type: 'image/png', size: 68, name: 'test.png' }] }),
-      ALLOWED_PHOTO_TYPES: ['image/png'], MAX_PHOTO_BYTES: 2097152,
+      prepareEmployeePhoto: async file => ({ file, mimeType: 'image/png', extension: 'png' }),
       console: { warn: message => warnings.push(message) },
       supabaseClient: {
         storage: { from: () => ({ upload: async () => ({ error: null }) }) },
@@ -67,8 +67,10 @@ async function workerRequest(url, { method = 'GET', mode = 'navigate', status = 
   assert.deepEqual(roles, ['EMPLOYEE']);
   assert.equal(button.disabled, false);
   const page = await workerRequest('https://app.example/verify.html?token=RAW_QR&claim=SECRET');
-  assert.deepEqual(page.writes, ['https://app.example/verify.html']);
+  assert.deepEqual(page.writes, []); // QR token URLs are never cached
   assert.equal((await workerRequest('https://app.example/index.html', { status: 500 })).writes.length, 0);
+  assert.deepEqual((await workerRequest('https://app.example/portal.html')).writes, ['https://app.example/portal.html']);
+  assert.equal((await workerRequest('https://app.example/private-data', { mode: 'cors' })).intercepted, false);
   assert.equal((await workerRequest('https://db.supabase.co/rest/v1/rpc/test')).writes.length, 0);
   assert.equal((await workerRequest('https://cdn.example/image?token=SIGNED', { mode: 'cors' })).writes.length, 0);
   assert.equal((await workerRequest('https://app.example/data', { method: 'POST' })).intercepted, false);
