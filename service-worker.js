@@ -1,7 +1,6 @@
-const CACHE_VERSION = "emergency-room-parking-offline-v22";
+const CACHE_VERSION = "emergency-room-parking-offline-v23";
 
 const OFFLINE_ASSETS = [
-  "./",
   "./index.html",
   "./portal.html",
   "./verify.html",
@@ -71,76 +70,66 @@ self.addEventListener("message", (event) => {
   }
 });
 
+// Only these static assets may be persisted offline. Never cache URLs carrying
+// QR tokens, query credentials, authenticated responses or arbitrary GET data.
+const STATIC_ASSET_PATHS = new Set(OFFLINE_ASSETS.map(asset =>
+  new URL(asset, self.location.href).pathname
+));
+const OFFLINE_PAGE_PATHS = new Set(
+  OFFLINE_ASSETS.filter(asset => asset.endsWith(".html")).map(asset =>
+    new URL(asset, self.location.href).pathname
+  )
+);
+function cacheable(response) {
+  const policy = response.headers?.get("cache-control") || "";
+  return response.status === 200 && !/\\b(?:no-store|private)\\b/i.test(policy);
+}
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-
   const request = event.request;
+  if (request.method !== "GET") return;
   const url = new URL(request.url);
-
-  // Authentication and database responses must always come from Supabase.
-  if (
-    url.hostname.endsWith(".supabase.co") ||
-    url.pathname.startsWith("/auth/") ||
-    url.pathname.startsWith("/rest/") ||
-    url.pathname.startsWith("/storage/")
-  ) {
-    event.respondWith(fetch(request));
-    return;
-  }
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/rest/") ||
+      url.pathname.startsWith("/storage/") || url.pathname.startsWith("/functions/")) return;
 
   if (request.mode === "navigate") {
-    // Cache the page shell, never the QR/session credentials in its query.
-    const pageKey = new URL(url.pathname, url.origin).href;
+    const isRoot = url.pathname === "/";
+    const pagePath = isRoot ? new URL("./portal.html", self.location.href).pathname : url.pathname;
+    // QR tokens in navigation query strings must never be persisted.
+    const canCache = !url.search && OFFLINE_PAGE_PATHS.has(pagePath);
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const responseCopy = response.clone();
-          if (response.status === 200) event.waitUntil(
-            caches.open(CACHE_VERSION).then((cache) => cache.put(pageKey, responseCopy))
-              .catch((error) => console.warn("[SW] Page cache write failed", error))
-          );
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request, { ignoreSearch: true });
+      fetch(request).then(response => {
+        if (canCache && cacheable(response)) {
+          event.waitUntil(caches.open(CACHE_VERSION).then(cache =>
+            cache.put(pagePath, response.clone())
+          ).catch(error => console.warn("[SW] Page cache write failed", error)));
+        }
+        return response;
+      }).catch(async () => {
+        if (canCache || isRoot) {
+          const cached = await caches.match(pagePath);
           if (cached) return cached;
-
-          const page = url.pathname.split("/").pop() || "portal.html";
-          const allowedPages = new Set([
-            "index.html",
-            "portal.html",
-            "verify.html",
-            "profile.html",
-            "login.html",
-            "admin_dashboard.html",
-            "register.html"
-          ]);
-          return caches.match(allowedPages.has(page) ? `./${page}` : "./portal.html");
-        })
+        }
+        // Never substitute a cached page for a credential-bearing QR URL.
+        return Response.error();
+      })
     );
     return;
   }
-
-  if (url.origin === self.location.origin) {
+  if (!url.search && STATIC_ASSET_PATHS.has(url.pathname)) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const responseCopy = response.clone();
-            event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.put(request, responseCopy))
-              .catch((error) => console.warn("[SW] Asset cache write failed", error)));
-          }
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request, { ignoreSearch: true });
-          if (cached) return cached;
-          throw new Error("Offline asset unavailable");
-        })
+      fetch(request).then(response => {
+        if (cacheable(response)) {
+          event.waitUntil(caches.open(CACHE_VERSION).then(cache =>
+            cache.put(url.pathname, response.clone())
+          ).catch(error => console.warn("[SW] Asset cache write failed", error)));
+        }
+        return response;
+      }).catch(async () => {
+        const cached = await caches.match(url.pathname);
+        if (cached) return cached;
+        return Response.error();
+      })
     );
-    return;
   }
-
-  // Third-party responses may carry credentials; never persist them.
-  event.respondWith(fetch(request));
 });
