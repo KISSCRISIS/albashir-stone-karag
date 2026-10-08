@@ -2,6 +2,8 @@
 
 ## Latest cache review correction — 2026-10-08
 
+The Production root uses an explicit temporary redirect to `/portal.html`; this avoids the static `index.html` taking precedence over a rewrite. The direct guard URL remains available.
+
 Branch `fix/review-latest-cache` corrects the Service Worker Cache-Control word-boundary check so `private` and `no-store` responses are not persisted. The runtime regression now expects pathname cache keys and verifies these directives for both page navigation and JavaScript assets. Backend/Auth permissions are unchanged. The separate mobile-photo branch was checked with simulated browser conversion/compression; actual HEIC decoding remains dependent on the phone browser.
 
 ## Private employee photos — prepared for review, NOT applied 2026-10-06
