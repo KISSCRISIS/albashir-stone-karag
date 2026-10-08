@@ -2,9 +2,11 @@
   "name": "albashir-isolated-sql-regression",
   "private": true,
   "scripts": {
-    "test": "node employee-photo-storage-preflight.cjs && node fresh-install-readiness.cjs && node manual-employee-check-qr.cjs && node guard-phase-a.cjs && node guard-frontend.cjs && node guard-rpc-hardening.cjs && node offline-sync.cjs && node private-employee-photos.cjs && node employee-photo-resolver.cjs && node employee-photos-static.cjs && node employee-photo-client.cjs && node guard-status-device-auth.cjs && node search-path-five.cjs && node registration-approved-phone.cjs"
+    "test": "node employee-photo-storage-preflight.cjs && node fresh-install-readiness.cjs && node manual-employee-check-qr.cjs && node guard-phase-a.cjs && node guard-frontend.cjs && node guard-rpc-hardening.cjs && node offline-sync.cjs && node private-employee-photos.cjs && node employee-photo-resolver.cjs && node employee-photos-static.cjs && node employee-photo-client.cjs && node guard-status-device-auth.cjs && node search-path-five.cjs && node registration-approved-phone.cjs && node p2-18-integration.cjs && node admin-device-approval.cjs && node public-guard.cjs && node frontend-direct-guard.cjs && node project-runtime-audit.cjs && node saved-phone-qr-ux.cjs && node registration-taxonomy.cjs && node temporary-specialty-default-limit.cjs && node portal-landing-guard-hidden.cjs && node qr-reliability-v2.cjs && node qr-v2-runtime.cjs && node remembered-employee.cjs && node production-acl-parity.cjs && node violation-ui-disabled.cjs && node production-preserve-bindings.cjs",
+    "test:browser": "node frontend-qr-hardening.cjs"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.8"
+    "@electric-sql/pglite": "0.5.8",
+    "playwright": "1.62.1"
   }
 }

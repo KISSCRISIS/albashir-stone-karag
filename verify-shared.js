@@ -1,5 +1,5 @@
 // verify-shared.js
-// Shared infrastructure for register.html / verify.html / guard.html.
+// Shared infrastructure for registration and employee verification pages.
 // Classic (non-module) script: top-level `let`/`const`/`function` declarations
 // here share the same global scope as the page's own inline <script> that is
 // loaded after this file, exactly like the old single-file verify.html did.
@@ -24,7 +24,7 @@ const OFFLINE_DB_VERSION = 2;
 const OFFLINE_ACCESS_STORE = "offline_access_queue";
 const OFFLINE_CRYPTO_STORE = "offline_crypto_meta";
 const OFFLINE_CRYPTO_KEY_ID = "offline-sensitive-fields-v1";
-const CACHE_VERSION = "emergency-room-parking-offline-v17";
+const CACHE_VERSION = "emergency-room-parking-offline-v22";
 const APP_VERSION = "2026.09.28-24x7";
 
 let syncingLock = false;

@@ -284,6 +284,14 @@ const okPayload = (overrides = {}) => ({
     assert.equal(revoked.length, 1);
     console.log("PASS logout during image fetch prevents stale display and releases blob");
   }
+  {
+    const { client, calls } = load({ resolverResponse: okPayload() });
+    await client.resolve(OWN_PATH, {type:"employee_device",device_token:"TOKEN",device_id:"device-A"}, CONFIG);
+    await client.resolve(OWN_PATH, {type:"employee_device",device_token:"TOKEN",device_id:"device-B"}, CONFIG);
+    assert.equal(calls.resolver.length, 2, "a copied token with another device ID cannot reuse authorized cache");
+    assert.equal(await client.resolve(OWN_PATH, {type:"employee_device",device_token:"TOKEN"}, CONFIG), "");
+    console.log("PASS device identity participates in photo authorization cache; missing identity denied locally");
+  }
   console.log("\nAll employee-photo client cache tests passed.");
 })().catch((error) => {
   console.error(error);

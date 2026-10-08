@@ -35,7 +35,7 @@ Real Storage acceptance remains NOT RUN; see
 |---|---|---|
 | `admin` | `access_token` (Supabase Auth session) or `Authorization: Bearer` | any employee photo |
 | `employee` | `employee_id` + `mobile_number` | own photo only |
-| `employee_device` | `device_token` (trusted device) | own photo only |
+| `employee_device` | `device_token` + `device_id` | own photo only; P2-18 binding and expiry checked |
 | `guard_device` | `device_code` + `device_token` | any employee photo |
 
 `path` may be an object path or a legacy Storage URL (public or signed); both are
@@ -102,3 +102,6 @@ No Staging/Production deployment was performed.
 Local check: `deno check --config=supabase/functions/deno.json --frozen-lockfile supabase/functions/employee-photo-url/index.ts`.
 The entry smoke test requires synthetic env values and network permission for
 127.0.0.1:8000 only; it cannot contact a real Supabase project.
+# Public guard session actor — owner-approved Staging update
+
+`{actor:{type:"public_guard_session",read_key:"<256-bit capability>"}}` resolves only the photo associated with the session's completed verification result. The service-only `resolve_public_guard_photo` RPC checks the read-key hash and six-minute session window. An arbitrary requested `path` is ignored for this actor. No device code/token is required; missing, wrong, expired or undecided sessions return opaque DENIED before Storage access. Private bucket, 60-second signed URL and no-store headers remain unchanged. Production unchanged.

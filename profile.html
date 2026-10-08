@@ -21,7 +21,7 @@
 <main class="shell">
   <header class="topbar">
     <div class="brand"><img class="logo" src="./albashir-gate-logo.png" alt="البشير ALBASHIR Gate" /><div><h1 class="title">الملف الشخصي للموظف</h1><div class="subtitle">ALBASHIR EMERGENCY HOSPITAL Gate — Employee Profile</div></div></div>
-    <nav class="nav"><a class="btn soft" href="./verify.html">التحقق من الدخول</a><a class="btn soft" href="./index.html">شاشة الحارس</a></nav>
+    <nav class="nav"><a class="btn soft" href="./verify.html?scan=1">التحقق من الدخول</a><a class="btn soft" href="./index.html">شاشة الحارس</a></nav>
   </header>
 
   <div id="notice" class="notice hidden"></div>
@@ -31,7 +31,7 @@
       <nav>
         <a href="#profilePanel">♙ الملف الشخصي</a>
         <a href="#historyPanel">▤ سجل الدخول</a>
-        <a class="accent" href="./verify.html">▦ مسح QR للدخول</a>
+        <a class="accent" href="./verify.html?scan=1">▦ مسح QR للدخول</a>
         <a href="#requestPanel">◈ طلب تعديل البيانات</a>
       </nav>
       <div class="side-note">بيانات الهوية مقفلة. أي تعديل يتم فقط عبر طلب مراجعة إدارية.</div>
@@ -56,7 +56,7 @@
           <div class="status-card"><span>القسم / الاختصاص</span><strong>ضمن بيانات العمل أدناه</strong></div>
         </div>
         <div id="profileInfo" class="profile-grid" style="margin-top:12px"></div>
-        <div class="qr-cta"><div><strong>الدخول عبر QR</strong><span>امسح رمز QR المعروض على شاشة الحارس من هاتفك.</span></div><a class="btn green" href="./verify.html">مسح QR من شاشة الحارس</a></div>
+        <div class="qr-cta"><div><strong>الدخول عبر QR</strong><span>امسح رمز QR المعروض على شاشة الحارس من هاتفك.</span></div><a class="btn green" href="./verify.html?scan=1">مسح QR من شاشة الحارس</a></div>
       </section>
 
       <section id="historyPanel" class="panel hidden"><h2>سجل تحقق QR</h2><p class="desc">آخر عمليات التحقق والدخول المسجلة على الموظف.</p><div class="table-wrap"><table><thead><tr><th>الوقت</th><th>النتيجة</th><th>السبب</th><th>الاختصاص</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>

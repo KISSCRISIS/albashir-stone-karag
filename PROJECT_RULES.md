@@ -1,5 +1,9 @@
 # PROJECT RULES — ALBASHIR Gate
 
+## Owner exception — public guard screen, 2026-10-07
+
+For `guard.html` only, the owner explicitly approved database-issued QR and session-scoped result RPCs without login/PIN/gate-device approval or gate-device credentials. This exception supersedes P0-2 for this new public issuance RPC only; the existing authenticated `index.html` flow remains unchanged. Results may expose only the owner's approved fields: name, photo, job and specialty, plus access decision. A separate high-entropy expiring read capability binds those fields to this screen's QR session; never expose the shared latest employee to everyone. Photos stay private and use the resolver with signed URLs of at most 60 seconds. No direct table grants are allowed. `manual_employee_check`, Mandatory QR and P0-3 order stay unchanged. Staging first; Production needs coordinated approval after acceptance.
+
 This file is the authoritative, mandatory, root-level project ruleset.
 Current as of October 2026.
 
@@ -303,3 +307,11 @@ Before marking a UI page complete:
 
 - Never git init the extracted working ZIP folder.
 - Final approved changes must be reconciled into the clean Git clone before commit/push.
+
+## Owner frontend refinement — 2026-10-07
+
+The public guard page is opened by a direct link distributed to guards only. Public frontend navigation, redirects, comments and service-worker asset lists must not disclose its path. This is presentation policy, not authorization. Backend permissions remain unchanged. Its result replaces the QR panel for 10 seconds; rotation and server expiry continue. Employee verification photos use the credentials of the successful verification path, never an unrelated stored device token. Cache version is v18. Chromium/WebKit emulation is not a real-phone acceptance test.
+
+## Autonomous audit repairs — 2026-10-07
+
+Registration shortcuts must target the current registration page. CSV exports must neutralize formula-like string cells. Service Worker page caches must omit credential-bearing queries and never persist third-party responses. Cache version is v19. The QR/heartbeat/layout browser suite now runs in CI with pinned Playwright. See docs/PROJECT_AUDIT_2026_10_07.md for evidence and unresolved database/Production gates.

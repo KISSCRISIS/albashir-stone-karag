@@ -33,8 +33,8 @@ function makeDeps(overrides = {}) {
       employeeId === "80632" && mobileNumber === "0790000000"
         ? { ok: true, employeeId: "80632" }
         : { ok: false, reason: "INVALID_EMPLOYEE_CREDENTIALS" },
-    verifyTrustedDevice: async (deviceToken) =>
-      deviceToken === "trusted-device-token" ? { ok: true, employeeId: "80632" } : { ok: false, reason: "DEVICE_NOT_TRUSTED" },
+    verifyTrustedDevice: async (deviceToken, deviceId) =>
+      deviceToken === "trusted-device-token" && deviceId === "device-A" ? { ok: true, employeeId: "80632" } : { ok: false, reason: "DEVICE_NOT_TRUSTED" },
     verifyGateDevice: async (deviceCode, deviceToken) =>
       deviceCode === "gate-1" && deviceToken === "gate-token" ? { ok: true } : { ok: false, reason: "INVALID_DEVICE_TOKEN" },
     objectExists: async () => true,
@@ -104,7 +104,7 @@ const post = (body, headers = {}) => ({ method: "POST", headers, body });
   {
     const { deps } = makeDeps();
     const response = await handleRequest(
-      post({ action: "resolve", url: LEGACY_PUBLIC_URL, actor: { type: "employee_device", device_token: "trusted-device-token" } }),
+      post({ action: "resolve", url: LEGACY_PUBLIC_URL, actor: { type: "employee_device", device_token: "trusted-device-token", device_id: "device-A" } }),
       deps
     );
     assert.equal(response.status, 200);
@@ -175,7 +175,7 @@ const post = (body, headers = {}) => ({ method: "POST", headers, body });
     const attempts = [
       { path: OTHER_PATH, actor: employee },
       { path: "registrations/97919/nonexistent.jpg", actor: employee },
-      { path: OTHER_PATH, actor: { type: "employee_device", device_token: "trusted-device-token" } },
+      { path: OTHER_PATH, actor: { type: "employee_device", device_token: "trusted-device-token", device_id: "device-A" } },
       { path: OWN_PATH, actor: { ...employee, mobile_number: "wrong" } },
       { path: "malformed", actor: employee }
     ];

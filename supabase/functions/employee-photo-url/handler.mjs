@@ -101,7 +101,7 @@ export const CORS_PREFLIGHT = { status: 204, body: null, headers: {} };
  * @param {{
  *   verifyAdmin: (accessToken: string) => Promise<{ok:boolean, role?:string, reason?:string}>,
  *   verifyEmployeeCredentials: (employeeId:string, mobileNumber:string) => Promise<{ok:boolean, employeeId?:string, reason?:string}>,
- *   verifyTrustedDevice: (deviceToken:string) => Promise<{ok:boolean, employeeId?:string, reason?:string}>,
+ *   verifyTrustedDevice: (deviceToken:string, deviceId:string) => Promise<{ok:boolean, employeeId?:string, reason?:string}>,
  *   verifyGateDevice: (deviceCode:string, deviceToken:string) => Promise<{ok:boolean, reason?:string}>,
  *   objectExists: (path:string) => Promise<boolean>,
  *   createSignedUrl: (path:string, ttl:number) => Promise<{ok:boolean, url?:string, error?:string}>,
@@ -136,7 +136,13 @@ export async function handleRequest(input, deps) {
 }
 
 async function resolveAction(body, input, deps, cors) {
-  const path = normalizeObjectPath(body.path || body.url || "");
+  let publicSession = null;
+  if (body.actor?.type === "public_guard_session") {
+    try { publicSession = await deps.verifyPublicGuardSession(String(body.actor.read_key || "")); }
+    catch { return response(403, { ok: false, error: "DENIED" }, cors); }
+    if (publicSession?.ok !== true) return response(403, { ok: false, error: "DENIED" }, cors);
+  }
+  const path = normalizeObjectPath(publicSession ? publicSession.path : body.path || body.url || "");
   if (!path) {
     return response(403, { ok: false, error: "DENIED", reason: "INVALID_PHOTO_REFERENCE" }, cors);
   }
@@ -149,7 +155,9 @@ async function resolveAction(body, input, deps, cors) {
   let reason = "NOT_AUTHORIZED";
 
   try {
-    if (actorType === "admin") {
+    if (actorType === "public_guard_session") {
+      authorized = publicSession?.ok === true;
+    } else if (actorType === "admin") {
       const token = String(actor.access_token || bearer || "");
       if (!token) return response(403, { ok: false, error: "DENIED", reason: "MISSING_CREDENTIALS" }, cors);
       const verified = await deps.verifyAdmin(token);
@@ -167,7 +175,9 @@ async function resolveAction(body, input, deps, cors) {
         reason = verified?.reason || "INVALID_EMPLOYEE_CREDENTIALS";
       }
     } else if (actorType === "employee_device") {
-      const verified = await deps.verifyTrustedDevice(String(actor.device_token || ""));
+      const deviceId = String(actor.device_id || "").trim();
+      if (!deviceId) return response(403, { ok: false, error: "DENIED" }, cors);
+      const verified = await deps.verifyTrustedDevice(String(actor.device_token || ""), deviceId);
       if (verified?.ok === true) {
         authorized = pathBelongsToEmployee(path, verified.employeeId);
         reason = authorized ? reason : "NOT_OWNER";

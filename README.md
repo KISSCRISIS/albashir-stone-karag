@@ -829,3 +829,58 @@ Reviewed SQL: supabase/search_path_five_reviewed.sql. Sets pg_catalog only for n
 
 ### Registration APPROVED phone validation (2026-10-07)
 Canonical 15-argument registration body synchronized from the live Production definition: APPROVED requests must supply the matching stored mobile number, and manual_employee_check receives clean_mobile. Already applied to Staging and Production; do not reapply historical patches. QR logic unchanged. Owner approved gate-device DEFAULT false for Production and fresh installs. Existing device states remain unchanged. Cache-Control remains a separate open item.
+
+### P2-18 Staging integration candidate (2026-10-07)
+Three reviewed migrations synchronize the Staging enrollment claim, device ID binding and 30-day TTL implementation. Legacy enrollment/login overloads fail closed. Photo actors and Resolver now require device_id, and cache authorization keys include it. Production deployment is NOT approved: main auto-deploys Production frontend, so merge must wait for an approved rollout window and successful Staging phone acceptance. No Production SQL or Resolver deployment is performed during this review. See docs/P2_18_ROLLOUT.md.
+# Registration-device approval — owner decision 2026-10-07
+
+Admin approval now activates the device submitted with the registration request on Staging, with device binding and a 30-day expiry; no extra QR enrollment step is required. QR remains mandatory for gate access. Production is unchanged. See [the final policy and deployment scope](docs/ADMIN_APPROVAL_DEVICE_POLICY.md), which supersedes the earlier registration-device QR-claim requirement.
+# Final trusted-device duration — 2026-10-07
+
+On Staging, the owner-approved registration device remains trusted until administrator revocation while the employee remains approved and device authorization remains valid. The earlier 30-day duration is superseded. QR remains mandatory for gate access. Production unchanged; see [final policy](docs/ADMIN_APPROVAL_DEVICE_POLICY.md).
+# Public guard Staging — 2026-10-07
+
+Scan-to-decision correction: a logged-in employee now proceeds to server verification after QR scan without re-entering identity; trusted-device automatic results also reach the matching guard session. Both flows were verified live on Staging; real-phone retest remains pending. No authority-function or Production changes.
+
+`guard.html` now displays database-issued QR immediately without login/PIN/gate-device approval. Approved name/photo/job/specialty fields are exposed only for its QR session using a separate short-lived read capability; private Storage and direct-table restrictions remain. Mandatory QR and the original decision function stay unchanged. Staging published; Production unchanged. See [rollout, tests and authorization scope](docs/PUBLIC_GUARD_STAGING.md).
+
+## Owner frontend refinement — 2026-10-07
+
+The public guard page is opened by a direct link distributed to guards only. Public frontend navigation, redirects, comments and service-worker asset lists must not disclose its path. This is presentation policy, not authorization. Backend permissions remain unchanged. Its result replaces the QR panel for 10 seconds; rotation and server expiry continue. Employee verification photos use the credentials of the successful verification path, never an unrelated stored device token. Cache version is v18. Chromium/WebKit emulation is not a real-phone acceptance test.
+
+## Autonomous audit repairs — 2026-10-07
+
+Registration shortcuts must target the current registration page. CSV exports must neutralize formula-like string cells. Service Worker page caches must omit credential-bearing queries and never persist third-party responses. Cache version is v19. The QR/heartbeat/layout browser suite now runs in CI with pinned Playwright. See docs/PROJECT_AUDIT_2026_10_07.md for evidence and unresolved database/Production gates.
+
+## QR v2 compatibility review — 2026-10-07
+
+Verification retries retain their request ID only while the mode and payload remain identical. Correcting credentials or switching from automatic to manual verification creates a new request ID; transport retries remain idempotent. Guard WAITING polling preserves QR generation failure messages. Isolated SQL coverage exercises the real v2 definitions, claim replay, credential correction and single access-event behavior.
+
+The owner-approved Staging correction uses a distinct permanent Other department value, while temporary `أخرى` retains its configured limit of 7. No existing Other registrations required conversion. The original authority-function body and ACL remain unchanged. Vercel authorization was renewed and the combined frontend was deployed to https://albashir-staging.vercel.app (deployment dpl_757rXprTzdvfausE4f4HroiDJcyo). Chromium and WebKit Staging checks passed for QR/countdown, employee and guard results, private-photo blob decoding, QR-panel replacement and 10-second result cleanup, with zero Production requests. CI passed for code commit abc7129. Production is unchanged. Local regression and browser emulation passes do not constitute a real-phone acceptance result.
+
+## Owner mobile feedback — 2026-10-07
+
+An existing employee session takes precedence over an unrelated saved device token after an in-app QR scan; verification still goes through the existing mandatory-QR server RPC. The portal opens with a large visible login form and functional QR, registration and profile service cards. The owner-provided image is preserved as CSS image sections for the header, dedication and executive leadership, with the latter sections below the services and above the English leadership list. The upper entry button is removed. Service Worker/runtime cache labels are v20 to retire older frontend assets. No SQL, grants, RLS or Production changes. Phone acceptance is pending a retest of this build.
+
+Staging frontend ee77f1d is published at https://albashir-staging.vercel.app (deployment dpl_GGH68ZJd7ubqkpyDVJ8i7NRmpXcq), with CI PASS. Chromium and WebKit live-backend testing of the simulated in-app camera callback, including a stale saved token and active employee session, confirmed automatic server verification, decoded private photos for both parties and 10-second result cleanup. This uses a simulated camera source, not a real-phone camera test.
+
+## Owner persistent-login and landing refinement — 2026-10-08
+
+The landing shows an unobstructed hospital panorama, then five functional service cards. Employee/admin dialogs open only when selected; dedication and the original executive portraits are at the bottom, with no duplicate English leadership section on the portal. The original reference image is reused without regenerating portraits.
+
+Employee login offers a visible remember-me checkbox (enabled for the owner-requested flow). When selected, only the employee ID and mobile login identity are retained in this browser origin; logout and an unchecked subsequent login remove this remembered identity. A reopened tab restores an EMPLOYEE UI session only, never administrator roles or backend trust. Every gate decision still calls the existing server RPC with mandatory QR, current employee status and device policy. No auto-enrollment RPC or backend/schema/ACL changes were added. Browser storage and camera permissions are specific to each browser. QR service links start the camera from `verify.html?scan=1`, with the camera button retained for denied permissions or browser restrictions. Cache labels are v21. Real-phone acceptance remains pending for this build.
+
+Staging release 4db3094: deployment dpl_DbH8F58wJ67UtZjSsQiNNcDwpQWX READY, CI PASS, 26 local suites PASS. Chromium and WebKit tests cleared the tab session while retaining the remembered identity, then automatically started a simulated in-app camera scan. The real Staging RPCs produced employee/guard results and decoded private photos without manual re-entry; QR replacement and 10-second cleanup passed. Zero Production requests or gate-device heartbeat requests. Real-phone acceptance for this release: NOT RUN.
+
+## External phone camera verification — 2026-10-08
+
+The guard QR already encodes a same-origin HTTPS verification link, so phone cameras/QR readers can open it without the in-app scanner. Chromium and WebKit tests decoded the actual displayed QR, cleared the tab session, opened that link with the remembered browser identity, and confirmed automatic server verification and both private photos with no app camera request. No database changes were needed. See [final Staging acceptance procedure](docs/FINAL_STAGING_ACCEPTANCE_2026_10_08.md) for reproducible phone steps, supported browser boundaries and the remaining real-phone gate.
+# تصحيح اختبار الهاتف — 8 تشرين الأول 2026
+
+## اعتماد الإصدار النهائي
+
+أكد المالك نجاح المسح التلقائي والصورة على الهاتف واختصار الشاشة الرئيسية، ووافق على مراجعة/دمج GitHub والنشر الفعلي في 2026-10-08. اشترط الحفاظ على ربط الأجهزة الحالية؛ لذلك يستخدم النشر `supabase/rollout/production_preserve_existing_devices.sql` بدل تصفير tokens في migration التاريخية. الاختبار يثبت الحفاظ على هوية الموظف وحالة الجهاز وtoken، وإضافة fingerprint من معرّف الجهاز المحفوظ فقط. أُغلقت إعادة نتائج QR المكتملة بعد 30 ثانية، وأصبح hash للطلب مبنيًا على JSON لمنع التباس الفواصل. نسخة الدمج تحفظ تقوية ACL الموجودة في Production وتعطيل عمليات المخالفات، وتجمع اختبارات الفروع دون إسقاط أي مجموعة. لا يُشغَّل fresh-install على Production.
+
+صفحة التحقق تحفظ هوية الموظف بعد نجاح تحقق QR اليدوي (`ALLOWED` أو `LIMITED`) عند اختيار «حفظ دخولي على هذا الجهاز للمسح التالي». المسح التالي يستعيد هذه الهوية حتى في تبويب جديد، ثم يعيد التحقق عبر RPC الحالية؛ الحفظ لا يمنح تفويضًا ولا يغير اعتماد الجهاز أو Mandatory QR. الطلب المرفوض لا يُحفظ، وخيار عدم الحفظ والخروج يبقيان متاحين. تعيين الجلسة يسبق تحميل الصورة كي لا يُلغى رابط blob الجديد عند تنظيف صور الجلسة القديمة.
+
+تحميل صورة النتيجة يعرض حالة انتظار، وفشل التحميل يعرض زر إعادة محاولة عبر Resolver نفسه وfetch بلا cache. لا توجد قراءة مباشرة من Storage أو كتابة رابط موقّع في التخزين. نسخة cache أصبحت v22 لتحديث الواجهة السابقة على الأجهزة. اختبار regression يغطي حفظ التحقق الناجح فقط واحترام عدم الحفظ؛ اختبار Staging في Chromium/WebKit يغطي أول تحقق يدوي ثم QR جديد تلقائيًا، وانقطاع طلب الصورة ثم نجاح إعادة تحميلها. اختبار الهاتف الفعلي ما زال يحتاج إعادة تجربة الإصدار الجديد. لا تغيير Backend أو Production.

@@ -2,6 +2,7 @@
   "use strict";
 
   const KEY = "alb_portal_session_v1";
+  const REMEMBER_KEY = "alb_remembered_employee_v1";
   const currentScript = document.currentScript;
   const requiredRoles = (currentScript?.dataset.roles || "").split(",").map((role) => role.trim()).filter(Boolean);
 
@@ -11,10 +12,15 @@
 
   function readSession() {
     try {
-      const session = JSON.parse(sessionStorage.getItem(KEY) || "null");
+      let session = JSON.parse(sessionStorage.getItem(KEY) || "null");
       if (!session?.role || Number(session.expiresAt || 0) < Date.now()) {
         sessionStorage.removeItem(KEY);
-        return null;
+        const remembered = JSON.parse(localStorage.getItem(REMEMBER_KEY) || "null");
+        if (!remembered?.employeeId || !remembered?.mobileNumber) return null;
+        // Remembered identity is UI convenience, never backend authorization.
+        session = {role:"EMPLOYEE",employeeId:remembered.employeeId,mobileNumber:remembered.mobileNumber,
+          createdAt:Date.now(),expiresAt:Date.now()+8*60*60*1000,rememberMe:true};
+        sessionStorage.setItem(KEY,JSON.stringify(session));
       }
       session.role = normalizeRole(session.role);
       return session;
@@ -28,12 +34,17 @@
     window.EmployeePhoto?.clearCache();
     const session = { role: normalizeRole(role), createdAt: Date.now(), expiresAt: Date.now() + 8 * 60 * 60 * 1000, ...extra };
     sessionStorage.setItem(KEY, JSON.stringify(session));
+    if(session.role === "EMPLOYEE") {
+      if(extra.rememberMe === true) localStorage.setItem(REMEMBER_KEY,JSON.stringify({employeeId:extra.employeeId,mobileNumber:extra.mobileNumber}));
+      else localStorage.removeItem(REMEMBER_KEY);
+    }
     return session;
   }
 
   function clearSession() {
     window.EmployeePhoto?.clearCache();
     sessionStorage.removeItem(KEY);
+    localStorage.removeItem(REMEMBER_KEY);
     Object.keys(localStorage).filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token")).forEach((key) => localStorage.removeItem(key));
   }
 
@@ -66,11 +77,11 @@
     const links = document.createElement("div");
     links.className = "portal-role-nav__links";
     const items = session.role === "EMPLOYEE"
-      ? [["الملف الشخصي", "./profile.html"], ["مسح QR", "./verify.html"]]
+      ? [["الملف الشخصي", "./profile.html"], ["مسح QR", "./verify.html?scan=1"]]
       : session.role === "EMPLOYEE_ONBOARDING"
         ? [["طلب تسجيل", "./register.html"]]
         : session.role === "GUARD"
-          ? [["شاشة الحارس", "./index.html"], ["تحقق يدوي", "./guard.html"]]
+          ? [["شاشة الحارس", "./index.html"]]
           : [["لوحة الإدارة", "./admin_dashboard.html"]];
     items.forEach(([label, href]) => { const link = document.createElement("a"); link.textContent = label; link.href = href; links.appendChild(link); });
     const logout = document.createElement("button");

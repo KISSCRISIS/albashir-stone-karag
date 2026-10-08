@@ -1,0 +1,68 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),vm=require('vm');
+const {PGlite}=require('@electric-sql/pglite');
+const {pgcrypto}=require('@electric-sql/pglite/contrib/pgcrypto');
+const {randomUUID}=require('crypto');
+const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const verify=read('verify.html');
+const source=verify.match(/function verificationRequestId\(mode,payload\)\{[\s\S]*?\n  \}/)[0];
+function ids(claimId){
+  const c={activeVerificationRequest:null,activeQrRequestId:claimId,newRequestId:randomUUID};
+  vm.createContext(c);vm.runInContext(source,c);return c.verificationRequestId;
+}
+(async()=>{
+  const db=new PGlite({extensions:{pgcrypto}});
+  try{
+    const setup=read('tests/fresh-install-readiness.cjs');
+    const start=setup.lastIndexOf('await db.exec(`',setup.indexOf('create role anon'))+15,end=setup.indexOf('`);',start);
+    await db.exec(Function('return `'+setup.slice(start,end)+'`;')());
+    const fresh=read('schema_consolidated_fresh_install.sql');
+    await db.exec(fresh.slice(0,fresh.indexOf('\n-- Owner-approved public guard session interface.')));
+    await db.exec(read('supabase/canonical/public_guard_session_rpc.sql'));
+    await db.exec(read('supabase/canonical/public_guard_auto_result_sync.sql'));
+    for(const f of ['20261007160500_registration_taxonomy_permanent_departments.sql','20261007162500_seed_temporary_specialty_limits_7.sql','20261007181500_qr_reliability_v2.sql','20261007190000_separate_other_registration_categories.sql'])await db.exec(read('supabase/migrations/'+f));
+    await db.exec("insert into employee_registrations(full_name,employee_id,mobile_number,specialty,status,job_type) values('Synthetic v2','V2-SYN','000-SYN','أطباء امتياز','APPROVED','Synthetic job')");
+    await db.exec('set role anon');
+    await assert.rejects(db.query('select * from private.qr_verification_requests'),/permission denied/);
+    const issue=async()=> (await db.query('select create_public_guard_qr() r')).rows[0].r;
+    const claim=async(q,id)=>(await db.query('select claim_qr_session_v2($1,$2) r',[q.token,id])).rows[0].r;
+    const manual=async(id,token,mobile='000-SYN')=>(await db.query("select public_guard_employee_check_v2($1,'V2-SYN',$2,$3,'device-A') r",[id,mobile,token])).rows[0].r;
+    const q=await issue(),requestId=randomUUID(),c=await claim(q,requestId);
+    assert(c.ok);assert.equal((await claim(q,requestId)).claim_token,c.claim_token);
+    assert.equal((await claim(q,randomUUID())).ok,false);
+    assert.equal((await manual(requestId,c.claim_token)).result,'ALLOWED');
+    const replay=await manual(requestId,c.claim_token);assert.equal(replay.result,'ALLOWED');assert.equal(replay.idempotent,true);
+    assert.equal((await manual(requestId,c.claim_token,'WRONG')).error,'REQUEST_ID_REUSED');
+    assert.equal((await manual(randomUUID(),c.claim_token)).result,'DENIED');
+    assert.equal((await db.query('select get_public_guard_result($1) r',[q.read_key])).rows[0].r.result,'ALLOWED');
+    await db.exec('reset role');
+    assert.equal((await db.query("select count(*)::integer n from gate_access_logs where employee_id='V2-SYN' and result='ALLOWED'")).rows[0].n,1);
+    await db.exec('set role anon');
+    const q2=await issue(),claimId=randomUUID(),c2=await claim(q2,claimId),idFor=ids(claimId);
+    const autoPayload={p_device_token:'INVALID',p_qr_token:c2.claim_token,p_device_id:'device-A'};
+    const autoId=idFor('AUTO',autoPayload);assert.equal(autoId,idFor('AUTO',autoPayload));
+    const denied=(await db.query("select public_guard_auto_employee_check_v2($1,'INVALID',$2,'device-A') r",[autoId,c2.claim_token])).rows[0].r;
+    assert.equal(denied.result,'DENIED');
+    const wrongPayload={p_employee_id:'V2-SYN',p_mobile_number:'WRONG',p_qr_token:c2.claim_token,p_device_id:'device-A'};
+    const wrongId=idFor('MANUAL',wrongPayload);assert.notEqual(wrongId,autoId);
+    assert(['DENIED','NOT_FOUND'].includes((await manual(wrongId,c2.claim_token,'WRONG')).result));
+    const corrected={...wrongPayload,p_mobile_number:'000-SYN'},correctedId=idFor('MANUAL',corrected);
+    assert.notEqual(correctedId,wrongId);assert.equal(correctedId,idFor('MANUAL',corrected));
+    assert.equal((await manual(correctedId,c2.claim_token)).result,'ALLOWED');
+    assert.equal((await manual(correctedId,c2.claim_token)).idempotent,true);
+    assert.equal((await db.query('select get_public_guard_result($1) r',[q2.read_key])).rows[0].r.result,'ALLOWED');
+    await db.exec('reset role');
+    assert.equal((await db.query("select is_permanently_allowed_specialty('أخرى') r")).rows[0].r,false);
+    assert.equal((await db.query("select is_permanently_allowed_specialty('أخرى (موظف دائم)') r")).rows[0].r,true);
+    await db.exec("update employee_registrations set specialty='أخرى',registration_category='TEMPORARY' where employee_id='V2-SYN'");
+    await db.exec('set role anon');
+    const q3=await issue(),c3=await claim(q3,randomUUID());
+    assert.equal((await manual(randomUUID(),c3.claim_token)).result,'LIMITED');
+    await db.exec('reset role');
+    await db.exec("insert into gate_access_logs(employee_id,specialty,result) select 'SYN-OTHER','أخرى','LIMITED' from generate_series(1,6)");
+    await db.exec('set role anon');
+    const q4=await issue(),c4=await claim(q4,randomUUID());
+    assert.equal((await manual(randomUUID(),c4.claim_token)).result,'DENIED');
+    await db.exec('reset role');await db.query("update private.qr_verification_requests set completed_at=now()-interval '31 seconds' where request_id=$1",[correctedId]);await db.exec('set role anon');assert.equal((await manual(correctedId,c2.claim_token)).error,'RETRY_EXPIRED');
+    console.log('PASS expired completed retry denies; v2 real SQL: claim retry, replay, changed payload denial, auto/manual recovery, corrected credentials, single access event and private-table denial');
+  }finally{await db.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

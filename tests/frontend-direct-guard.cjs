@@ -1,0 +1,15 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const root=path.join(__dirname,'..');
+for(const f of fs.readdirSync(root))if(/\.(html|js|json|txt)$/.test(f)&&f!=='guard.html')assert(!fs.readFileSync(path.join(root,f),'utf8').includes('guard.html'),f+' exposes direct guard path');
+const verify=fs.readFileSync(path.join(root,'verify.html'),'utf8');
+const manual=verify.slice(verify.indexOf('async function submitEmployeeVerification()'),verify.indexOf('async function submitEmployeeVerification()')+5000);
+assert(manual.includes('mobile_number:payload.p_mobile_number}'));
+assert(!manual.includes('device_token:storedToken'));
+const auto=verify.slice(verify.indexOf('async function runAutoTrustedCheck'),verify.indexOf('async function submitEmployeeVerification()'));
+assert(verify.includes('device_token:storedToken,device_id:getTrustedDeviceId()});'));
+const guard=fs.readFileSync(path.join(root,'guard.html'),'utf8');
+assert(guard.includes('id="qrPanel"'));
+assert(guard.includes("el('result').hidden=false;el('qrPanel').hidden=true;"));
+assert(guard.includes("el('result').hidden=true;el('qrPanel').hidden=false;"));
+assert(guard.includes('Date.now()+10000'));
+console.log('PASS private navigation removal, verified photo actor, QR/result replacement and 10-second reset');

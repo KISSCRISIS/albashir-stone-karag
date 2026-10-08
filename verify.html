@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="apple-touch-icon" href="./logo.jpeg" />
   <link rel="manifest" href="./manifest.json" />
-  <script src="./access-control.js" data-roles="EMPLOYEE"></script>
+  <script src="./access-control.js"></script>
   <script src="./supabase.min.js"></script>
   <script src="./jsqr.min.js"></script>
 
@@ -36,10 +36,10 @@
 
   <section class="panel qr-scan-panel">
     <h2 class="scan-title">امسح QR من شاشة الحارس</h2>
-    <p class="scan-guidance">وجّه كاميرا هاتفك نحو رمز QR المعروض على <strong>شاشة الحارس</strong> مباشرة. يتم التحقق فور المسح وتظهر النتيجة أدناه.</p>
+    <p class="scan-guidance">يمكنك مسح رمز الحارس بكاميرا الهاتف العادية وفتح الرابط، أو استخدام الماسح داخل التطبيق. تظهر النتيجة تلقائيًا إذا كان دخولك محفوظًا في المتصفح الذي فتح الرابط.</p>
     <button type="button" id="cameraButton" onclick="startQrCamera()">فتح الكاميرا لمسح QR</button>
     <div id="scannerWrap" class="scanner-video-wrap hidden">
-      <video id="qrVideo" playsinline muted></video>
+      <video id="qrVideo" playsinline webkit-playsinline muted></video>
     </div>
     <div id="qrSessionStatus" class="notice hidden"></div>
   </section>
@@ -57,7 +57,7 @@
 
   <div id="setupWarning" class="notice hidden"></div>
 
-  <section id="manualSections">
+  <section id="manualSections" class="hidden">
     <div class="panel">
       <h2>تحقق يدوي</h2>
       <p class="desc">أدخل رقم الموظف ورقم الهاتف.</p>
@@ -69,6 +69,8 @@
 
         <label for="checkMobileNumber">رقم الهاتف</label>
         <input id="checkMobileNumber" type="tel" placeholder="رقم الهاتف" inputmode="tel" required />
+
+        <label><input id="rememberVerifiedEmployee" type="checkbox" checked /> حفظ دخولي على هذا الجهاز للمسح التالي</label>
 
         <button type="submit" id="checkButton">تحقق من الدخول</button>
       </form>
@@ -98,12 +100,74 @@
   const qrToken = urlParams.get("token");
   let activeQrToken = qrToken;
   let qrClaimReady = false;
+  let activeQrRequestId = null;
+  let activeVerificationRequest = null;
   let lastManualCheck = null;
+  let verificationLock = false;
+  let employeeSession = window.ALBASHIRAccess?.readSession();
+  if(employeeSession?.role==="EMPLOYEE"){
+    $("checkEmployeeId").value=String(employeeSession.employeeId||"");
+    $("checkMobileNumber").value=String(employeeSession.mobileNumber||"");
+    $("rememberVerifiedEmployee").checked=employeeSession.rememberMe===true;
+  }
   let qrScanStream = null;
   let qrScanTimer = null;
 
+  function newRequestId(){
+    if(globalThis.crypto?.randomUUID) return crypto.randomUUID();
+    const bytes=new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6]=(bytes[6]&0x0f)|0x40;
+    bytes[8]=(bytes[8]&0x3f)|0x80;
+    const hex=[...bytes].map(v=>v.toString(16).padStart(2,"0")).join("");
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  }
+
   function setActiveQrToken(token) {
-    activeQrToken = extractQrToken(token);
+    const next=extractQrToken(token);
+    if(next && next!==activeQrToken){ activeQrRequestId=null; activeVerificationRequest=null; }
+    activeQrToken=next;
+  }
+
+  function clearQrTokenFromUrl(){
+    try{
+      const url=new URL(location.href);
+      url.searchParams.delete("token");
+      url.searchParams.delete("public_guard");
+      history.replaceState(history.state,"",url.pathname+url.search+url.hash);
+    }catch(_){}
+  }
+
+  function sleep(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
+
+  function verificationRequestId(mode,payload){
+    const identity=JSON.stringify([mode,payload]);
+    if(!activeVerificationRequest || activeVerificationRequest.identity!==identity){
+      const id=activeVerificationRequest ? newRequestId() : (activeQrRequestId || newRequestId());
+      activeVerificationRequest={identity,id};
+    }
+    return activeVerificationRequest.id;
+  }
+
+  async function rpcWithRetry(name,payload,{timeoutMs=8000,maxAttempts=3}={}){
+    let lastError=null;
+    for(let attempt=1;attempt<=maxAttempts;attempt++){
+      let timeoutId;
+      try{
+        const call=supabaseClient.rpc(name,payload);
+        const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error("RPC_TIMEOUT")),timeoutMs);});
+        const response=await Promise.race([call,timeout]);
+        if(!response?.error) return response;
+        const message=response.error?.message||String(response.error);
+        if(!/fetch|network|timeout|502|503|504|temporar/i.test(message)) return response;
+        lastError=response.error;
+      }catch(err){
+        lastError=err;
+        if(!/fetch|network|timeout|502|503|504|temporar/i.test(err?.message||"")) throw err;
+      }finally{ clearTimeout(timeoutId); }
+      if(attempt<maxAttempts) await sleep(attempt===1?500:1500);
+    }
+    throw lastError||new Error("RPC_FAILED");
   }
 
   function setConnection(text, type="ready") {
@@ -130,7 +194,7 @@
     el.classList.remove("hidden");
   }
 
-  function setResult(result,message,employee=null) {
+  function setResult(result,message,employee=null,photoActor=null) {
     const card=$("resultCard"), icon=$("resultIcon"), title=$("resultTitle"), msg=$("resultMessage"), details=$("resultDetails");
     card.className="result-card";
     card.classList.remove("hidden");
@@ -153,11 +217,12 @@
       icon.textContent="◆"; title.textContent="تمت العملية";
     }
 
+    if(["ALLOWED","LIMITED"].includes(result)) card.scrollIntoView({behavior:"smooth",block:"start"});
     msg.textContent=result==="PENDING"?"طلبك قيد المراجعة.\nبعد اعتماد الإدارة سيصبح جهازك جاهزًا للدخول عبر QR.":message || "تمت العملية.";
     if(employee){
       details.innerHTML=renderEmployeeDetails(employee);
       details.classList.remove("hidden");
-      hydrateEmployeePhotos(details, employeePhotoActor(employee));
+      loadResultPhoto(details, photoActor || employeePhotoActor(employee));
       const profileButton=$("profileButton");
       if(profileButton && employee.employee_id){
         profileButton.href=`./profile.html?employee_id=${encodeURIComponent(employee.employee_id)}`;
@@ -171,13 +236,35 @@
     window.scrollTo({top:0,behavior:"smooth"});
   }
 
+  async function loadResultPhoto(details,actor){
+    const image=details.querySelector("img[data-photo-ref]");
+    if(!image)return;
+    const reference=image.getAttribute("data-photo-ref");
+    const status=document.createElement("p");status.setAttribute("role","status");
+    status.textContent="جارِ تحميل الصورة…";details.appendChild(status);
+    const retry=document.createElement("button");retry.type="button";
+    retry.textContent="إعادة تحميل الصورة";retry.hidden=true;details.appendChild(retry);
+    async function load(force=false){
+      retry.hidden=true;status.textContent="جارِ تحميل الصورة…";
+      image.setAttribute("data-photo-ref",reference);
+      await window.EmployeePhoto?.hydrate(details,actor,APP_CONFIG,{force});
+      if(!image.isConnected)return;
+      let loaded=false;
+      if(image.src.startsWith("blob:"))try{await image.decode();loaded=image.naturalWidth>0;}catch(_){}
+      status.textContent=loaded?"":"تعذر تحميل الصورة. أعد المحاولة.";
+      retry.hidden=loaded;
+    }
+    retry.addEventListener("click",()=>load(true));
+    await load();
+  }
+
   // The employee scanning the guard QR sees their own photo. A trusted
   // device token is used when present; otherwise the credentials filled in
   // the manual panel are used. The resolver only ever signs the caller's
   // own object path.
   function employeePhotoActor(employee){
     const deviceToken=getTrustedDeviceToken();
-    if(deviceToken && deviceToken.length>=40) return {type:"employee_device",device_token:deviceToken};
+    if(deviceToken && deviceToken.length>=40) return {type:"employee_device",device_token:deviceToken,device_id:getTrustedDeviceId()};
     return {type:"employee",employee_id:(employee&&employee.employee_id)||$("checkEmployeeId")?.value.trim()||"",mobile_number:$("checkMobileNumber")?.value.trim()||""};
   }
   function showManualSections(show=true){
@@ -198,7 +285,9 @@
       stopQrCamera();
       const video=$("qrVideo");
       $("scannerWrap").classList.remove("hidden");
-      qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+      video.setAttribute("playsinline","");
+      video.setAttribute("webkit-playsinline","");
+      qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
       video.srcObject=qrScanStream;
       await video.play();
       const detector=("BarcodeDetector" in window)
@@ -257,7 +346,7 @@
     }
     if(supabaseClient) setConnection("Supabase جاهز");
     updateOfflinePendingBadge();
-    syncGateDeviceHeartbeat();
+    // Employee verification is not a gate-device approval request.
     syncOfflineAccessLogs();
   }
 
@@ -270,22 +359,23 @@
       return;
     }
     setConnection("Supabase جاهز");
-    syncGateDeviceHeartbeat();
+    // Employee verification is not a gate-device approval request.
     syncOfflineAccessLogs();
   }
 
   async function claimQrSessionIfPresent(){
     if(!activeQrToken){
       qrClaimReady=false;
-      showManualSections(true);
+      showManualSections(false);
       return;
     }
     if(!supabaseClient) return;
 
     try{
       setResult("WAITING","جارِ تفعيل QR والتحقق من صلاحيته...");
-      const {data,error}=await supabaseClient.rpc("claim_qr_session",{p_token:activeQrToken});
-      const result=normalizeRpcData(data,"claim_qr_session");
+      activeQrRequestId ||= newRequestId();
+      const {data,error}=await rpcWithRetry("claim_qr_session_v2",{p_token:activeQrToken,p_request_id:activeQrRequestId},{timeoutMs:5000,maxAttempts:3});
+      const result=normalizeRpcData(data,"claim_qr_session_v2");
 
       if(error || !result || result.ok!==true || !result.claim_token){
         qrClaimReady=false;
@@ -295,16 +385,20 @@
 
       activeQrToken=result.claim_token;
       qrClaimReady=true;
+      clearQrTokenFromUrl();
       setQrSessionStatus(result.message || "تم تفعيل QR. أكمل خلال 5 دقائق.","ok");
 
       const storedToken=getTrustedDeviceToken();
-      if(storedToken){
+      if(employeeSession?.role==="EMPLOYEE" && $("checkEmployeeId").value.trim() && $("checkMobileNumber").value.trim()){
+        showManualSections(false);
+        await submitEmployeeVerification();
+      }else if(storedToken){
         showManualSections(false);
         setResult("WAITING","تم التعرف على جهاز محفوظ. جارِ التحقق تلقائيًا...");
         await tryAutoVerifyFromTrustedDevice();
       }else{
         showManualSections(true);
-        setResult("READY","QR صالح. سجّل الدخول مرة واحدة، ثم فعّل هذا الجهاز للدخول التلقائي لاحقًا.");
+        setResult("READY","QR صالح. أدخل بيانات الموظف لإكمال التحقق.");
       }
     }catch(err){
       qrClaimReady=false;
@@ -322,26 +416,8 @@
     setAutoDevicePanel("تم نسيان هذا الجهاز من المتصفح.", "warning", true);
   }
 
-  async function checkTrustedDeviceEligibility(employeeId,mobileNumber){
-    try{
-      const {data,error}=await supabaseClient.rpc("can_register_trusted_device",{
-        p_employee_id:employeeId,p_mobile_number:mobileNumber
-      });
-      const result=normalizeRpcData(data,"can_register_trusted_device");
-      if(!error && result?.eligible===true){
-        lastManualCheck={employeeId,mobileNumber};
-        setAutoDevicePanel(result.message||"يمكن تفعيل هذا الجهاز.","ok",true);
-      }else{
-        lastManualCheck=null;
-        setAutoDevicePanel(result?.message||"هذا الجهاز غير مؤهل للتفعيل.","warning",true);
-      }
-    }catch{
-      setAutoDevicePanel("تعذر فحص أهلية الجهاز.","warning",false);
-    }
-  }
-
   async function enableTrustedDeviceOnThisBrowser(){
-    if(!lastManualCheck){ setAutoDevicePanel("نفّذ تحققًا ناجحًا أولًا.","warning",true); return; }
+    if(!lastManualCheck?.enrollmentClaim){ setAutoDevicePanel("نفّذ تحقق QR ناجحًا أولًا للحصول على صلاحية تفعيل قصيرة المدة.","warning",true); return; }
     const button=$("enableAutoDeviceButton"); button.disabled=true;
     try{
       const token=generateTrustedDeviceToken();
@@ -352,24 +428,23 @@
         p_device_id:getTrustedDeviceId(),
         p_device_type:getDeviceType(),
         p_device_name:getDeviceName(),
-        p_user_agent:navigator.userAgent
+        p_user_agent:navigator.userAgent,
+        p_enrollment_claim:lastManualCheck.enrollmentClaim
       };
-      let response=await supabaseClient.rpc("register_trusted_device_with_metadata",metadata);
-      if(response.error && /function|not found|PGRST202/i.test(response.error.message||"")){
-        response=await supabaseClient.rpc("register_trusted_device",{
-          p_employee_id:lastManualCheck.employeeId,
-          p_mobile_number:lastManualCheck.mobileNumber,
-          p_device_token:token
-        });
-      }
-      const {data,error}=response;
-      const result=normalizeRpcData(data,"register_trusted_device");
-      if(result?.new_device===true){
+      const {data,error}=await supabaseClient.rpc("register_trusted_device_with_metadata",metadata);
+      const result=normalizeRpcData(data,"register_trusted_device_with_metadata");
+      if(result?.new_device===true || result?.admin_reset_required===true){
         clearTrustedDeviceToken();
-        throw new Error(result.message||"تم اكتشاف جهاز جديد ويحتاج موافقة الإدارة قبل اعتماده.");
+        lastManualCheck=null;
+        throw new Error(result.message||"تم اكتشاف جهاز مختلف ويحتاج إلغاء الربط من الإدارة قبل اعتماده.");
+      }
+      if(result?.enrollment_claim_invalid===true){
+        lastManualCheck=null;
+        throw new Error(result.message||"انتهت صلاحية تفعيل الجهاز. أعد التحقق عبر QR.");
       }
       if(error || !result || result.ok!==true) throw new Error(error?.message||result?.message||"فشل تفعيل الجهاز.");
       saveTrustedDeviceToken(token);
+      lastManualCheck=null;
       setAutoDevicePanel(result.message||"تم تفعيل الجهاز. من الآن فصاعدًا يكفي مسح QR فقط.","ok",true);
     }catch(err){
       setAutoDevicePanel("فشل تفعيل الجهاز: "+err.message,"error",true);
@@ -386,9 +461,15 @@
     try{
       showManualSections(false);
       setResult("WAITING","جارِ التحقق تلقائيًا من الجهاز الموثوق...");
-      const {data,error}=await supabaseClient.rpc("auto_employee_check",{
-        p_device_token:storedToken,p_qr_token:activeQrToken
-      });
+      if(!activeQrRequestId) activeQrRequestId=newRequestId();
+      const autoPayload={
+        p_device_token:storedToken,
+        p_qr_token:activeQrToken,
+        p_device_id:getTrustedDeviceId()
+      };
+      const {data,error}=await rpcWithRetry("public_guard_auto_employee_check_v2",{
+        p_request_id:verificationRequestId("AUTO",autoPayload),...autoPayload
+      },{timeoutMs:8000,maxAttempts:3});
       const result=normalizeRpcData(data,"auto_employee_check");
       if(error || !result) throw new Error(error?.message||"فشل التحقق التلقائي.");
       if(result.clear_device===true) clearTrustedDeviceToken();
@@ -397,7 +478,7 @@
         throw new Error(result.message||"تم اكتشاف جهاز جديد. يرجى التحقق اليدوي أو مراجعة الإدارة.");
       }
 
-      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);
+      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee_device",device_token:storedToken,device_id:getTrustedDeviceId()});
 
       if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
         showManualSections(false);
@@ -416,8 +497,8 @@
     }
   }
 
-  $("checkForm").addEventListener("submit",async(event)=>{
-    event.preventDefault();
+  async function submitEmployeeVerification(){
+    if(verificationLock)return;
     const payload={
       p_employee_id:$("checkEmployeeId").value.trim(),
       p_mobile_number:$("checkMobileNumber").value.trim(),
@@ -430,15 +511,43 @@
     }
     if(!qrClaimReady){ setResult("WAITING","افتح الكاميرا لمسح QR من شاشة الحارس المناوب."); return; }
 
+    verificationLock=true;
     disableButton("checkButton",true,"جارِ التحقق...","تحقق من الدخول");
     try{
-      const {data,error}=await supabaseClient.rpc("manual_employee_check",payload);
-      const result=normalizeRpcData(data,"manual_employee_check") || data;
+      const rpcPayload={...payload,p_device_id:getTrustedDeviceId()};
+      if(!activeQrRequestId) activeQrRequestId=newRequestId();
+      const {data,error}=await rpcWithRetry("public_guard_employee_check_v2",{p_request_id:verificationRequestId("MANUAL",rpcPayload),...rpcPayload},{timeoutMs:8000,maxAttempts:3});
+      const result=normalizeRpcData(data,"manual_employee_check_with_device") || data;
       if(error || !result) throw new Error(error?.message||"فشل التحقق.");
-      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null);
       if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
-        await checkTrustedDeviceEligibility(payload.p_employee_id,payload.p_mobile_number);
-      }else lastManualCheck=null;
+        // Remember only after the server has accepted these credentials and QR.
+        // Set before rendering: setSession clears old photo authorization/blob URLs.
+        employeeSession=window.ALBASHIRAccess?.setSession("EMPLOYEE",{
+          employeeId:payload.p_employee_id,mobileNumber:payload.p_mobile_number,
+          rememberMe:$("rememberVerifiedEmployee").checked
+        });
+        showManualSections(false);
+      }
+      setResult(result.result||"DENIED",result.message||"تم التحقق.",result.employee||null,{type:"employee",employee_id:payload.p_employee_id,mobile_number:payload.p_mobile_number});
+      if(result.ok!==true || !["ALLOWED","LIMITED"].includes(result.result)) showManualSections(true);
+      if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result) && result.trusted_device_enrollment_claim){
+        lastManualCheck={
+          employeeId:payload.p_employee_id,
+          mobileNumber:payload.p_mobile_number,
+          enrollmentClaim:result.trusted_device_enrollment_claim,
+          enrollmentClaimExpiresAt:result.trusted_device_enrollment_claim_expires_at||null
+        };
+        setAutoDevicePanel("تم التحقق بنجاح. يمكنك تفعيل هذا الجهاز خلال دقيقتين.","ok",true);
+      }else{
+        lastManualCheck=null;
+        if(result.trusted_device_new_device===true){
+          setAutoDevicePanel(result.trusted_device_message||"الجهاز مختلف عن الجهاز المعتمد. يلزم إلغاء الربط من الإدارة.","warning",true);
+        }else if(result.trusted_device_already_linked===true){
+          setAutoDevicePanel("هذا الجهاز موثوق وفعّال بالفعل.","ok",true);
+        }else if(result.ok===true && ["ALLOWED","LIMITED"].includes(result.result)){
+          setAutoDevicePanel("تم التحقق، لكن تفعيل Trusted Device غير متاح لهذا الحساب.","warning",true);
+        }
+      }
     }catch(err){
       if(!navigator.onLine || /fetch|network|failed/i.test(err.message||"")){
         const count=await queueOfflineAccessLog(payload,"NETWORK_FAILURE_MANUAL_ATTEMPT");
@@ -447,9 +556,11 @@
         setResult("DENIED","حدث خطأ: "+err.message);
       }
     }finally{
+      verificationLock=false;
       disableButton("checkButton",false,"جارِ التحقق...","تحقق من الدخول");
     }
-  });
+  }
+  $("checkForm").addEventListener("submit",async(event)=>{event.preventDefault();await submitEmployeeVerification();});
 
   registerOfflineGateMode();
   setActiveQrToken(activeQrToken);
@@ -462,6 +573,7 @@
     if(document.visibilityState==="visible") updateNetworkState();
   });
   claimQrSessionIfPresent();
+  if(urlParams.get("scan")==="1" && !activeQrToken) startQrCamera();
   updateOfflinePendingBadge();
 </script>
 <script src="./global-leadership.js"></script>

@@ -17,6 +17,10 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: tests
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests
       - run: npm test
+        working-directory: tests
+      - run: npm run test:browser
         working-directory: tests
       - run: git diff --check

@@ -3,9 +3,6 @@
 
   const STORAGE_KEY = "erp_global_hospital_leadership_v1";
   const HOSPITAL_NAME = "ALBASHIR EMERGENCY HOSPITAL";
-  const PUBLIC_SITE_URL = window.location.origin && window.location.origin !== "null"
-    ? window.location.origin
-    : "https://albashir-stone-karag.vercel.app";
   const SUPABASE_URL = "https://qinsfvlspdticposbvst.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8";
   const defaults = [
@@ -100,6 +97,7 @@
   }
 
   function render() {
+    if(document.body.dataset.hideLeadership === "true"){ addStyles(); renderRegistrationShortcut(); return; }
     addStyles();
     document.getElementById("globalLeadership")?.remove();
     const data = loadLeadership();
@@ -159,15 +157,7 @@
   }
 
   function getRegistrationUrl() {
-    const isLocal =
-      location.protocol === "file:" ||
-      location.hostname === "localhost" ||
-      location.hostname === "127.0.0.1";
-    const base = isLocal ? PUBLIC_SITE_URL : window.location.href;
-    const url = new URL("verify.html", base);
-    url.searchParams.set("register", "1");
-    url.hash = "employee-registration";
-    return url.toString();
+    return new URL("./register.html", window.location.href).toString();
   }
 
   function showCopyToast(message) {

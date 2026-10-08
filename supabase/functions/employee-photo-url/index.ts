@@ -39,6 +39,11 @@ function userScopedClient(accessToken: string) {
 }
 
 const deps = {
+  async verifyPublicGuardSession(readKey: string) {
+    const { data, error } = await admin.rpc("resolve_public_guard_photo", { p_read_key: readKey });
+    const result = Array.isArray(data) ? data[0] : data;
+    return { ok: !error && result?.ok === true, path: String(result?.path || "") };
+  },
   async verifyAdmin(accessToken: string) {
     const client = userScopedClient(accessToken);
     const { data: userData, error: userError } = await client.auth.getUser(accessToken);
@@ -61,9 +66,10 @@ const deps = {
     return { ok: true, employeeId: String(result.profile?.employee_id ?? "") };
   },
 
-  async verifyTrustedDevice(deviceToken: string) {
+  async verifyTrustedDevice(deviceToken: string, deviceId: string) {
     const { data, error } = await admin.rpc("verify_trusted_device_credentials", {
-      p_device_token: deviceToken
+      p_device_token: deviceToken,
+      p_device_id: deviceId
     });
     const result = Array.isArray(data) ? data[0] : data;
     if (error || !result?.ok) return { ok: false, reason: result?.reason || "DEVICE_NOT_TRUSTED" };
