@@ -1,0 +1,13 @@
+const fs=require("fs"),path=require("path"),assert=require("assert/strict");
+const root=path.resolve(__dirname,"..");
+const index=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const admin=fs.readFileSync(path.join(root,"admin_dashboard.html"),"utf8");
+assert(!index.includes('submit_violation_report'),"guard frontend must not call disabled violation submit RPC");
+assert(!index.includes('violationPhoto'),"guard frontend must not expose violation photo upload");
+assert(!index.includes('submitViolationReport()'),"guard frontend must not expose violation submit handler");
+assert(index.includes("تم إيقاف إرسال البلاغات الجديدة"),"guard frontend must explain that submissions are disabled");
+assert(!admin.includes('admin_update_violation_status'),"admin frontend must not call disabled violation status RPC");
+assert(!admin.includes('updateViolation('),"admin frontend must not expose violation mutation action");
+assert(admin.includes("العرض فقط")||admin.includes("عرض فقط"),"admin violation history must be marked read only");
+assert(admin.includes("violation_reports"),"admin must retain historical violation read/export path");
+console.log("PASS violation frontend disabled while historical admin read remains");

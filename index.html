@@ -84,37 +84,12 @@
       </div>
     </div>
 
-    <details class="violation-details">
-      <summary>تسجيل مخالفة</summary>
-      <section class="panel violation-panel">
-        <h2>تسجيل مخالفة بصورة</h2>
-        <p class="mini">
-          يستخدمها الحارس عند حدوث مخالفة. رقم الموظف والملاحظة اختياريان، لكن الصورة مطلوبة.
-          البلاغ يظهر مباشرة في صفحة الأدمن.
-        </p>
-
-        <div class="form-grid">
-          <div>
-            <label for="violationEmployee">رقم الموظف إن وجد</label>
-            <input id="violationEmployee" type="text" placeholder="اختياري" inputmode="numeric" />
-
-            <label for="violationPhoto">التقاط / رفع صورة</label>
-            <input id="violationPhoto" class="file-input" type="file" accept="image/*" capture="environment" />
-          </div>
-
-          <div>
-            <label for="violationNote">ملاحظة قصيرة</label>
-            <textarea id="violationNote" placeholder="اختياري"></textarea>
-          </div>
-        </div>
-
-        <div class="button-row" style="justify-content:flex-start">
-          <button type="button" class="btn-red" id="violationButton" onclick="submitViolationReport()">إرسال المخالفة للأدمن</button>
-        </div>
-
-        <div id="violationResult" class="notice hidden"></div>
-      </section>
-    </details>
+    <section class="panel violation-panel" aria-label="حالة بلاغات الحارس">
+      <h2>بلاغات الحارس</h2>
+      <p class="mini">
+        تم إيقاف إرسال البلاغات الجديدة من شاشة الحارس. السجل التاريخي محفوظ للعرض في لوحة الإدارة.
+      </p>
+    </section>
 
     <details class="diag-details">
       <summary>معلومات التشغيل</summary>
@@ -1057,81 +1032,6 @@
 
     function openQrLink() {
       window.open(currentQrUrl, "_blank", "noopener,noreferrer");
-    }
-
-    function setViolationMessage(message, type = "warning") {
-      const el = $("violationResult");
-      el.textContent = message;
-      el.className = "notice";
-      if (type === "error") el.classList.add("error");
-      if (type === "ok") el.classList.add("ok");
-      el.classList.remove("hidden");
-    }
-
-    async function submitViolationReport() {
-      if (!supabaseClient) {
-        setViolationMessage("لا يمكن إرسال المخالفة قبل إعداد Supabase.", "error");
-        return;
-      }
-
-      const file = $("violationPhoto").files[0];
-
-      if (!file) {
-        setViolationMessage("الصورة مطلوبة لإرسال البلاغ.", "error");
-        return;
-      }
-
-      const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-      if (!allowedTypes.has(file.type)) {
-        setViolationMessage("نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP.", "error");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        setViolationMessage("حجم الصورة يجب أن لا يتجاوز 5MB.", "error");
-        return;
-      }
-
-      const button = $("violationButton");
-      button.disabled = true;
-      button.textContent = "جارِ الإرسال...";
-
-      try {
-        const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
-        const path = `violations/${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`;
-
-        const upload = await supabaseClient
-          .storage
-          .from("violation-photos")
-          .upload(path, file, {
-            cacheControl: "3600",
-            upsert: false
-          });
-
-        if (upload.error) {
-          throw new Error(upload.error.message);
-        }
-
-        const { data, error } = await supabaseClient.rpc("submit_violation_report", {
-          p_employee_id: $("violationEmployee").value,
-          p_note: $("violationNote").value,
-          p_photo_url: path
-        });
-
-        if (error || !data || data.ok !== true) {
-          throw new Error(error?.message || data?.message || "فشل إرسال البلاغ.");
-        }
-
-        setViolationMessage(data.message || "تم إرسال المخالفة إلى الإدارة.", "ok");
-        $("violationEmployee").value = "";
-        $("violationNote").value = "";
-        $("violationPhoto").value = "";
-      } catch (err) {
-        setViolationMessage("فشل إرسال البلاغ: " + err.message, "error");
-      } finally {
-        button.disabled = false;
-        button.textContent = "إرسال المخالفة للأدمن";
-      }
     }
 
     function registerOfflineGateMode() {
