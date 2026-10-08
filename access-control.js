@@ -3,6 +3,7 @@
 
   const KEY = "alb_portal_session_v1";
   const REMEMBER_KEY = "alb_remembered_employee_v1";
+  const REMEMBER_PREFERENCE_KEY = "alb_remember_employee_preference_v1";
   const currentScript = document.currentScript;
   const requiredRoles = (currentScript?.dataset.roles || "").split(",").map((role) => role.trim()).filter(Boolean);
 
@@ -35,6 +36,7 @@
     const session = { role: normalizeRole(role), createdAt: Date.now(), expiresAt: Date.now() + 8 * 60 * 60 * 1000, ...extra };
     sessionStorage.setItem(KEY, JSON.stringify(session));
     if(session.role === "EMPLOYEE") {
+      localStorage.setItem(REMEMBER_PREFERENCE_KEY, String(extra.rememberMe === true));
       if(extra.rememberMe === true) localStorage.setItem(REMEMBER_KEY,JSON.stringify({employeeId:extra.employeeId,mobileNumber:extra.mobileNumber}));
       else localStorage.removeItem(REMEMBER_KEY);
     }

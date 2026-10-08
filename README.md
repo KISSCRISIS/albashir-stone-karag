@@ -1,5 +1,9 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Employee launch and registration repairs — 2026-10-08
+
+The installed employee app now opens `portal.html`. The profile service card invokes the existing device-bound profile RPC when no employee session is available, without skipping the landing page on startup. Successful fast login preserves the explicit remember preference; denied requests create no employee session. Registration compresses oversized JPG/PNG/WEBP and converts HEIC/HEIF only when the browser decoder supports it, with a visible error otherwise; private Storage limits and Backend/Auth permissions are unchanged. Preview object URLs are released on selection replacement or clearing. Regression coverage includes remembered login, installed launch destination and actual browser image decoding/compression; a real HEIC phone sample is still needed to verify device-specific support.
+
 ## Latest cache review correction — 2026-10-08
 
 The Production root uses an explicit temporary redirect to `/portal.html`; this avoids the static `index.html` taking precedence over a rewrite. The direct guard URL remains available.
