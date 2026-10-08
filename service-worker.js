@@ -89,7 +89,10 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   // Explicitly bypass Supabase auth, database, storage and edge-function traffic.
-  if (url.hostname.endsWith(".supabase.co")) return;
+  if (url.hostname.endsWith(".supabase.co")) {
+    event.respondWith(fetch(request));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/rest/") ||
       url.pathname.startsWith("/storage/") || url.pathname.startsWith("/functions/")) return;
