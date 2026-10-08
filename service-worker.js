@@ -82,7 +82,7 @@ const OFFLINE_PAGE_PATHS = new Set(
 );
 function cacheable(response) {
   const policy = response.headers?.get("cache-control") || "";
-  return response.status === 200 && !/\\b(?:no-store|private)\\b/i.test(policy);
+  return response.status === 200 && !/\b(?:no-store|private)\b/i.test(policy);
 }
 self.addEventListener("fetch", (event) => {
   const request = event.request;
