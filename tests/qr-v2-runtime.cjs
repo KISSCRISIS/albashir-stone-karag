@@ -62,6 +62,7 @@ function ids(claimId){
     await db.exec('set role anon');
     const q4=await issue(),c4=await claim(q4,randomUUID());
     assert.equal((await manual(randomUUID(),c4.claim_token)).result,'DENIED');
-    console.log('PASS v2 real SQL: claim retry, replay, changed payload denial, auto/manual recovery, corrected credentials, single access event and private-table denial');
+    await db.exec('reset role');await db.query("update private.qr_verification_requests set completed_at=now()-interval '31 seconds' where request_id=$1",[correctedId]);await db.exec('set role anon');assert.equal((await manual(correctedId,c2.claim_token)).error,'RETRY_EXPIRED');
+    console.log('PASS expired completed retry denies; v2 real SQL: claim retry, replay, changed payload denial, auto/manual recovery, corrected credentials, single access event and private-table denial');
   }finally{await db.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
