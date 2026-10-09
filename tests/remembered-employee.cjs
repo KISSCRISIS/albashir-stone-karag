@@ -11,6 +11,19 @@ first.window.ALBASHIRAccess.setSession('SUPER_ADMIN',{});assert.equal(tab().wind
 console.log('PASS remembered employee across tabs; opt-out/logout clear; no remembered admin authority');
 
 (async()=>{
+const portal=fs.readFileSync(path.join(__dirname,'../portal.html'),'utf8');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname,'../manifest.json'),'utf8')).start_url,'./portal.html');
+assert(portal.includes('if(await fastTrustedLogin())return;'));
+const fastSource=portal.match(/async function fastTrustedLogin\(\)\{[^\r\n]+/)[0];
+for(const [accepted,preference] of [[true,'true'],[true,'false'],[false,'true']]){
+  let saved=null;
+  const store=storage();store.setItem('TOKEN','BOUND-TOKEN');store.setItem('alb_remember_employee_preference_v1',preference);
+  const c={active:null,sessionStorage:storage(),localStorage:store,DEVICE_TOKEN_KEY:'TOKEN',deviceId:()=> 'DEVICE',client:{rpc:async(name,args)=>{assert.equal(name,'trusted_device_profile_login');assert.equal(args.p_device_id,'DEVICE');return {data:{ok:accepted,profile:{employee_id:'SYN',mobile_number:'000'}}};}},go:(role,extra)=>{saved={role,...extra};},show:()=>{}};
+  vm.createContext(c);vm.runInContext(fastSource,c);
+  assert.equal(await c.fastTrustedLogin(),accepted);
+  assert.equal(!!saved,accepted);if(saved)assert.equal(saved.rememberMe,preference==='true');
+}
+console.log('PASS employee shortcut, bound device login, remember preference and denied login');
 const html=fs.readFileSync(path.join(__dirname,'../verify.html'),'utf8');
 const source=html.slice(html.indexOf('  async function submitEmployeeVerification(){'),html.indexOf('  $("checkForm").addEventListener'));
 for(const [accepted,remember] of [[true,true],[true,false],[false,true]]){
