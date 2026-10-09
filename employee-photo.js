@@ -206,7 +206,7 @@
   async function fetchAsObjectUrl(url) {
     try {
       const downloadUrl = url + (url.includes('?') ? '&' : '?') + 'cacheNonce=' + encodeURIComponent(crypto.randomUUID());
-      const response = await fetch(downloadUrl, {
+      const response = await (window.ALBASHIRRuntime?.fetchWithTimeout || fetch)(downloadUrl, {
         cache: "no-store",
         credentials: "omit",
         mode: "cors",
@@ -234,11 +234,13 @@
       return false;
     }
     if (!objectUrl) {
+      window.ALBASHIRRuntime?.report('photo', 'failed');
       if (isLink) { element.removeAttribute("href"); element.href = ""; }
       else applyFallback(element, fallback);
       return false;
     }
     objectUrls.set(element, objectUrl);
+    window.ALBASHIRRuntime?.report('photo', 'ready');
     element[isLink ? "href" : "src"] = objectUrl;
     element.style.display = "";
     element.removeAttribute(isLink ? "data-photo-href" : "data-photo-ref");
