@@ -61,10 +61,15 @@ const server=http.createServer((req,res)=>{
     const qrImage=await guard.locator('#qr').evaluate(canvas=>canvas.toDataURL());
     let employeePage=await context.newPage();observe(employeePage);await employeePage.goto(origin+'/portal.html');
     await employeePage.locator('.portal-service').filter({hasText:'دخول الموظف'}).click();
+    await employeePage.locator('#employeeId').fill('CI-WRONG');await employeePage.locator('#employeePhone').fill(employee.mobile_number);
+    await employeePage.locator('#employeeForm button[type=submit]').click();
+    await employeePage.waitForFunction(()=>document.querySelector('#notice').classList.contains('show'));
+    assert.equal(await employeePage.locator('#employeeForm button[type=submit]').isEnabled(),true);
+    assert.equal(await employeePage.locator('#employeeForm button[type=submit]').textContent(),'إعادة المحاولة');
     await employeePage.locator('#employeeId').fill(employee.employee_id);await employeePage.locator('#employeePhone').fill(employee.mobile_number);
     await employeePage.locator('#employeeForm').evaluate(form=>{form.requestSubmit();form.requestSubmit();});
     await employeePage.waitForURL('**/profile.html');await employeePage.waitForFunction(()=>document.querySelector('#profilePhoto').src.startsWith('blob:'));
-    assert.equal(logins.length,2,'duplicate submit is blocked: one portal login plus one profile validation');
+    assert.equal(logins.length,3,'duplicate submit is blocked: one rejected login, one accepted login plus one profile validation');
     await employeePage.close();
     employeePage=await context.newPage();observe(employeePage);await employeePage.goto(origin+'/portal.html');
     await employeePage.locator('#openPortalLogin').click();await employeePage.waitForURL('**/profile.html');
@@ -93,7 +98,10 @@ const server=http.createServer((req,res)=>{
     await guard.waitForFunction(()=>document.querySelector('#result').hidden===true,null,{timeout:12000});
     assert(Date.now()-shownAt>=8500,'guard personal details must remain for approximately ten seconds');
     assert.equal(await guard.locator('#name').textContent(),'');assert.equal(await guard.locator('#photo').getAttribute('src'),null);assert.equal(await guard.locator('#qrPanel').isVisible(),true);
-    assert.equal(checks.length,1,'one scan must issue one employee verification');assert.deepEqual(errors,[]);
+    assert.equal(checks.length,1,'one scan must issue one employee verification');
+    await employeePage.goto(origin+'/profile.html');await employeePage.locator('#portalRoleNavigation button').click();await employeePage.waitForURL('**/portal.html');
+    assert.equal(await employeePage.evaluate(()=>localStorage.getItem('alb_remembered_employee_v1')),null);
+    assert.deepEqual(errors,[]);
     console.log('PASS full employee browser journey: login, close/reopen, real QR decoding, automatic verification, both photos/results, single decision and guard data clearing after ten seconds; all backend traffic mocked');
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1});
