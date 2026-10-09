@@ -9,6 +9,7 @@
   <link rel="manifest" href="./manifest.json" />
   <script src="./access-control.js" data-roles="EMPLOYEE"></script>
   <script src="./supabase.min.js"></script>
+  <script src="./app-runtime.js"></script>
   <link rel="stylesheet" href="./profile.css" />
   <link rel="stylesheet" href="./global-theme.css" />
   <link rel="stylesheet" href="./assets/css/design-system.css" />
@@ -86,7 +87,7 @@
 <script src="./employee-photo.js"></script>
 <script>
   const APP_CONFIG={SUPABASE_URL:"https://qinsfvlspdticposbvst.supabase.co",SUPABASE_ANON_KEY:"sb_publishable_okoDqbwZNNvrCZQ025RkPw_qFXkA7I8"};
-  const client=window.supabase?.createClient(APP_CONFIG.SUPABASE_URL,APP_CONFIG.SUPABASE_ANON_KEY); let credentials=null; let profile=null;
+  const client=window.supabase?.createClient(APP_CONFIG.SUPABASE_URL,APP_CONFIG.SUPABASE_ANON_KEY,{global:{fetch:ALBASHIRRuntime.fetchWithTimeout}}); let credentials=null; let profile=null;
   const $=id=>document.getElementById(id); const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   function notice(message,type="warning"){const el=$("notice");el.textContent=message;el.className="notice"+(type==="error"?" error":type==="ok"?" ok":"");}
   function date(v){return v?new Date(v).toLocaleString("ar-JO",{dateStyle:"medium",timeStyle:"short"}):"-";}

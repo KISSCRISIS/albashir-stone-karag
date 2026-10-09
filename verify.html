@@ -10,6 +10,7 @@
   <link rel="manifest" href="./manifest.json" />
   <script src="./access-control.js"></script>
   <script src="./supabase.min.js"></script>
+  <script src="./app-runtime.js"></script>
   <script src="./jsqr.min.js"></script>
 
   <link rel="stylesheet" href="./verify.css" />
@@ -153,9 +154,11 @@
     let lastError=null;
     for(let attempt=1;attempt<=maxAttempts;attempt++){
       let timeoutId;
+      const controller=new AbortController();
       try{
-        const call=supabaseClient.rpc(name,payload);
-        const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error("RPC_TIMEOUT")),timeoutMs);});
+        let call=supabaseClient.rpc(name,payload);
+        if(typeof call.abortSignal==="function") call=call.abortSignal(controller.signal);
+        const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{reject(new Error("RPC_TIMEOUT"));controller.abort();},timeoutMs);});
         const response=await Promise.race([call,timeout]);
         if(!response?.error) return response;
         const message=response.error?.message||String(response.error);

@@ -11,6 +11,7 @@
   <script src="./access-control.js" data-roles="SUPER_ADMIN,ADMIN"></script>
 
   <script src="./supabase.min.js"></script>
+  <script src="./app-runtime.js"></script>
   <script src="./employee-photo.js"></script>
 
   <link rel="stylesheet" href="./admin_dashboard.css" />
@@ -52,6 +53,7 @@
     </header>
 
 
+<details class="panel"><summary>الإصدار والتشخيص</summary><p>إصدار الواجهة: <span id="appVersion">جارِ الفحص...</span></p><p id="appDiagnosticState">جارِ الفحص...</p></details>
 <div id="setupWarning" class="notice hidden"></div>
     <div id="toast" class="notice hidden"></div>
 
@@ -987,7 +989,7 @@
         return;
       }
 
-      supabaseClient = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
+      supabaseClient = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY,{global:{fetch:ALBASHIRRuntime.fetchWithTimeout}});
       setConnection("Supabase جاهز", "ready");
 
       const sessionResponse = await supabaseClient.auth.getSession();

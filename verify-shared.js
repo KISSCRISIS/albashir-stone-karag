@@ -24,7 +24,7 @@ const OFFLINE_DB_VERSION = 2;
 const OFFLINE_ACCESS_STORE = "offline_access_queue";
 const OFFLINE_CRYPTO_STORE = "offline_crypto_meta";
 const OFFLINE_CRYPTO_KEY_ID = "offline-sensitive-fields-v1";
-const CACHE_VERSION = "emergency-room-parking-offline-v23";
+const CACHE_VERSION = "emergency-room-parking-offline-v24";
 const APP_VERSION = "2026.09.28-24x7";
 
 let syncingLock = false;
@@ -86,7 +86,8 @@ function hydrateEmployeePhotos(scope, actor) {
 
 function createSupabaseClient() {
   if (!window.supabase || !APP_CONFIG.SUPABASE_URL || !APP_CONFIG.SUPABASE_ANON_KEY) return null;
-  return supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
+  const options=window.ALBASHIRRuntime ? {global:{fetch:window.ALBASHIRRuntime.fetchWithTimeout}} : {};
+  return supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY, options);
 }
 
 /* ---------- Gate / offline device identity ---------- */

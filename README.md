@@ -1,5 +1,11 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Runtime consistency and employee journey — 2026-10-09
+
+Employee shortcut, remembered device login and mobile photo preparation remain as deployed in PR #15. Login/profile/admin transport now shares an eight-second aborting deadline; login buttons reject duplicate in-flight submissions and become available for explicit retry after failure. Verification retries abort timed-out transport and preserve the same decision request identity. No automatic login retry is introduced. The admin-only diagnostics panel shows the deployed source version plus connection/photo status categories without tokens, URLs or employee identifiers. Build metadata is generated from the reviewed commit or runtime content fingerprint. The offline cache advances consistently to v24 and includes the shared helper.
+
+CI now runs `tests/employee-journey-browser.cjs` with actual app pages, the real QR decoder and synthetic camera pixels: employee login, tab close/reopen, QR scan, automatic verification, photos and results on both pages, and clearing guard details after ten seconds. All backend traffic is intercepted with synthetic responses; isolated SQL/RLS tests continue to verify database rules. This browser test does not claim to test real phone permissions or live backend data. `tests/runtime-deadline.cjs` covers hung transport, abort/recovery, timer cleanup and stable verification identity. Existing private Storage, Mandatory QR and Backend/Auth permissions are unchanged.
+
 ## Guard request recovery — 2026-10-09
 
 Public guard QR creation and result reads now have a five-second deadline and abort the outstanding request on timeout. The polling lock is released on failure, timers are cleared on success/failure, and newest screen sessions are checked first. Subsequent polls can recover after a hung request. Mandatory QR, public result fields and Backend/Auth permissions are unchanged. Regression: `tests/guard-poll-timeout.cjs` exercises a never-resolving request followed by successful recovery.
