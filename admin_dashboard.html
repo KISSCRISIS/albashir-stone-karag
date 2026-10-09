@@ -599,6 +599,21 @@
         <span class="creator-name">Dr. Alaa Aqrabawi</span>
       </div>
     </footer>
+    <section class="panel" id="guardAdminPanel" hidden>
+      <h2>ملفات الحراس والدخول اليدوي للطوارئ</h2>
+      <p>يستخدم الحارس اسمه أو رقمه الوطني مع رقم هاتفه. تعديل ملفه يُلغي جلساته الحالية.</p>
+      <form id="guardAdminForm" class="form-grid">
+        <label>اسم الحارس المميز<input id="guardAdminName" maxlength="100" required></label>
+        <label>الرقم الوطني<input id="guardAdminNational" inputmode="numeric" maxlength="20" required></label>
+        <label>رقم الهاتف<input id="guardAdminPhone" type="password" inputmode="tel" autocomplete="new-password" placeholder="رقم هاتف الحارس"></label>
+        <label><input id="guardAdminActive" type="checkbox" checked>الحارس فعال</label>
+        <button id="guardAdminSave" type="submit">حفظ ملف الحارس</button>
+        <button id="guardAdminNew" type="button">ملف جديد</button>
+      </form>
+      <p><label><input id="guardEmergencyEnabled" type="checkbox">تفعيل الدخول اليدوي عند تعطل QR</label>
+        <button id="guardEmergencySave" type="button">حفظ وضع الطوارئ</button></p>
+      <p id="guardAdminMessage" role="status"></p><div id="guardAccountsList"></div>
+    </section>
   </main>
 
   <script>
@@ -1071,7 +1086,8 @@
         loadViolations(),
         loadAdmins(),
         loadAudit(),
-        loadGateOperations()
+        loadGateOperations(),
+        window.GuardAdmin?.load()
       ]);
 
       renderOverview();
@@ -2289,6 +2305,7 @@
       showSetupWarning("تعذر تشغيل لوحة الإدارة: " + err.message, "error");
     });
   </script>
+<script src="./guard-admin.js"></script>
 <script src="./global-leadership.js"></script>
 </body>
 </html>

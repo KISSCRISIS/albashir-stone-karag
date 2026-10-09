@@ -1,0 +1,9 @@
+#guardManualPanel input {
+  width: 100%; max-width: 480px; padding: 16px; margin-top: 10px;
+  border: 2px solid #46819b; border-radius: 12px;
+  background: #051c2c; color: #fff; font: inherit; font-size: 24px;
+}
+#guardManualPanel label, #guardManualPanel button { font-size: 22px; }
+#guardManualPanel button { min-height: 56px; margin: 8px; }
+#guardManualMessage { color: #ffd78a; font-size: 20px; line-height: 1.7; }
+#guardManualPanel { scroll-margin-top: 20px; }

@@ -927,8 +927,23 @@ See `docs/admin-create-user-rollout.md` for the Staging rollout gates. Handler
 tests mock backend services; real JWT middleware, SMTP delivery and login are
 not yet verified. Prepared locally, not published to either environment.
 
-The owner requested public, account-free emergency guard lookup by employee ID
-on 2026-10-10. The existing mandatory-QR verification function is unchanged.
-Whether lookup should merely display eligibility or also commit an entry/count
-against the daily limit remains an owner decision. No inactive emergency button
-or public employee lookup has been deployed.
+The owner subsequently chose counted emergency entries and simple guard accounts
+on 2026-10-10. Guard QR remains public; only manual entry needs guard login using
+name/national ID plus phone. SUPER_ADMIN manages guard profiles and enables
+emergency mode from the existing dashboard. Private bcrypt phone hashes, opaque
+24-hour sessions, immediate revocation, login throttling, request idempotency and
+guard audit logs protect the new path. The existing decision function is reused
+without rewriting its status/device/specialty/daily-limit rules. Ordinary employee
+QR entry remains mandatory. All new private tables have RLS and no direct public
+grants. Canonical SQL, the matching Staging migration and fresh-install SQL are
+synchronized. The result replaces QR and clears after ten seconds.
+
+Staging backend/frontend are applied and published (version `750c57c24472`, cache
+v25). Validation: 34 isolated suites, mocked browser journeys, published QR/form/
+unauthorized-denial checks and rollback-only real Staging SQL smoke PASS. The
+combined live fixture/browser test remains incomplete after a connector request
+state error; five original employees and zero test fixtures remain. Production
+is unchanged. See [guard acceptance](docs/GUARD_EMERGENCY_STAGING_ACCEPTANCE.md).
+The separate supervisor Auth-account creation feature still needs real JWT/SMTP/
+confirmation/login acceptance before Production; its server function has not been
+deployed as part of the guard rollout.

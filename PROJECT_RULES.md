@@ -1,5 +1,18 @@
 # PROJECT RULES — ALBASHIR Gate
 
+## Owner exception — guard emergency entry, 2026-10-10
+
+The owner explicitly selected counted emergency entries and simple guard accounts:
+name OR national ID plus phone. Public QR display remains account-free; manual
+entry requires a valid active guard session and administrator-enabled emergency
+mode. Reuse the existing decision function with a server-only single-use token
+issued after guard authorization. Never expose that token, stored employee phone,
+or private table rows. Existing `manual_employee_check` and mandatory QR for
+ordinary employee entry remain unchanged. Audit the guard/request and make retries
+idempotent. Guard sessions last 24 hours; account edits/disable revoke them. New
+private tables stay RLS-enabled without direct public grants. This specifically
+authorizes the guard-account migration; Staging first, Production after acceptance.
+
 ## Owner exception — public guard screen, 2026-10-07
 
 For `guard.html` only, the owner explicitly approved database-issued QR and session-scoped result RPCs without login/PIN/gate-device approval or gate-device credentials. This exception supersedes P0-2 for this new public issuance RPC only; the existing authenticated `index.html` flow remains unchanged. Results may expose only the owner's approved fields: name, photo, job and specialty, plus access decision. A separate high-entropy expiring read capability binds those fields to this screen's QR session; never expose the shared latest employee to everyone. Photos stay private and use the resolver with signed URLs of at most 60 seconds. No direct table grants are allowed. `manual_employee_check`, Mandatory QR and P0-3 order stay unchanged. Staging first; Production needs coordinated approval after acceptance.
