@@ -19,13 +19,18 @@ const source=html.slice(html.indexOf('  const MAX_PHOTO_BYTES'),html.indexOf('  
       const dimensions=[bitmap.width,bitmap.height];bitmap.close();
       const small=new File([prepared.file],'small.jpg',{type:''});
       const kept=await prepareEmployeePhoto(small);
-      let mismatch=false,unsupported=false;
+      let mismatch=false,unsupported=false,invalidSmall=false;
       try{await prepareEmployeePhoto(new File([blob],'bad.png',{type:'image/jpeg'}));}catch{mismatch=true;}
       try{await prepareEmployeePhoto(new File(['invalid'],'photo.heic',{type:'image/heic'}));}catch(e){unsupported=e.message.includes('HEIC/HEIF');}
-      return {inputBytes:input.size,outputBytes:prepared.file.size,type:prepared.file.type,extension:prepared.extension,dimensions,emptyMimeAccepted:kept.mimeType==='image/jpeg',mismatch,unsupported};
+      try{await prepareEmployeePhoto(new File(['invalid'],'photo.jpg',{type:'image/jpeg'}));}catch{invalidSmall=true;}
+      const decode=createImageBitmap;
+      window.createImageBitmap=async()=>{throw Error('ImageBitmap format unsupported');};
+      let fallback;
+      try{fallback=await prepareEmployeePhoto(small);}finally{window.createImageBitmap=decode;}
+      return {inputBytes:input.size,outputBytes:prepared.file.size,type:prepared.file.type,extension:prepared.extension,dimensions,emptyMimeAccepted:kept.mimeType==='image/jpeg',mismatch,unsupported,invalidSmall,fallback:fallback.mimeType==='image/jpeg'};
     });
     assert(result.inputBytes>2097152);assert(result.outputBytes<=2097152);assert.equal(result.type,'image/jpeg');assert.equal(result.extension,'jpg');assert(Math.max(...result.dimensions)<=1600);
-    assert(result.emptyMimeAccepted&&result.mismatch&&result.unsupported);
+    assert(result.emptyMimeAccepted&&result.mismatch&&result.unsupported&&result.invalidSmall&&result.fallback);
     console.log('PASS real browser photo decoding, compression, output size/dimensions, empty MIME, mismatched format and unsupported HEIC handling');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

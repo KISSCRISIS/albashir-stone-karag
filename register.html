@@ -359,20 +359,33 @@
     if (!isHeic && (!knownType || (mimeType && mimeType !== knownType))) {
       throw new Error("صيغة الصورة غير مدعومة. اختر JPG أو PNG أو WEBP.");
     }
-    if (!isHeic && file.size <= MAX_PHOTO_BYTES) {
-      return { file, mimeType: knownType, extension: extension === "jpeg" ? "jpg" : extension };
-    }
     // Decode using the browser when possible. Some Android browsers cannot decode HEIC.
     // Never upload a HEIC file with a false JPEG content type.
     let bitmap;
     try {
-      bitmap = await createImageBitmap(file);
+      try {
+        bitmap = await createImageBitmap(file);
+      } catch (_) {
+        // Image decoding is also available on browsers without ImageBitmap
+        // support for the selected format. Always release the temporary URL.
+        const url = URL.createObjectURL(file);
+        try {
+          const image = new Image();
+          image.src = url;
+          await image.decode();
+          bitmap = image;
+        } finally { URL.revokeObjectURL(url); }
+      }
     } catch (_) {
       throw new Error(isHeic
         ? "الهاتف لا يدعم تحويل صورة HEIC/HEIF هنا. احفظ الصورة بصيغة JPG من المعرض ثم اخترها مجددًا."
         : "تعذرت معالجة الصورة. اختر صورة JPG أو PNG أو WEBP أخرى.");
     }
     try {
+      if (!bitmap.width || !bitmap.height) throw new Error("ملف الصورة غير صالح.");
+      if (!isHeic && file.size <= MAX_PHOTO_BYTES) {
+        return { file, mimeType: knownType, extension: extension === "jpeg" ? "jpg" : extension };
+      }
       const canvas = document.createElement("canvas");
       const maxDimension = 1600;
       const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));

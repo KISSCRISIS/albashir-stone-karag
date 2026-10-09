@@ -907,3 +907,28 @@ The guard QR already encodes a same-origin HTTPS verification link, so phone cam
 
 ## Public deployment artifact
 Vercel builds `public-runtime` using `scripts/build-public-runtime.cjs`. Only application pages and assets are published. SQL/canonical/migrations, documentation, tests, scripts, Git metadata and credentials remain outside the public output. The direct guard page remains in the runtime artifact. Regression `tests/public-runtime-artifact.cjs` verifies inclusion/exclusion. The 2026-10-08 post-deployment audit found and corrected the previous repository-root publishing configuration.
+
+## Registration images and supervisor-account preparation — 2026-10-10
+
+Registration now decodes small images too, rejecting corrupt JPG/PNG/WEBP before
+upload. An HTML Image decoder supplements ImageBitmap for browser format support;
+large supported images still convert to JPEG within 2 MiB/1600 pixels. HEIC/HEIF
+conversion depends on the browser's native decoder; unsupported formats show an
+actionable message, rather than being uploaded under a false JPEG MIME type.
+This is not a guarantee that all phone formats are supported.
+
+Supervisor creation incorporates the PR #17 UI with duplicate-submit protection
+and a user-authenticated `admin-create-user` server handler. Existing caller-JWT
+RPCs authorize profile changes and record audit events; no RLS, direct table
+grants or schema migration is added. Creation explicitly requests confirmation
+email, reports delivery failures as an unconfirmed account needing administrator
+attention, and deletes only a newly created account if permission setup fails.
+See `docs/admin-create-user-rollout.md` for the Staging rollout gates. Handler
+tests mock backend services; real JWT middleware, SMTP delivery and login are
+not yet verified. Prepared locally, not published to either environment.
+
+The owner requested public, account-free emergency guard lookup by employee ID
+on 2026-10-10. The existing mandatory-QR verification function is unchanged.
+Whether lookup should merely display eligibility or also commit an entry/count
+against the daily limit remains an owner decision. No inactive emergency button
+or public employee lookup has been deployed.
