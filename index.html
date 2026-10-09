@@ -789,10 +789,16 @@
         qrRuntime.lastError = message;
         qrTimer = nextQrRetrySeconds();
         $("qrCountdown").textContent = qrTimer;
+        // Show actionable failure categories without exposing device credentials or tokens.
+        const offline = !navigator.onLine;
         const warning = err.code === "GATE_NOT_APPROVED"
           ? message
-          : "النظام غير متاح حالياً";
-        setConnection(err.code === "GATE_NOT_APPROVED" ? "الجهاز غير معتمد" : "النظام غير متاح", "error");
+          : offline
+            ? "لا يوجد اتصال بالإنترنت. تحقق من الشبكة ثم حاول تحديث الرمز."
+            : err.code === "GATE_HEARTBEAT_REJECTED"
+              ? "تعذر التحقق من اعتماد جهاز الحارس. راجع الإدارة أو سجل الجهاز."
+              : "تعذر الاتصال بخدمة إصدار QR. حاول مجدداً أو راجع مسؤول النظام.";
+        setConnection(err.code === "GATE_NOT_APPROVED" ? "الجهاز غير معتمد" : offline ? "الشبكة منقطعة" : "النظام غير متاح", "error");
         setQrDiagnostics("توقف إنشاء QR", message);
         showSetupWarning(warning, "error");
       } finally {
