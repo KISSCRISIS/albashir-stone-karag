@@ -469,7 +469,7 @@
       <div class="panel">
         <h2 class="panel-title">إدارة المشرفين والصلاحيات</h2>
         <p class="panel-desc">
-          يمكنك إضافة مشرف، إزالة مشرف، أو تحديد مهامه من هنا. يجب إنشاء إيميل المشرف أولًا من Supabase Authentication → Users، ثم إضافته هنا.
+          يمكنك إضافة مشرف، إزالة مشرف، أو تحديد مهامه من هنا. يمكن للسوبر أدمن إنشاء حساب دخول جديد بكلمة مرور أولية، أو ربط حساب موجود، وتحديد الدور والصلاحيات من هنا.
         </p>
 
         <div id="superOnlyAdminNotice" class="notice hidden">إضافة أو تعديل أو حذف المشرفين متاح للسوبر أدمن فقط.</div>
@@ -483,6 +483,10 @@
             <div>
               <label for="adminName">الاسم</label>
               <input id="adminName" type="text" placeholder="اسم المشرف" />
+            </div>
+            <div>
+              <label for="adminPassword">كلمة المرور الأولية (للحساب الجديد فقط)</label>
+              <input id="adminPassword" type="password" autocomplete="new-password" minlength="12" placeholder="12 حرفًا على الأقل" dir="ltr" />
             </div>
             <div>
               <label for="adminPhone">رقم الهاتف</label>
@@ -523,7 +527,7 @@
         </div>
 
         <div class="notice">
-          المشرفون الذين زودتِني بأسمائهم وأرقامهم تمت إضافتهم في التعليمات، لكن لا يمكن تفعيل دخولهم فعليًا حتى تزوّديني بإيميلاتهم وتنشئي لهم Users في Supabase Auth.
+          لإنشاء حساب جديد: أدخل بريدًا غير مسجل وكلمة مرور أولية من 12 حرفًا على الأقل. اترك كلمة المرور فارغة لتعديل مشرف موجود. لا تُخزَّن كلمات المرور في جدول المشرفين.
         </div>
 
         <div class="table-wrap">
@@ -2073,6 +2077,7 @@
       $("adminEmail").value = "";
       $("adminName").value = "";
       $("adminPhone").value = "";
+      $("adminPassword").value = "";
       $("adminRole").value = "SUB_ADMIN";
       $("adminActive").value = "true";
       applyRoleDefaultPermissions();
@@ -2085,6 +2090,7 @@
       $("adminEmail").value = row.email || "";
       $("adminName").value = row.full_name || "";
       $("adminPhone").value = row.phone_number || "";
+      $("adminPassword").value = "";
       $("adminRole").value = row.role || "SUB_ADMIN";
       $("adminActive").value = row.is_active ? "true" : "false";
       setPermissionCheckboxes(row.permissions || {});
@@ -2108,7 +2114,23 @@
         p_permissions: getAdminPermissionsFromForm()
       };
 
-      const { data, error } = await supabaseClient.rpc("super_admin_upsert_admin_profile", payload);
+      const initialPassword = $("adminPassword").value;
+      if (initialPassword && initialPassword.length < 12) {
+        showToast("كلمة المرور الأولية يجب ألا تقل عن 12 حرفًا.", "error");
+        return;
+      }
+      let data, error;
+      if (initialPassword) {
+        const response = await supabaseClient.functions.invoke("admin-create-user", {
+          body: { ...payload, password: initialPassword }
+        });
+        data = response.data;
+        error = response.error;
+      } else {
+        const response = await supabaseClient.rpc("super_admin_upsert_admin_profile", payload);
+        data = response.data;
+        error = response.error;
+      }
 
       if (error || !data || data.ok !== true) {
         showToast(error?.message || data?.message || "فشل حفظ المشرف.", "error");
