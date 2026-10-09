@@ -1,5 +1,9 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Guard request recovery — 2026-10-09
+
+Public guard QR creation and result reads now have a five-second deadline and abort the outstanding request on timeout. The polling lock is released on failure, timers are cleared on success/failure, and newest screen sessions are checked first. Subsequent polls can recover after a hung request. Mandatory QR, public result fields and Backend/Auth permissions are unchanged. Regression: `tests/guard-poll-timeout.cjs` exercises a never-resolving request followed by successful recovery.
+
 ## Employee launch and registration repairs — 2026-10-08
 
 The installed employee app now opens `portal.html`. The profile service card invokes the existing device-bound profile RPC when no employee session is available, without skipping the landing page on startup. Successful fast login preserves the explicit remember preference; denied requests create no employee session. Registration compresses oversized JPG/PNG/WEBP and converts HEIC/HEIF only when the browser decoder supports it, with a visible error otherwise; private Storage limits and Backend/Auth permissions are unchanged. Preview object URLs are released on selection replacement or clearing. Regression coverage includes remembered login, installed launch destination and actual browser image decoding/compression; a real HEIC phone sample is still needed to verify device-specific support.
