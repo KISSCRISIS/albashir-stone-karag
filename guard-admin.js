@@ -16,7 +16,7 @@ window.GuardAdmin = (() => {
       $('guardAccountsList').replaceChildren();
       for (const guard of data.guards) {
         const row = document.createElement('p'), text = document.createElement('span'), edit = document.createElement('button');
-        text.textContent = guard.full_name + ' — ' + guard.national_id + ' — ' + (guard.is_active ? 'فعال' : 'معطّل') + ' ';
+        text.textContent = (guard.full_name || 'حارس') + ' — ' + guard.national_id + ' — ' + (guard.is_active ? 'فعال' : 'معطّل') + ' ';
         edit.textContent = 'تعديل / تعطيل'; edit.type = 'button';
         edit.onclick = () => { editing = guard.id; $('guardAdminName').value = guard.full_name; $('guardAdminNational').value = guard.national_id;
           $('guardAdminPhone').value = ''; $('guardAdminPhone').placeholder = 'اتركه فارغًا للإبقاء على الهاتف؛ آخره ' + guard.phone_hint;

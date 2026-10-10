@@ -14,7 +14,7 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
   const name=url.pathname.split('/').pop(),body=req.postDataJSON()||{};
   if(name==='create_public_guard_qr')return send({ok:true,token:crypto.randomUUID(),read_key:'b'.repeat(64),expires_at:new Date(Date.now()+30000).toISOString()});
   if(name==='get_public_guard_result')return send({ok:true,result:'WAITING'});
-  if(name==='guard_login'){logins++;assert.equal(body.p_phone,'0799999901');return send({ok:true,token:session,full_name:'Synthetic guard',emergency_enabled:true});}
+  if(name==='guard_login'){logins++;assert.equal(body.p_identity,'999999991');assert.equal(body.p_phone,'0799999901');return send({ok:true,token:session,full_name:'',emergency_enabled:true});}
   if(name==='guard_session_status'){assert.equal(body.p_token,session);return send({ok:true,full_name:'Synthetic guard',emergency_enabled:true});}
   if(name==='guard_manual_employee_entry'){
    requests.push(body);assert.equal(body.p_token,session);assert.equal(body.p_employee_id,'SYN-ENTRY');assert(body.p_request_id);
@@ -27,9 +27,11 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
  let page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(origin+'/guard.html');
  await page.waitForFunction(()=>document.querySelector('#qr').hidden===false);
  assert.equal(logins,0,'public QR does not require guard login');
- await page.locator('#manualOpen').click();await page.locator('#guardIdentity').fill('Synthetic guard');await page.locator('#guardPhone').fill('0799999901');
+ await page.locator('#manualOpen').click();await page.locator('#guardIdentity').fill('999999991');await page.locator('#guardPhone').fill('0799999901');
  await page.locator('#guardLoginForm').evaluate(f=>{f.requestSubmit();f.requestSubmit();});await page.waitForFunction(()=>document.querySelector('#guardEntryForm').hidden===false);
  assert.equal(logins,1);assert.equal(await page.locator('#guardPhone').inputValue(),'');
+ assert.equal(await page.locator('#guardProfileLink').getAttribute('href'),'./guard-profile.html');
+ assert.equal(await page.locator('#guardWelcome').textContent(),'مرحبًا بك في شاشة الحارس');
  const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
  assert.equal(stored.alb_guard_session_v1,session);assert(!JSON.stringify(stored).includes('0799999901'));
  await page.locator('#manualEmployeeId').fill('SYN-ENTRY');await page.locator('#guardEntryButton').click();

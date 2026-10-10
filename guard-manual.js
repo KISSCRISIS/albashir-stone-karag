@@ -12,7 +12,7 @@
   }
   function authenticated(data) {
     $('guardLoginForm').hidden = true; $('guardEntryForm').hidden = false;
-    $('guardWelcome').textContent = 'الحارس: ' + data.full_name;
+    $('guardWelcome').textContent = data.full_name ? 'مرحبًا ' + data.full_name : 'مرحبًا بك في شاشة الحارس';
     message(data.emergency_enabled ? 'أدخل رقم الموظف لتسجيل الزيارة.' : 'وضع الطوارئ غير مفعّل؛ تطلب الإدارة تفعيله عند الحاجة.');
     $('guardEntryButton').disabled = !data.emergency_enabled;
     if (data.emergency_enabled) $('manualEmployeeId').focus();

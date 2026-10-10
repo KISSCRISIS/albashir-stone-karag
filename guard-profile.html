@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>صفحتي الشخصية — الحارس</title>
+<link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./guard-manual.css"><link rel="stylesheet" href="./guard-profile.css">
+<script src="./supabase.min.js"></script><script src="./verify-shared.js"></script><script src="./guard-profile.js" defer></script></head>
+<body><main><h1>صفحتي الشخصية</h1><p>كل المعلومات والصورة أدناه اختيارية. لا تؤثر على صلاحية دخولك.</p><button id="profileBack" type="button">عودة</button>
+<p id="profileStatus" role="status">جارِ تحميل ملفك...</p>
+<form id="guardProfileForm" hidden>
+<label>الرقم الوطني — اسم المستخدم<input id="profileNational" readonly autocomplete="off"></label>
+<label>الاسم (اختياري)<input id="profileName" maxlength="100" autocomplete="name"></label>
+<label>العمر (اختياري)<input id="profileAge" type="number" inputmode="numeric" min="16" max="100"></label>
+<label>السكن (اختياري)<input id="profileResidence" maxlength="200" autocomplete="street-address"></label>
+<label>معلومات عنك (اختياري)<textarea id="profileAbout" rows="4" maxlength="1000" placeholder="مثل الخبرة أو أي معلومات تود إضافتها"></textarea></label>
+<label>صورة تعريفية بالزي الرسمي (اختيارية)<input id="profilePhoto" type="file" accept="image/*"></label>
+<p>يفضل JPG أو PNG أو WEBP. إذا تعذرت قراءة صورة الهاتف، اختر نسخة JPG.</p>
+<img id="profilePreview" hidden alt="صورتي الشخصية"><button id="profileRemovePhoto" type="button" hidden>إزالة الصورة</button>
+<p><button id="profileSave">حفظ معلوماتي</button></p>
+</form></main></body></html>

@@ -1,9 +1,22 @@
 # PROJECT RULES — ALBASHIR Gate
 
+## Owner exception — optional guard profile, 2026-10-10
+
+The owner revised guard credentials to national ID only as username, with the
+registered phone as password. Names are optional and need not be unique. An
+authenticated guard may edit only their own optional name, age, residence, about
+text and official-uniform portrait. National ID, login phone and account activation
+remain administrator-controlled. Profile rows/photos stay private with RLS and
+no direct anon/authenticated table grants; scoped RPCs validate the active guard
+session. Photos are re-encoded to JPEG and bounded to 192 KiB. No public guard QR
+response includes guard profile information. This request specifically authorizes
+the additive profile migration; Staging first. Existing employee decision logic,
+daily limits and the public QR flow must remain unchanged.
+
 ## Owner exception — guard emergency entry, 2026-10-10
 
 The owner explicitly selected counted emergency entries and simple guard accounts:
-name OR national ID plus phone. Public QR display remains account-free; manual
+national ID plus phone (revised above). Public QR display remains account-free; manual
 entry requires a valid active guard session and administrator-enabled emergency
 mode. Reuse the existing decision function with a server-only single-use token
 issued after guard authorization. Never expose that token, stored employee phone,

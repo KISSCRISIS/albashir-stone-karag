@@ -7,12 +7,13 @@
 <section id="guardManualPanel" hidden aria-label="الدخول اليدوي للطوارئ">
   <h2>الدخول اليدوي للطوارئ</h2>
   <form id="guardLoginForm">
-    <p><label>اسم الحارس أو رقمه الوطني<br><input id="guardIdentity" autocomplete="username" maxlength="100" required></label></p>
-    <p><label>رقم هاتف الحارس<br><input id="guardPhone" type="password" inputmode="tel" autocomplete="current-password" maxlength="25" required></label></p>
+    <p><label>الرقم الوطني للحارس (اسم المستخدم)<br><input id="guardIdentity" inputmode="numeric" autocomplete="username" maxlength="20" required></label></p>
+    <p><label>كلمة المرور: رقم هاتف الحارس المسجّل<br><input id="guardPhone" type="password" inputmode="tel" autocomplete="current-password" maxlength="25" required></label></p>
     <button id="guardLoginButton">دخول الحارس</button>
   </form>
   <form id="guardEntryForm" hidden>
     <p id="guardWelcome"></p>
+    <p><a id="guardProfileLink" href="./guard-profile.html">صفحتي الشخصية — معلومات وصورة اختيارية</a></p>
     <p><label>رقم الموظف الوظيفي أو الوطني<br><input id="manualEmployeeId" maxlength="100" autocomplete="off" required></label></p>
     <button id="guardEntryButton">تسجيل دخول الموظف</button>
     <p>تُسجّل الزيارة وتُحتسب ضمن الحد اليومي المعمول به.</p>

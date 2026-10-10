@@ -1,5 +1,34 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Guard national-ID login and optional profile — Staging, 2026-10-10
+
+Guard login now accepts only the national ID, with the registered phone as its
+password. Administrators can create multiple guards without names; names no
+longer identify accounts or need to be unique. After login, the guard screen
+offers a personal page with optional name, age (16–100), residence, about text and
+an optional official-uniform portrait. Guards cannot change national ID, phone
+or account status through this page.
+
+`guard-profile.html` reads/saves only the current active guard's private profile
+through token-scoped RPCs. Photos are decoded and resized to at most 512 pixels,
+re-encoded as JPEG and capped at 192 KiB; invalid/unsupported files show a visible
+error. HEIC depends on browser decoding, so universal phone-format support is not
+claimed. No profile/photo is persisted in browser storage or included in public
+QR responses. Edits are audited without storing optional personal values in the
+audit record. Disabling the account revokes profile access. Cache version is v26.
+
+Canonical: `supabase/canonical/guard_optional_profile.sql`; migration:
+`supabase/migrations/20261010001848_guard_optional_profile.sql`.
+Regression: `tests/guard-profile.cjs` and `tests/guard-profile-browser.cjs` verify
+identity-only login, optional/nonunique names, isolation, revocation, input bounds,
+photo conversion/removal and duplicate-submit handling. All 35 isolated suites
+passed. A real Staging rollback smoke passed with zero synthetic guards left,
+five original employees and the unchanged employee-decision function hash.
+The published browser also passed actual Staging login, optional-field/photo
+save and reopen, photo removal and revoked-account denial; the synthetic guard
+and its profile were removed afterwards, retaining only test audit history.
+Production remains unchanged; the draft PR still requires acceptance before merge.
+
 ## Runtime consistency and employee journey — 2026-10-09
 
 Employee shortcut, remembered device login and mobile photo preparation remain as deployed in PR #15. Login/profile/admin transport now shares an eight-second aborting deadline; login buttons reject duplicate in-flight submissions and become available for explicit retry after failure. Verification retries abort timed-out transport and preserve the same decision request identity. No automatic login retry is introduced. The admin-only diagnostics panel shows the deployed source version plus connection/photo status categories without tokens, URLs or employee identifiers. Build metadata is generated from the reviewed commit or runtime content fingerprint. The offline cache advances consistently to v24 and includes the shared helper.
