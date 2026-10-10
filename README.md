@@ -1007,3 +1007,9 @@ is unchanged. See [guard acceptance](docs/GUARD_EMERGENCY_STAGING_ACCEPTANCE.md)
 The separate supervisor Auth-account creation feature still needs real JWT/SMTP/
 confirmation/login acceptance before Production; its server function has not been
 deployed as part of the guard rollout.
+
+
+### Staging portal dialog repair — 2026-10-10
+Login now uses a native modal dialog in the browser top layer, outside ancestor clipping and stacking contexts. Its surface is opaque and its backdrop blocks the page. The shared UI helper locks background scrolling, preserves/restores the previous page position, contains keyboard focus through the native dialog, closes on Escape, and prevents overlapping managed dialogs. Internal scrolling remains available on short/mobile viewports. Existing login/Auth and backend decisions are unchanged. Cache v28. Chromium and WebKit regression covers 320/390/768/1366px, viewport bounds, role switching, scroll stability/restoration and close controls.
+
+Admin navigation cleanup from the owner request: removed the obsolete guard-screen link without replacement; hid the global copy-registration-link shortcut on admin pages only; renamed guard report navigation to أمن الصخره وتبليغات التجاوزات; moved existing CSV export buttons into the dedicated sidebar export section. Existing export datasets and permissions remain unchanged. Shared-account requests, durable notification/device registration and shift summaries still require the requested owner decisions before database changes.

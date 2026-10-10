@@ -40,5 +40,12 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
   await page.evaluate(()=>{showTab('registrations');window.scrollTo(0,0);});await page.screenshot({path:path.join(dir,'admin-requests-desktop.png')});
   await page.setViewportSize({width:390,height:844});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(dir,'admin-requests-mobile.png')});
  }
+ assert.equal(await page.locator('.top-actions a[href="./index.html"]').count(),0);
+ assert.equal(await page.locator('#registrationCopyShortcut').count(),0);
+ assert.equal(await page.locator('section:not(#exports) [onclick^="exportCsv"]').count(),0);
+ await page.evaluate(()=>{window.csvDownload=null;window.downloadCsv=(name,rows)=>window.csvDownload={name,rows};showTab('exports');});
+ assert(await page.locator('.nav-tabs').getByRole('button',{name:'تصدير CSV',exact:true}).isVisible());
+ await page.getByRole('button',{name:'تحميل البيانات المحددة',exact:true}).click();assert((await page.evaluate(()=>csvDownload.rows)).some(row=>row.dataset==='logs'));
+ await page.evaluate(()=>{adminProfile={role:'ADMIN',permissions:{}};csvDownload=null;exportSelectedCsv();});assert.equal(await page.evaluate(()=>csvDownload),null);
  assert.deepEqual(errors,[]);console.log('PASS all 13 request fields/actions retained, permission-disabled controls, private photo hydration, escaped data, six KPI filters, empty/search reset, responsive cards/grid and labeled checkbox sizing; synthetic browser data');
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1});

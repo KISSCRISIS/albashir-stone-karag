@@ -44,9 +44,10 @@
 .alb-alert.err{border-color:var(--alb-danger);background:#FF454522}
 .alb-alert.info{border-color:var(--alb-blue);background:#007BFF22}
 /* Modal / Drawer */
-.alb-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+.alb-modal-locked{overflow:hidden;overscroll-behavior:none;scroll-behavior:auto!important}
+.alb-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;z-index:10001;overscroll-behavior:contain}
 .alb-modal.open{display:flex}
-.alb-modal .box{background:var(--alb-card);border:1px solid var(--alb-line);border-radius:var(--alb-r);padding:20px;min-width:320px;max-width:92vw;max-height:88vh;overflow:auto}
+.alb-modal .box{background:#062442;border:1px solid var(--alb-line);border-radius:var(--alb-r);padding:20px;min-width:min(320px,92vw);max-width:92vw;max-height:88vh;max-height:88dvh;overflow:auto;overscroll-behavior:contain;box-sizing:border-box}
 .alb-drawer{position:fixed;top:0;bottom:0;inset-inline-end:0;width:min(420px,94vw);background:var(--alb-card);border-inline-start:1px solid var(--alb-line);transform:translateX(-110%);transition:transform .2s;z-index:50;overflow:auto}
 [dir="ltr"] .alb-drawer{transform:translateX(110%)}
 .alb-drawer.open{transform:none}

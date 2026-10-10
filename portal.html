@@ -22,7 +22,7 @@
 <main class="portal-stage" aria-label="بوابة مستشفى البشير">
   <section class="portal-hero" aria-label="بوابة الدخول">
     <div class="portal-slice portal-hero-art" aria-hidden="true"><img src="./assets/images/portal-layout-approved.png" width="1448" height="1086" alt="" /></div>
-  <section class="portal-login-overlay portal-login-overlay--closed" id="portalLoginOverlay" aria-label="خيارات الدخول">
+  <dialog class="portal-login-overlay portal-login-overlay--closed" id="portalLoginOverlay" aria-label="خيارات الدخول" aria-hidden="true">
     <button class="portal-close" type="button" onclick="closePortalLogin()" aria-label="إغلاق نافذة الدخول">✕</button>
     <div id="notice" class="notice"></div>
     <div id="continueSession" class="continue"><span id="continueText"></span><button class="action green" type="button" onclick="continueSession()">متابعة</button></div>
@@ -38,7 +38,7 @@
 
     <section class="role-panel" id="adminPanel"><div class="role-head"><h2>دخول الإدارة</h2><p>سيتم توجيه SUPER_ADMIN وADMIN تلقائيًا حسب صلاحيات الحساب.</p></div><form class="form" id="adminForm"><div class="field"><label for="adminEmail">البريد الإلكتروني</label><input id="adminEmail" required type="email" autocomplete="username" /></div><div class="field"><label for="adminPassword">كلمة المرور</label><input id="adminPassword" required type="password" autocomplete="current-password" /></div><button class="action" type="submit">فتح لوحة الإدارة</button></form></section>
     <div class="footer-note">تُخفى الصفحات غير المصرح بها ويعاد توجيه المستخدم إلى هذه البوابة.</div>
-  </section>
+  </dialog>
   </section>
   <nav class="portal-services" aria-label="خدمات البوابة">
     <button class="portal-service" type="button" onclick="openPortalLogin('employee')"><span aria-hidden="true">♙</span><strong>دخول الموظف</strong><small>الدخول والبقاء متصلًا</small></button>
@@ -55,8 +55,8 @@
   const client=window.supabase?.createClient(CONFIG.url,CONFIG.key,{global:{fetch:ALBASHIRRuntime.fetchWithTimeout}});const $=id=>document.getElementById(id);const next=new URLSearchParams(location.search).get("next")||"";
   function show(message,type="error"){const el=$("notice");el.textContent=message;el.className=`notice show ${type}`;}
   function loginFailed(error,fallback,button){show(ALBASHIRRuntime.errorMessage(error,fallback));if(button)button.textContent="إعادة المحاولة";}
-  function openPortalLogin(role="employee"){const overlay=$("portalLoginOverlay");document.querySelector('.role-tab[data-role="'+role+'"]').click();overlay.classList.remove("portal-login-overlay--closed");overlay.setAttribute("aria-hidden","false");$(role==="admin"?"adminEmail":"employeeId").focus();}
-  function closePortalLogin(){$("portalLoginOverlay").classList.add("portal-login-overlay--closed");$("portalLoginOverlay").setAttribute("aria-hidden","true");}
+  function openPortalLogin(role="employee"){document.querySelector('.role-tab[data-role="'+role+'"]').click();ALBASHIR_UI.openModal("portalLoginOverlay");$(role==="admin"?"adminEmail":"employeeId").focus({preventScroll:true});}
+  function closePortalLogin(){ALBASHIR_UI.closeModal("portalLoginOverlay");}
   async function openEmployeeProfile(){const session=ALBASHIRAccess.readSession();if(session?.role==="EMPLOYEE"){location.href="./profile.html";}else{if(await fastTrustedLogin())return;document.querySelector('.role-tab[data-role="employee"]').click();openPortalLogin();}}
 
   function cleanNext(value){const allowed=["index.html","verify.html","register.html","profile.html","admin_dashboard.html"];try{const raw=String(value||"").trim();if(!raw)return"";const parsed=new URL(raw,location.href);if(parsed.origin!==location.origin)return"";const file=parsed.pathname.split("/").pop()||"";return allowed.includes(file)?`${file}${parsed.search}${parsed.hash}`:"";}catch(_){return"";}}

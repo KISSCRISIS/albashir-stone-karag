@@ -48,7 +48,6 @@
         <span class="pill" id="roleBadge">غير معروف</span>
         <button class="sound-toggle" id="adminSoundToggle" type="button" onclick="toggleAdminSound()" aria-label="تشغيل أو كتم صوت التنبيهات" title="تشغيل أو كتم صوت التنبيهات">🔇</button>
         <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
-        <a class="btn btn-soft" href="./index.html">شاشة الحارس</a>
         <button class="btn-red" type="button" onclick="logout()">خروج</button>
       </div>
     </header>
@@ -87,10 +86,10 @@
       <button class="tab-btn" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">تغيير بيانات الموظفين</button>
       <button class="tab-btn" onclick="showTab('limits', this)">حدود الاختصاصات</button>
       <button class="tab-btn" onclick="showTab('logs', this)">سجلات الدخول</button>
-      <button class="tab-btn" onclick="showTab('violations', this)">بلاغات الحارس</button>
+      <button class="tab-btn" onclick="showTab('violations', this)">أمن الصخره وتبليغات التجاوزات</button>
       <button class="tab-btn" onclick="showTab('admins', this)">المشرفون</button>
       <button class="tab-btn" onclick="showTab('audit', this)">Audit</button>
-      <button class="tab-btn" onclick="showTab('exports', this)">CSV</button>
+      <button class="tab-btn" onclick="showTab('exports', this)">تصدير CSV</button>
     </nav>
 
     <section id="overview" class="section active">
@@ -192,7 +191,7 @@
         <div class="toolbar" style="margin-bottom:0">
           <button type="button" onclick="showTab('registrations', this)">مراجعة طلبات التسجيل</button>
           <button type="button" class="btn-soft" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">مراجعة تغيير البيانات</button>
-          <button type="button" class="btn-soft" onclick="showTab('violations', this)">عرض سجل بلاغات الحارس</button>
+          <button type="button" class="btn-soft" onclick="showTab('violations', this)">عرض سجل أمن الصخره وتبليغات التجاوزات</button>
           <button type="button" class="btn-soft" onclick="showTab('logs', this)">سجلات الدخول</button>
         </div>
       </div>
@@ -283,7 +282,6 @@
         <p class="panel-desc">الموظفون الجدد يظهرون هنا. يمكن الموافقة أو الرفض، والدخول الأول لا يعني الاعتماد النهائي.</p>
         <div class="toolbar">
           <button onclick="loadRegistrations()">تحديث الطلبات</button>
-          <button class="btn-soft" onclick="exportCsv('registrations')">تصدير CSV</button>
         </div>
       <details class="panel filters-collapse">
         <summary class="filters-summary">البحث والفلاتر</summary>
@@ -300,7 +298,6 @@
           </select>
           <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
           <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
-          <button type="button" onclick="exportCsv('registrations')">تصدير</button>
         </div>
       </details>
         <div id="registrationsBody" class="registration-card-grid" aria-live="polite"></div>
@@ -352,7 +349,6 @@
 
         <div class="toolbar" style="margin-top:12px">
           <button onclick="loadLimits()">تحديث الحدود</button>
-          <button class="btn-soft" onclick="exportCsv('limits')">تصدير CSV</button>
         </div>
 
         <div class="table-wrap">
@@ -378,7 +374,6 @@
         <p class="panel-desc">كل محاولة دخول تظهر هنا: مسموح، مرفوض، مسموح جزئيًا، أو دخول أول مرة.</p>
         <div class="toolbar">
           <button onclick="loadLogs()">تحديث السجلات</button>
-          <button class="btn-soft" onclick="exportCsv('logs')">تصدير CSV</button>
         </div>
 <div class="toolbar log-view-filters"><label>الفترة<select id="logViewPeriod" onchange="renderLogs()"><option value="ALL">كل السجلات</option><option value="DAYS30">آخر 30 يومًا</option><option value="TODAY">اليوم</option><option value="LAST24">آخر 24 ساعة</option></select></label><label>النتيجة<select id="logViewResult" onchange="renderLogs()"><option value="">جميع النتائج</option><option value="ALLOWED">مسموح</option><option value="DENIED">مرفوض</option><option value="LIMITED">مسموح جزئيًا</option><option value="PENDING_FIRST_ENTRY">الدخول الأول</option></select></label><button type="button" class="btn-soft" onclick="clearLogViewFilters()">مسح الفلاتر</button><p id="logViewSummary" role="status"></p></div>
         <div class="table-wrap">
@@ -402,11 +397,10 @@
 
     <section id="violations" class="section">
       <div class="panel">
-        <h2 class="panel-title">بلاغات الحارس</h2>
+        <h2 class="panel-title">أمن الصخره وتبليغات التجاوزات</h2>
         <p class="panel-desc">سجل تاريخي للبلاغات السابقة — العرض فقط. إرسال البلاغات وتغيير حالتها متوقفان.</p>
         <div class="toolbar">
           <button onclick="loadViolations()">تحديث البلاغات</button>
-          <button class="btn-soft" onclick="exportCsv('violations')">تصدير CSV</button>
         </div>
 <label>حالة البلاغ<select id="violationViewStatus" onchange="renderViolations()"><option value="">كل الحالات</option><option value="NEW">بلاغات جديدة</option></select></label>
         <div class="table-wrap">
@@ -473,7 +467,7 @@
           <label style="margin-top:14px">مهام وحدود هذا الأدمن</label>
           <div class="permission-grid">
             <label class="permission-box"><input type="checkbox" id="permApprove" /> موافقة / رفض طلبات التسجيل</label>
-            <label class="permission-box"><input type="checkbox" id="permViolations" /> مراجعة بلاغات الحارس</label>
+            <label class="permission-box"><input type="checkbox" id="permViolations" /> مراجعة أمن الصخره وتبليغات التجاوزات</label>
             <label class="permission-box"><input type="checkbox" id="permLogs" /> رؤية سجلات الدخول والإحصائيات</label>
             <label class="permission-box"><input type="checkbox" id="permExport" /> تصدير CSV</label>
             <label class="permission-box"><input type="checkbox" id="permLimits" /> تعديل حدود الاختصاصات اليومية</label>
@@ -485,7 +479,6 @@
           <button class="btn-green" id="saveAdminButton" type="button" onclick="saveAdmin()">إضافة مشرف</button>
           <button class="btn-soft" onclick="clearAdminForm()">تفريغ النموذج</button>
           <button onclick="loadAdmins()">تحديث المشرفين</button>
-          <button class="btn-soft" onclick="exportCsv('admins')">تصدير CSV</button>
         </div>
 
         <div class="notice">
@@ -518,7 +511,6 @@
         <p class="panel-desc">تسجيل العمليات المهمة: موافقة، رفض، تغيير حد، وإدارة المشرفين.</p>
         <div class="toolbar">
           <button onclick="loadAudit()">تحديث Audit</button>
-          <button class="btn-soft" onclick="exportCsv('audit')">تصدير CSV</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -544,11 +536,23 @@
         <div class="toolbar">
           <button onclick="exportCsv('registrations')">طلبات التسجيل</button>
           <button onclick="exportCsv('logs')">سجلات الدخول</button>
-          <button onclick="exportCsv('violations')">بلاغات الحارس</button>
+          <button onclick="exportCsv('violations')">أمن الصخره وتبليغات التجاوزات</button>
           <button onclick="exportCsv('limits')">حدود الاختصاصات</button>
           <button onclick="exportCsv('admins')">المشرفون</button>
           <button onclick="exportCsv('audit')">Audit</button>
         </div>
+        <fieldset class="export-selection"><legend>اختر البيانات المطلوبة أو جميعها</legend>
+          <label><input type="checkbox" name="csvDataset" value="registrations" checked> طلبات التسجيل</label>
+          <label><input type="checkbox" name="csvDataset" value="profileChanges" checked> طلبات تغيير بيانات الموظفين</label>
+          <label><input type="checkbox" name="csvDataset" value="logs" checked> سجلات الدخول</label>
+          <label><input type="checkbox" name="csvDataset" value="violations" checked> أمن الصخره وتبليغات التجاوزات</label>
+          <label><input type="checkbox" name="csvDataset" value="limits" checked> حدود الاختصاصات</label>
+          <label><input type="checkbox" name="csvDataset" value="admins" checked> المشرفون</label>
+          <label><input type="checkbox" name="csvDataset" value="audit" checked> سجل التدقيق</label>
+          <label><input type="checkbox" name="csvDataset" value="devices" checked> الأجهزة</label>
+          <label><input type="checkbox" name="csvDataset" value="sync" checked> حالة المزامنة</label>
+        </fieldset>
+        <div class="toolbar"><button type="button" onclick="exportSelectedCsv()">تحميل البيانات المحددة</button><button type="button" class="btn-soft" onclick="document.querySelectorAll('[name=csvDataset]').forEach(e=>e.checked=true)">تحديد الكل</button><button type="button" class="btn-soft" onclick="document.querySelectorAll('[name=csvDataset]').forEach(e=>e.checked=false)">إلغاء التحديد</button></div>
         <div class="notice">
           إذا كان الجدول فارغًا، اضغطي تحديث أولًا أو انتظري وصول بيانات من التطبيق.
         </div>
@@ -2224,7 +2228,7 @@
         return;
       }
 
-      const headers = Object.keys(rows[0]);
+      const headers = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
       const csv = [
         headers.map(csvEscape).join(","),
         ...rows.map((row) => headers.map((key) => csvEscape(row[key])).join(","))
@@ -2239,6 +2243,15 @@
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+    }
+
+    function exportSelectedCsv() {
+      if (!hasPermission("can_export_csv")) { showToast("غير مصرح لك بتصدير CSV.", "error"); return; }
+      const datasets = {registrations:registrationsData,profileChanges:profileChangeRequestsData,logs:logsData,violations:violationsData,limits:limitsData,admins:adminsData,audit:auditData,devices:gateDevicesData,sync:gateSyncStatusData};
+      const selected = Array.from(document.querySelectorAll('[name="csvDataset"]:checked')).map(e=>e.value);
+      if (!selected.length) { showToast("اختر بيانات للتصدير أولًا.", "error"); return; }
+      const rows = selected.flatMap(type=>(datasets[type] || []).map(row=>({...row,dataset:type})));
+      downloadCsv("albashir_selected_data.csv",rows);
     }
 
     function exportCsv(type) {
