@@ -428,6 +428,8 @@
         <div id="superOnlyAdminNotice" class="notice hidden">إضافة أو تعديل أو حذف المشرفين متاح للسوبر أدمن فقط.</div>
 
         <div id="adminFormBox">
+          <div id="adminEmployeeSelection"><label for="adminEmployeePicker">الموظف المعتمد المراد تعيينه</label><select id="adminEmployeePicker"><option value="">اختر موظفًا معتمدًا</option></select><div id="adminEmployeePreview"></div></div>
+          <div id="adminExistingIdentity" hidden>
           <div class="form-grid">
             <div>
               <label for="adminEmail">إيميل المشرف</label>
@@ -438,18 +440,21 @@
               <input id="adminName" type="text" placeholder="اسم المشرف" />
             </div>
             <div>
-              <label for="adminPassword">كلمة المرور الأولية (للحساب الجديد فقط)</label>
-              <input id="adminPassword" type="password" autocomplete="new-password" minlength="12" placeholder="12 حرفًا على الأقل" dir="ltr" />
+              <label for="adminPassword" hidden>كلمة المرور الأولية</label>
+              <input hidden id="adminPassword" type="password" autocomplete="new-password" minlength="12" placeholder="12 حرفًا على الأقل" dir="ltr" />
             </div>
             <div>
               <label for="adminPhone">رقم الهاتف</label>
               <input id="adminPhone" type="tel" placeholder="07xxxxxxxx" dir="ltr" />
             </div>
+          </div>
+          </div>
+          <div class="form-grid">
             <div>
               <label for="adminRole">الدور</label>
               <select id="adminRole" onchange="applyRoleDefaultPermissions()">
-                <option value="SUB_ADMIN">SUB_ADMIN</option>
-                <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                <option value="SUB_ADMIN">مشرف بصلاحيات محددة</option>
+                <option value="SUPER_ADMIN">مشرف بصلاحية كاملة</option>
               </select>
             </div>
             <div>
@@ -473,15 +478,17 @@
         </div>
 
         <div class="toolbar">
-          <button class="btn-green" id="saveAdminButton" type="button" onclick="saveAdmin()">إضافة مشرف</button>
-          <button class="btn-soft" onclick="clearAdminForm()">تفريغ النموذج</button>
+          <button class="btn-green" id="saveAdminButton" type="button" onclick="saveAdmin()">تعيين الموظف كمشرف</button>
+          <button class="btn-soft" onclick="clearAdminForm()">تعيين جديد</button>
           <button onclick="loadAdmins()">تحديث المشرفين</button>
         </div>
 
         <div class="notice">
-          لإنشاء حساب جديد: أدخل بريدًا غير مسجل وكلمة مرور أولية من 12 حرفًا على الأقل. اترك كلمة المرور فارغة لتعديل مشرف موجود. لا تُخزَّن كلمات المرور في جدول المشرفين.
+          اختر الموظف المعتمد وحدد صلاحياته. الموظف يُكمل بريده وكلمة مروره بنفسه من ملفه الشخصي بعد التعيين. تظل الحسابات الحالية قابلة للتعديل.
         </div>
 
+        <h3>تعيينات الموظفين</h3><p id="adminAppointmentStatus" role="status"></p><div id="adminAssignmentList" class="directory-grid"></div>
+        <h3>حسابات المشرفين الحالية</h3>
         <div class="table-wrap">
           <table>
             <thead>
@@ -1113,6 +1120,7 @@
       registrationsData = data || [];
       filteredRegistrationsData = registrationsData.slice();
       window.EmployeeDirectory?.update(registrationsData);
+      window.AdminAppointments?.employees(registrationsData);
       populateDepartmentFilter();
       handleRegistrationNotifications(registrationsData);
       applyDashboardFilters();
@@ -1230,6 +1238,7 @@
 
       adminsData = data || [];
       renderAdmins();
+      await window.AdminAppointments?.load();
     }
 
     async function loadAudit() {
@@ -2345,6 +2354,7 @@
   </script>
 <link rel="stylesheet" href="./employee-directory.css">
 <script src="./employee-directory.js"></script>
+<script src="./admin-appointments.js"></script>
 <script src="./guard-admin.js"></script>
 <script src="./admin-live.js"></script>
 <script src="./global-leadership.js"></script>

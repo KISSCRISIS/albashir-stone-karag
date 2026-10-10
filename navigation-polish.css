@@ -75,3 +75,5 @@ body.theme-admin{background:#101e2b!important;color:#e0e8ef;--text:#e0e8ef;--mut
 .theme-admin .top-actions .sound-toggle{width:46px;height:46px;min-width:46px;padding:0;font-size:22px}
 @media(max-width:1050px){.theme-admin .topbar{flex-direction:column;align-items:stretch}.theme-admin .top-actions{max-width:none;width:100%}}
 @media(max-width:760px){.theme-admin .topbar{min-height:0;gap:18px;padding:18px 14px!important;border-radius:16px}.theme-admin .admin-header-brand{gap:12px}.theme-admin .admin-header-logo{width:64px;height:64px}.theme-admin .admin-header-copy{min-width:0}.theme-admin .brand-title{font-size:34px!important}.theme-admin .brand-subtitle{font-size:16px}.theme-admin .top-actions .pill{font-size:14px}.theme-admin .top-actions button{font-size:16px}}
+
+#adminExistingIdentity[hidden],#adminEmployeeSelection[hidden],#employeeAdminPanel[hidden],#employeeAdminForm[hidden]{display:none!important}#adminEmployeePreview{display:flex;align-items:center;gap:16px;margin:16px 0}#adminEmployeePreview img{object-fit:cover;border-radius:12px}#adminAssignmentList{margin-bottom:24px}#adminAssignmentList button{margin:8px}

@@ -31,6 +31,7 @@ const server=http.createServer((req,res)=>{
         return send(valid?{ok:true,url:origin+'/fixtures/photo.png',expires_in:60}:{ok:false},valid?200:403);
       }
       const name=url.pathname.split('/').pop();
+      if(name==='employee_admin_assignment')return send({ok:true,assignment:null});
       if(name==='employee_profile_login'){
         logins.push(body);await new Promise(resolve=>setTimeout(resolve,60));
         return send({ok:body.p_employee_id===employee.employee_id&&body.p_mobile_number===employee.mobile_number,profile:employee,qr_history:[]});
