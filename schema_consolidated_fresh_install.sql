@@ -10041,3 +10041,9 @@ end $$;
 revoke all on function public.super_admin_assign_employee(uuid,text,jsonb),public.super_admin_employee_assignments(),public.super_admin_revoke_employee_assignment(uuid),public.employee_admin_assignment(text,text),public.employee_admin_claim(uuid,text,text,text),public.employee_admin_complete(text) from public,anon,authenticated;
 grant execute on function public.super_admin_assign_employee(uuid,text,jsonb),public.super_admin_employee_assignments(),public.super_admin_revoke_employee_assignment(uuid),public.employee_admin_complete(text) to authenticated;
 grant execute on function public.employee_admin_assignment(text,text),public.employee_admin_claim(uuid,text,text,text) to anon,authenticated;
+
+-- Close obsolete registration entry points after current registration is installed.
+-- Owner approved: Staging only. Current frontend sends all 15 arguments.
+-- Disable only obsolete signatures; preserve bodies/data and current registration grants.
+REVOKE EXECUTE ON FUNCTION public.register_employee_request(text,text,text,text,text,text,text,text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.register_employee_request(text,text,text,text,text,text,text,text,text,text,text,text,text) FROM PUBLIC, anon, authenticated;

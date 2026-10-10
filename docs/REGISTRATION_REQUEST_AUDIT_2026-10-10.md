@@ -18,3 +18,8 @@ The old eight-argument register_employee_request overload remains executable by 
 
 ## Validation
 All 37 SQL/static suites passed. Real browser registration regression passed Chromium and WebKit: category switching, consent required, duplicate prevention, denied-form preservation, upload retry, optional saved device and request payloads. Real browser photo tests passed decoding, compression, MIME mismatch rejection, corrupt file rejection and unsupported HEIC explanation. Browser tests mock backend responses; actual phone camera/HEIC support varies by browser. No real employee request was submitted in testing. Production untouched.
+
+## Follow-up approval and fix
+Owner subsequently approved closing the obsolete entry points. Revoke client execution on 8- and 13-argument signatures, preserving the functions and all data. The current fifteen-argument registration path is unchanged. Original unresolved legacy exposure finding above is superseded by this targeted ACL fix after hosted verification. Other manual-review criteria remain unchanged.
+
+Hosted verification: Staging anon/authenticated execution is false for both obsolete signatures and true for the current signature. All three function-body hashes remained unchanged. HTTP current 15-argument empty request reached validation and safely returned DENIED; obsolete 13-argument request returned 401/42501, obsolete 8-argument payload was not executed (300/PGRST203 due to old default-argument ambiguity). All 38 SQL/static suites passed. No real registration was created.

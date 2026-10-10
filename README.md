@@ -1056,3 +1056,6 @@ Migration: supabase/migrations/20261010090000_employee_admin_appointments.sql, m
 
 ### Registration request audit (2026-10-10)
 Preserved owner-selected manual administrative review criteria. Fixed duplicate submission, failed/denied form preservation, optional device-review feedback and storage warning after accepted registration. Added Chromium/WebKit registration regression to browser CI. See docs/REGISTRATION_REQUEST_AUDIT_2026-10-10.md for current field rules, rejection cases and legacy backend findings. No database migration or Production change.
+
+### Legacy registration cleanup (2026-10-10)
+Owner approved Staging-only revocation of client execution on the obsolete 8/13-argument register_employee_request signatures. Runtime source uses the 15-argument signature exclusively; no public/private SQL function depends on the obsolete entry points. Function bodies and records are preserved. Current registration criteria are unchanged. Regression: tests/registration-legacy-acl.cjs; canonical SQL: supabase/canonical/revoke_legacy_registration_execute.sql. Production is not modified.
