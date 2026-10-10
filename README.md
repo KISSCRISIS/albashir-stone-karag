@@ -1028,3 +1028,7 @@ The admin sidebar now offers دليل الموظفين using the existing author
 
 ### Readable navigation and reference-inspired actions (Staging)
 Fixed admin sidebar flex shrink/wrap causing crowded lower items: nonshrinking wrapped labels, in-flow unread badges, independent vertical desktop scrolling. Mobile uses a labeled expandable menu in document flow, retaining every section and closing after selection. Glossy rounded actions and circular sidebar icons follow owner image references; gold directional arrows keep original navigation text/handlers. Backend and permissions unchanged. Browser coverage includes all menu items, badges, scrolling, mobile expansion and content boundaries.
+
+
+### Two-column menu and scoped guard management
+Owner correction: all admin navigation options now form two parallel columns, including the mobile expanded menu. Local licensed Tajawal regular/bold fonts improve Arabic labels. Previous/next section arrows invoke the existing tab handlers, preserve section-specific loads, and disable at boundaries. Guard management/emergency panel is nested inside violations only, so it no longer appears under every section. Dashboard action buttons use glossy capsule styling. No authorization or entry logic changes.

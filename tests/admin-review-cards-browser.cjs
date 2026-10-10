@@ -32,7 +32,7 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
   const columns=await page.locator('.kpi-strip').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length);assert.equal(columns,width>700?3:width<=380?1:2);
   await page.evaluate(()=>showTab('registrations'));const bounds=await page.locator('.registration-card-grid').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width+2,'cards overflow '+width);
   assert.equal(await first.getByRole('button',{name:'رفض',exact:true}).evaluate(e=>e.getBoundingClientRect().height>=44),true);
-  await page.evaluate(()=>{$('guardAdminPanel').hidden=false;});const check=await page.locator('#guardAdminActive').boundingBox();assert(check.width<=24&&check.height<=24,'checkbox oversized');assert((await page.locator('label:has(#guardAdminActive)').textContent()).includes('يسمح للحارس'));await page.evaluate(()=>{$('guardAdminPanel').hidden=true;});
+  await page.evaluate(()=>{showTab('violations');$('guardAdminPanel').hidden=false;});const check=await page.locator('#guardAdminActive').boundingBox();assert(check.width<=24&&check.height<=24,'checkbox oversized');assert((await page.locator('label:has(#guardAdminActive)').textContent()).includes('يسمح للحارس'));await page.evaluate(()=>{$('guardAdminPanel').hidden=true;showTab('registrations');});
  }
  if(process.env.ADMIN_UI_QA_DIR){
   const dir=process.env.ADMIN_UI_QA_DIR;fs.mkdirSync(dir,{recursive:true});

@@ -25,7 +25,7 @@ window.AdminLive = (() => {
       for(const event of data.events) {
         const card=document.createElement('button'); card.type='button'; card.className='panel'; card.style.cssText='display:block;width:100%;text-align:right;margin:10px 0;background:#09263d;color:#e5f2ff';
         card.textContent=(event.read?'':'● ')+event.title+' — '+event.body+' — '+new Date(event.created_at).toLocaleString('ar-JO',{timeZone:'Asia/Amman'});
-        card.onclick=async()=>{card.disabled=true;try {await rpc('admin_notice_read',{p_id:event.id});open(event.target==='guardRequests'?'notifications':event.target);if(event.target==='guardRequests') {await window.GuardAdmin?.load();$('guardAdminPanel').scrollIntoView({block:'start'});}await refresh();}catch(err){status(err.message);card.disabled=false;}};
+        card.onclick=async()=>{card.disabled=true;try {await rpc('admin_notice_read',{p_id:event.id});open(event.target==='guardRequests'?'violations':event.target);if(event.target==='guardRequests') {await window.GuardAdmin?.load();$('guardAdminPanel').scrollIntoView({block:'start'});}await refresh();}catch(err){status(err.message);card.disabled=false;}};
         $('adminNoticeList').append(card);
         if(!seen.has(event.id)&&wasInitialized&&enabled&&!event.read&&document.visibilityState==='visible') {
           showToast(event.title+' — '+event.body,'ok');

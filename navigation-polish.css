@@ -23,3 +23,11 @@ button:focus-visible,a:focus-visible{outline:3px solid #facc15;outline-offset:3p
  .theme-admin .nav-tabs::before{display:none;}
  .theme-admin .nav-tabs .tab-btn{font-size:15px;min-height:58px;}
 }
+
+@font-face{font-family:Tajawal;src:url('./assets/fonts/tajawal-regular.ttf') format('truetype');font-weight:400;font-display:swap}@font-face{font-family:Tajawal;src:url('./assets/fonts/tajawal-bold.ttf') format('truetype');font-weight:700;font-display:swap}
+.theme-admin,.theme-admin button,.theme-admin input,.theme-admin select,.theme-admin textarea{font-family:Tajawal,Tahoma,sans-serif!important}
+.theme-admin .nav-tabs,.theme-admin .nav-tabs.menu-open{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:10px;width:300px}
+.theme-admin .nav-tabs .tab-btn{grid-template-columns:minmax(0,1fr);text-align:center;justify-items:center;font-size:14px;min-height:106px;padding:10px 6px}.theme-admin .nav-tabs .tab-btn::before{grid-column:1;grid-row:auto}.theme-admin .nav-tabs .tab-btn .badge{grid-column:1;justify-self:center}
+.theme-admin .app-shell{padding-left:324px!important}.theme-admin .topbar{margin-left:-324px!important;padding-left:324px!important}
+.admin-section-navigation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;margin-bottom:16px;border:1px solid #285571;border-radius:16px;background:#08243a}.admin-section-navigation button,.theme-admin button:not(.tab-btn):not(.kpi-card):not(.panel){background-image:linear-gradient(180deg,#ffffff28,transparent 48%,#00000020);border-radius:999px;box-shadow:inset 0 2px 0 #ffffff45,inset 0 -4px 0 #0004,0 5px 12px #0003;border:1px solid #85c3df55}
+@media(max-width:760px){.theme-admin .app-shell{padding:12px!important}.theme-admin .topbar{margin:0 0 12px!important;padding:12px!important}.theme-admin .nav-tabs{width:100%;display:none}.theme-admin .nav-tabs.menu-open{width:100%}.admin-section-navigation{flex-wrap:wrap}.admin-section-navigation>span{order:-1;width:100%;text-align:center}.admin-section-navigation button{flex:1;padding:10px 4px;font-size:14px}.navigation-arrow{width:22px;height:20px}}

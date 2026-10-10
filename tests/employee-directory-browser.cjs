@@ -9,12 +9,12 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
   await page.setViewportSize({width,height:650});
   if(width<=760){await page.locator('.admin-menu-toggle').click();assert.equal(await page.locator('.admin-menu-toggle').getAttribute('aria-expanded'),'true');}
   const bounds=await page.locator('.nav-tabs .tab-btn').evaluateAll(items=>items.map(e=>{const b=e.getBoundingClientRect();return {top:b.top,bottom:b.bottom,width:b.width,height:b.height};}));
-  for(let i=0;i<bounds.length;i++){assert(bounds[i].height>=44);if(i)assert(bounds[i].top>=bounds[i-1].bottom,'overlap '+width);}
+  for(let i=0;i<bounds.length;i++){assert(bounds[i].height>=44);if(i>=2)assert(bounds[i].top>=bounds[i-2].bottom-1,'overlap '+width);}
   assert(await page.locator('.nav-tabs').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
   await page.locator('.nav-tabs').getByRole('button',{name:'دليل الموظفين',exact:true}).click();
   if(width<=760){assert.equal(await page.locator('.admin-menu-toggle').getAttribute('aria-expanded'),'false');assert(!(await page.locator('.nav-tabs').isVisible()));}
  }
- await page.setViewportSize({width:1366,height:900});
+ await page.setViewportSize({width:1366,height:900});assert.equal(await page.locator('#violations #guardAdminPanel').count(),1);await page.evaluate(()=>{showTab('overview');document.getElementById('guardAdminPanel').hidden=false;});assert(!(await page.locator('#guardAdminPanel').isVisible()));await page.getByRole('button',{name:'القسم التالي',exact:true}).click();assert(await page.locator('#registrations').evaluate(e=>e.classList.contains('active')));await page.getByRole('button',{name:'القسم السابق',exact:true}).click();assert(await page.locator('#overview').evaluate(e=>e.classList.contains('active')));
  await page.evaluate(()=>{
   adminProfile={role:'SUPER_ADMIN'};supabaseClient={auth:{getSession:async()=>({data:{session:{access_token:'synthetic'}}})}};
   window.photoHydrates=0;window.EmployeePhoto={hydrate:()=>{window.photoHydrates++;}};window.actionCalls=[];
@@ -43,7 +43,7 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
   const columns=await page.locator('.kpi-strip').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length);assert.equal(columns,width>700?3:width<=380?1:2);
   await page.evaluate(()=>showTab('registrations'));const bounds=await page.locator('.registration-card-grid').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width+2,'cards overflow '+width);
   assert.equal(await first.getByRole('button',{name:'رفض',exact:true}).evaluate(e=>e.getBoundingClientRect().height>=44),true);
-  await page.evaluate(()=>{$('guardAdminPanel').hidden=false;});const check=await page.locator('#guardAdminActive').boundingBox();assert(check.width<=24&&check.height<=24,'checkbox oversized');assert((await page.locator('label:has(#guardAdminActive)').textContent()).includes('يسمح للحارس'));await page.evaluate(()=>{$('guardAdminPanel').hidden=true;});
+  await page.evaluate(()=>{showTab('violations');$('guardAdminPanel').hidden=false;});const check=await page.locator('#guardAdminActive').boundingBox();assert(check.width<=24&&check.height<=24,'checkbox oversized');assert((await page.locator('label:has(#guardAdminActive)').textContent()).includes('يسمح للحارس'));await page.evaluate(()=>{$('guardAdminPanel').hidden=true;showTab('registrations');});
  }
  if(process.env.ADMIN_UI_QA_DIR){
   const dir=process.env.ADMIN_UI_QA_DIR;fs.mkdirSync(dir,{recursive:true});

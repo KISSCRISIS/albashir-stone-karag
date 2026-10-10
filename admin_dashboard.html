@@ -422,6 +422,26 @@
           </table>
         </div>
       </div>
+    <section class="panel" id="guardAdminPanel" hidden>
+      <h2>ملفات الحراس والدخول اليدوي للطوارئ</h2>
+      <p>اسم المستخدم هو الرقم الوطني، وكلمة المرور هي رقم الهاتف المسجّل. الاسم اختياري. تعديل الحساب يُلغي جلساته الحالية.</p>
+      <form id="guardAdminForm" class="form-grid">
+        <label>اسم الحارس (اختياري)<input id="guardAdminName" maxlength="100"></label>
+        <label>الرقم الوطني<input id="guardAdminNational" inputmode="numeric" maxlength="20" required></label>
+        <label>رقم الهاتف<input id="guardAdminPhone" type="password" inputmode="tel" autocomplete="new-password" placeholder="رقم هاتف الحارس"></label>
+        <label class="admin-check-option"><input id="guardAdminActive" type="checkbox" checked><span>الحارس فعال</span><small>يسمح للحارس بتسجيل الدخول بحسابه</small></label>
+        <button id="guardAdminSave" type="submit">حفظ ملف الحارس</button>
+        <button id="guardAdminNew" type="button">ملف جديد</button>
+      </form>
+      <p class="guard-emergency-option"><label class="admin-check-option"><input id="guardEmergencyEnabled" type="checkbox"><span>تفعيل الدخول اليدوي عند تعطل QR</span><small>يسمح للحارس المسجّل بإدخال رقم الموظف وتسجيل زيارته</small></label>
+        <button id="guardEmergencySave" type="button">حفظ وضع الطوارئ</button></p>
+      <p id="guardAdminMessage" role="status"></p><div id="guardAccountsList"></div>
+      <h3>الحساب الجماعي المؤقت</h3>
+      <form id="guardSharedForm"><label>كلمة المرور الرقمية للحساب الجماعي<input id="guardSharedPhone" type="password" inputmode="tel" autocomplete="new-password" required></label><label class="admin-check-option"><input id="guardSharedEnabled" type="checkbox" checked><span>الحساب الجماعي فعال</span></label><button>حفظ الحساب الجماعي</button></form>
+      <h3>طلبات حسابات الحراس الشخصية</h3><div id="guardRequestsList"></div>
+      <h3>آخر أوقات دخول الحراس</h3><div id="guardSigninList"></div>
+    </section>
+
     </section>
 
     <section id="admins" class="section">
@@ -585,26 +605,7 @@
       <button id="adminNoticeDisable" type="button">إيقاف تنبيهات هذا الجهاز</button>
       <p id="adminNoticeStatus" role="status"></p><div id="adminNoticeList"></div>
     </section>
-    <section class="panel" id="guardAdminPanel" hidden>
-      <h2>ملفات الحراس والدخول اليدوي للطوارئ</h2>
-      <p>اسم المستخدم هو الرقم الوطني، وكلمة المرور هي رقم الهاتف المسجّل. الاسم اختياري. تعديل الحساب يُلغي جلساته الحالية.</p>
-      <form id="guardAdminForm" class="form-grid">
-        <label>اسم الحارس (اختياري)<input id="guardAdminName" maxlength="100"></label>
-        <label>الرقم الوطني<input id="guardAdminNational" inputmode="numeric" maxlength="20" required></label>
-        <label>رقم الهاتف<input id="guardAdminPhone" type="password" inputmode="tel" autocomplete="new-password" placeholder="رقم هاتف الحارس"></label>
-        <label class="admin-check-option"><input id="guardAdminActive" type="checkbox" checked><span>الحارس فعال</span><small>يسمح للحارس بتسجيل الدخول بحسابه</small></label>
-        <button id="guardAdminSave" type="submit">حفظ ملف الحارس</button>
-        <button id="guardAdminNew" type="button">ملف جديد</button>
-      </form>
-      <p class="guard-emergency-option"><label class="admin-check-option"><input id="guardEmergencyEnabled" type="checkbox"><span>تفعيل الدخول اليدوي عند تعطل QR</span><small>يسمح للحارس المسجّل بإدخال رقم الموظف وتسجيل زيارته</small></label>
-        <button id="guardEmergencySave" type="button">حفظ وضع الطوارئ</button></p>
-      <p id="guardAdminMessage" role="status"></p><div id="guardAccountsList"></div>
-      <h3>الحساب الجماعي المؤقت</h3>
-      <form id="guardSharedForm"><label>كلمة المرور الرقمية للحساب الجماعي<input id="guardSharedPhone" type="password" inputmode="tel" autocomplete="new-password" required></label><label class="admin-check-option"><input id="guardSharedEnabled" type="checkbox" checked><span>الحساب الجماعي فعال</span></label><button>حفظ الحساب الجماعي</button></form>
-      <h3>طلبات حسابات الحراس الشخصية</h3><div id="guardRequestsList"></div>
-      <h3>آخر أوقات دخول الحراس</h3><div id="guardSigninList"></div>
-    </section>
-  </main>
+</main>
 
   <script>
     // =========================================================
