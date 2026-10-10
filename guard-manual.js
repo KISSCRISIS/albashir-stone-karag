@@ -2,8 +2,9 @@
   'use strict';
   const $ = id => document.getElementById(id), storageKey = 'alb_guard_session_v1';
   let token = '', busy = false, pending = null, emergencyEnabled = false;
-  // UI-only safeguard. Server-side station-scoped outage verification remains required.
-  const qrFailureOnThisPhone = () => window.guardQrGenerationFailed === true;
+  // Emergency availability must come from the server, not a browser-controlled flag.
+  // Until station-scoped server authorization is deployed, fail closed.
+  const qrFailureOnThisPhone = () => false;
   try { token = localStorage.getItem(storageKey) || ''; } catch (_) {}
   const message = text => { $('guardManualMessage').textContent = text; };
   function panelState(open) {
