@@ -90,6 +90,7 @@
       <button class="tab-btn" onclick="showTab('admins', this)">المشرفون</button>
       <button class="tab-btn" onclick="showTab('audit', this)">Audit</button>
       <button class="tab-btn" onclick="showTab('exports', this)">تصدير CSV</button>
+      <button class="tab-btn employee-directory-nav" onclick="showTab('employeeDirectory', this)">دليل الموظفين</button>
       <button class="tab-btn" onclick="showTab('notifications', this)">الإشعارات <span id="adminNoticeCount" class="badge yellow">0</span></button>
     </nav>
 
@@ -150,7 +151,7 @@
           <div class="external-bars" id="externalSpecialtyBars"></div>
         </div>
       </div>
-      <details class="analytics-method-details">
+      <details class="analytics-method-details" hidden style="display:none">
         <summary>طريقة احتساب تصنيف الموظفين</summary>
         <div class="external-summary" id="externalSummary"></div>
         <p class="unknown-line" id="unknownSummary"></p>
@@ -530,6 +531,17 @@
       </div>
     </section>
 
+    <section id="employeeDirectory" class="section">
+      <div class="panel"><h2>دليل الموظفين</h2><p>سجلات التسجيل الحالية؛ يعرض المعتمدين افتراضيًا. التصنيف بحسب نوع التسجيل المسجّل، دون تخمين الجهة.</p>
+      <div id="directorySummary" aria-live="polite"></div>
+      <div class="directory-filters">
+      <label>البحث<input id="directorySearch" type="search" placeholder="الاسم أو رقم الموظف أو الهاتف"></label>
+      <label>مجموعة التسجيل<select id="directoryCategory"><option value="">جميع المجموعات</option><option value="PERMANENT">موظفو مستشفى البشير — تسجيل دائم</option><option value="TEMPORARY">موظفو الجهات الأخرى — مؤقت / خارجي</option><option value="UNKNOWN">غير مصنّفين</option></select></label>
+      <label>الحالة<select id="directoryStatus"><option value="APPROVED">المعتمدون</option><option value="">جميع حالات التسجيل</option><option value="PENDING">بانتظار الاعتماد</option><option value="REJECTED">المرفوضون</option></select></label>
+      <label>الوظيفة<select id="directoryJob"></select></label><label>الاختصاص<select id="directorySpecialty"></select></label><label>الجهة<select id="directoryEntity"></select></label>
+      </div><p id="directoryCount" aria-live="polite"></p><div id="directoryCards" class="directory-grid"></div>
+      <div class="directory-pagination"><button id="directoryPrevious" type="button">السابق</button><span id="directoryPage"></span><button id="directoryNext" type="button">التالي</button></div></div>
+    </section>
     <section id="exports" class="section">
       <div class="panel">
         <h2 class="panel-title">تصدير CSV</h2>
@@ -1100,6 +1112,7 @@
 
       registrationsData = data || [];
       filteredRegistrationsData = registrationsData.slice();
+      window.EmployeeDirectory?.update(registrationsData);
       populateDepartmentFilter();
       handleRegistrationNotifications(registrationsData);
       applyDashboardFilters();
@@ -2330,6 +2343,8 @@
       showSetupWarning("تعذر تشغيل لوحة الإدارة: " + err.message, "error");
     });
   </script>
+<link rel="stylesheet" href="./employee-directory.css">
+<script src="./employee-directory.js"></script>
 <script src="./guard-admin.js"></script>
 <script src="./admin-live.js"></script>
 <script src="./global-leadership.js"></script>
