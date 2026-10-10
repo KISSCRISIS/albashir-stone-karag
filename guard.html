@@ -8,6 +8,16 @@
 <section id="qrPanel"><canvas id="qr" hidden></canvas><p class="countdown-label">يتجدد الرمز تلقائيًا خلال <strong id="countdown">—</strong> ثانية</p><button id="refresh">تحديث الرمز</button><p><button id="manualOpen" type="button">دخول يدوي للموظف</button></p></section>
 <section id="guardManualPanel" hidden role="dialog" aria-modal="true" aria-label="الدخول اليدوي للطوارئ">
   <header class="guard-panel-title"><h2>دخول يدوي للموظف</h2><p>يُستخدم فقط عند تعطل توليد QR على هذا الهاتف</p></header>
+  <aside id="manualHelp" role="note" aria-label="متى وكيف تستخدم الدخول اليدوي" style="background:#163d50;border:2px solid #65c9f0;border-radius:14px;padding:16px;margin:14px 0;text-align:right;font-size:clamp(19px,2.8vw,24px);line-height:1.8;color:#fff">
+    <strong style="display:block;font-size:1.15em">متى أستخدم الدخول اليدوي؟</strong>
+    <p style="margin:8px 0">فقط إذا تعطل ظهور رمز QR على هاتفك ولم يعد النظام يستطيع إنشاء رمز جديد.</p>
+    <strong style="display:block">كيف أستخدمه؟</strong>
+    <p style="margin:8px 0">١. سجّل دخولك بحساب الحارس أو الحساب الجماعي.</p>
+    <p style="margin:8px 0">٢. عند تعطل إنشاء QR، اضغط «تفعيل الدخول اليدوي» إذا أصبح الزر متاحًا.</p>
+    <p style="margin:8px 0">٣. اسأل الموظف عن <strong>رقمه الوظيفي فقط</strong>، واكتبه في الخانة ثم اضغط «تأكيد دخول الموظف».</p>
+    <p style="margin:8px 0">٤. اقرأ النتيجة الظاهرة: «مسموح بالدخول» أو «غير مسموح بالدخول» أو «مسموح بشكل مؤقت». اتبع القرار الظاهر.</p>
+    <p style="margin:8px 0;font-weight:bold">عند عودة QR للعمل، يتوقف الدخول اليدوي. إذا تعذر الاتصال بالخادم، لا تسمح بالدخول اعتمادًا على هذه الشاشة.</p>
+  </aside>
   <form id="guardLoginForm">
     <p><button id="guardSharedLogin" type="button">الحساب الجماعي</button></p>
     <p><label>الرقم الوطني للحارس (اسم المستخدم)<br><input id="guardIdentity" inputmode="numeric" autocomplete="username" maxlength="20" required></label></p>
