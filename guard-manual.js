@@ -2,6 +2,8 @@
   'use strict';
   const $ = id => document.getElementById(id), storageKey = 'alb_guard_session_v1';
   let token = '', busy = false, pending = null, emergencyEnabled = false;
+  // UI-only safeguard. Server-side station-scoped outage verification remains required.
+  const qrFailureOnThisPhone = () => window.guardQrGenerationFailed === true;
   try { token = localStorage.getItem(storageKey) || ''; } catch (_) {}
   const message = text => { $('guardManualMessage').textContent = text; };
   function panelState(open) {
@@ -34,7 +36,8 @@
     emergencyEnabled = data.emergency_enabled === true;
     if ($('guardEmergencyToggle')) $('guardEmergencyToggle').textContent = emergencyEnabled ? 'إيقاف وضع الطوارئ' : 'تفعيل وضع الطوارئ';
     message(emergencyEnabled ? 'أدخل رقم الموظف لتسجيل الزيارة.' : 'فعّل الدخول اليدوي عند تعطل QR؛ تسجّل الزيارات وتحتسب ضمن الحد اليومي.');
-    $('guardEntryButton').disabled = !data.emergency_enabled;
+    $('guardEntryButton').disabled = !data.emergency_enabled || !qrFailureOnThisPhone();
+    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').disabled = !qrFailureOnThisPhone();
     if (data.emergency_enabled) $('manualEmployeeId').focus();
   }
   async function rpc(name, payload) {
@@ -79,12 +82,13 @@
     catch (err) { message('تعذر إلغاء الجلسة؛ أعد محاولة الخروج عند عودة الاتصال.'); }
   };
   if ($('guardEmergencyToggle')) $('guardEmergencyToggle').onclick = async () => {
-    if (busy || !token) return; busy = true; $('guardEmergencyToggle').disabled = true;
+    if (busy || !token || !qrFailureOnThisPhone()) { message('الدخول اليدوي متاح فقط عند تعطل توليد QR على هذا الهاتف.'); return; } busy = true; $('guardEmergencyToggle').disabled = true;
     try { const data = await rpc('guard_set_emergency',{p_token:token,p_enabled:!emergencyEnabled}); authenticated(await rpc('guard_session_status',{p_token:token})); message(data.message); }
     catch(err) { message(err.message); } finally { busy=false; $('guardEmergencyToggle').disabled=false; }
   };
   $('guardEntryForm').onsubmit = async event => {
     event.preventDefault(); if (busy || !token) return;
+    if (!qrFailureOnThisPhone()) { message('لا يمكن الدخول اليدوي ما دام توليد QR يعمل على هذا الهاتف.'); return; }
     const employeeId = $('manualEmployeeId').value.trim();
     if (!employeeId) return;
     if (!pending || pending.employeeId !== employeeId) pending = { employeeId, id: crypto.randomUUID() };
@@ -105,8 +109,13 @@
       $('result').hidden = false; $('qrPanel').hidden = true;
       if (employee.has_photo && data.read_key) loadPhoto(data.read_key);
     } catch (err) { message('لم تُؤكد نتيجة الطلب. ' + err.message + ' إعادة المحاولة بنفس الرقم لا تحتسب زيارة ثانية.'); }
-    finally { busy = false; $('guardEntryButton').disabled = false; }
+    finally { busy = false; $('guardEntryButton').disabled = !emergencyEnabled || !qrFailureOnThisPhone(); }
   };
   if ($('guardSharedLogin')) $('guardSharedLogin').onclick = () => { $('guardIdentity').value = '7000000000'; $('guardPhone').focus(); };
+  window.addEventListener('guard-qr-health-change', () => {
+    if ($('guardEntryButton')) $('guardEntryButton').disabled = !emergencyEnabled || !qrFailureOnThisPhone();
+    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').disabled = !qrFailureOnThisPhone();
+    if (!qrFailureOnThisPhone()) pending = null;
+  });
   showIdentity();
 })();
