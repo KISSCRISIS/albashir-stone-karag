@@ -1032,3 +1032,7 @@ Fixed admin sidebar flex shrink/wrap causing crowded lower items: nonshrinking w
 
 ### Two-column menu and scoped guard management
 Owner correction: all admin navigation options now form two parallel columns, including the mobile expanded menu. Local licensed Tajawal regular/bold fonts improve Arabic labels. Previous/next section arrows invoke the existing tab handlers, preserve section-specific loads, and disable at boundaries. Guard management/emergency panel is nested inside violations only, so it no longer appears under every section. Dashboard action buttons use glossy capsule styling. No authorization or entry logic changes.
+
+
+### Complete registration filters and brighter admin palette
+Employee directory reads the select options directly from same-origin register.html (job, specialty, affiliated entity, department), then unions historical/custom record values. All registration choices appear even with zero records; custom affiliated entities are covered by Other and their exact names. Department is a separate permanent-staff filter. Failure to load the catalog shows a retry-by-refresh message and keeps record-derived options. Brighter navy/turquoise panels preserve notification and decision semantics. No registration or backend changes.

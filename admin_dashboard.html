@@ -554,12 +554,12 @@
 
     <section id="employeeDirectory" class="section">
       <div class="panel"><h2>دليل الموظفين</h2><p>سجلات التسجيل الحالية؛ يعرض المعتمدين افتراضيًا. التصنيف بحسب نوع التسجيل المسجّل، دون تخمين الجهة.</p>
-      <div id="directorySummary" aria-live="polite"></div>
+      <p id="directoryCatalogStatus" role="status"></p><div id="directorySummary" aria-live="polite"></div>
       <div class="directory-filters">
       <label>البحث<input id="directorySearch" type="search" placeholder="الاسم أو رقم الموظف أو الهاتف"></label>
       <label>مجموعة التسجيل<select id="directoryCategory"><option value="">جميع المجموعات</option><option value="PERMANENT">موظفو مستشفى البشير — تسجيل دائم</option><option value="TEMPORARY">موظفو الجهات الأخرى — مؤقت / خارجي</option><option value="UNKNOWN">غير مصنّفين</option></select></label>
       <label>الحالة<select id="directoryStatus"><option value="APPROVED">المعتمدون</option><option value="">جميع حالات التسجيل</option><option value="PENDING">بانتظار الاعتماد</option><option value="REJECTED">المرفوضون</option></select></label>
-      <label>الوظيفة<select id="directoryJob"></select></label><label>الاختصاص<select id="directorySpecialty"></select></label><label>الجهة<select id="directoryEntity"></select></label>
+      <label>الوظيفة<select id="directoryJob"></select></label><label>القسم<select id="directoryDepartment"></select></label><label>الاختصاص<select id="directorySpecialty"></select></label><label>الجهة<select id="directoryEntity"></select></label>
       </div><p id="directoryCount" aria-live="polite"></p><div id="directoryCards" class="directory-grid"></div>
       <div class="directory-pagination"><button id="directoryPrevious" type="button">السابق</button><span id="directoryPage"></span><button id="directoryNext" type="button">التالي</button></div></div>
     </section>

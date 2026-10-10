@@ -31,3 +31,17 @@ button:focus-visible,a:focus-visible{outline:3px solid #facc15;outline-offset:3p
 .theme-admin .app-shell{padding-left:324px!important}.theme-admin .topbar{margin-left:-324px!important;padding-left:324px!important}
 .admin-section-navigation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;margin-bottom:16px;border:1px solid #285571;border-radius:16px;background:#08243a}.admin-section-navigation button,.theme-admin button:not(.tab-btn):not(.kpi-card):not(.panel){background-image:linear-gradient(180deg,#ffffff28,transparent 48%,#00000020);border-radius:999px;box-shadow:inset 0 2px 0 #ffffff45,inset 0 -4px 0 #0004,0 5px 12px #0003;border:1px solid #85c3df55}
 @media(max-width:760px){.theme-admin .app-shell{padding:12px!important}.theme-admin .topbar{margin:0 0 12px!important;padding:12px!important}.theme-admin .nav-tabs{width:100%;display:none}.theme-admin .nav-tabs.menu-open{width:100%}.admin-section-navigation{flex-wrap:wrap}.admin-section-navigation>span{order:-1;width:100%;text-align:center}.admin-section-navigation button{flex:1;padding:10px 4px;font-size:14px}.navigation-arrow{width:22px;height:20px}}
+
+/* Brighter navy / turquoise palette with warm gold highlights. */
+body.theme-admin{--text:#eff8ff;--muted:#b8cedb;--line:#52778e;background:linear-gradient(135deg,#12324a,#20546a)!important;color:#eff8ff}
+.theme-admin .nav-tabs{background:linear-gradient(180deg,#124557,#0b2d41);border-color:#5497ab}
+.theme-admin .nav-tabs .tab-btn{height:auto!important;max-height:none!important;grid-auto-rows:max-content;align-content:center;gap:9px;background:linear-gradient(160deg,#276780,#17455d);border-color:#66a8bd;color:#f0faff;overflow:visible}
+.theme-admin .nav-tabs .tab-btn.active{background:linear-gradient(160deg,#107a83,#07545d);border-color:#80e0da}
+.theme-admin .nav-tabs .tab-btn .badge[hidden]{display:none!important}
+.theme-admin .topbar{background:#14384c!important}.theme-admin .panel,.theme-admin .table-wrap{background:linear-gradient(145deg,#1c465d,#14384e)!important;border-color:#56879d!important}
+.theme-admin .panel-title,.theme-admin h2,.theme-admin h3{color:#f3fbff}.theme-admin .panel-desc,.theme-admin .small-muted,.theme-admin .stat-helper{color:#c0d7e4}
+.theme-admin input:not([type=checkbox]),.theme-admin select,.theme-admin textarea{background:#0f3045!important;color:#effaff!important;border-color:#7197aa!important}.theme-admin select option{background:#12364c;color:#fff}
+.theme-admin .directory-card{background:#214e65;border-color:#76a2b6;box-shadow:0 6px 16px #05243540}.theme-admin #directorySummary,.theme-admin .admin-section-navigation{background:#28586b;border-color:#6f9cad;color:#fff}
+.theme-admin .kpi-card:not(.kpi-warning):not(.kpi-danger){border-color:#5b8ea4}.theme-admin button.btn-red{background-color:#a42c42;color:#fff}.theme-admin button.btn-green{background-color:#087758;color:#fff}
+
+.theme-admin button:not(.tab-btn):not(.kpi-card):not(.panel):not(.btn-red):not(.btn-green):not(.btn-yellow):not(.btn-soft){background-color:#086c91;color:#fff}.theme-admin button.btn-yellow{background-color:#b98412;color:#fff}.theme-admin button.btn-soft{background-color:#31566b;color:#fff}
