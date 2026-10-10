@@ -45,3 +45,5 @@ body.theme-admin{--text:#eff8ff;--muted:#b8cedb;--line:#52778e;background:linear
 .theme-admin .kpi-card:not(.kpi-warning):not(.kpi-danger){border-color:#5b8ea4}.theme-admin button.btn-red{background-color:#a42c42;color:#fff}.theme-admin button.btn-green{background-color:#087758;color:#fff}
 
 .theme-admin button:not(.tab-btn):not(.kpi-card):not(.panel):not(.btn-red):not(.btn-green):not(.btn-yellow):not(.btn-soft){background-color:#086c91;color:#fff}.theme-admin button.btn-yellow{background-color:#b98412;color:#fff}.theme-admin button.btn-soft{background-color:#31566b;color:#fff}
+
+.theme-admin .nav-tabs .tab-btn[onclick*="dailyUsage"]::before{content:"◴"}

@@ -86,6 +86,7 @@
       <button class="tab-btn" onclick="showTab('registrations', this)">طلبات التسجيل</button>
       <button class="tab-btn" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">تغيير بيانات الموظفين</button>
       <button class="tab-btn" onclick="showTab('limits', this)">حدود الاختصاصات</button>
+      <button class="tab-btn" onclick="showTab('dailyUsage', this)">متابعة الحدود اليومية</button>
       <button class="tab-btn" onclick="showTab('logs', this)">سجلات الدخول</button>
       <button class="tab-btn" onclick="showTab('violations', this)">أمن الصخره وتبليغات التجاوزات</button>
       <button class="tab-btn" onclick="showTab('admins', this)">المشرفون</button>
@@ -160,27 +161,6 @@
         <p class="panel-desc">نشاط سجلات الدخول المرتبطة بتسجيلات <strong>مؤقت / خارجي (TEMPORARY)</strong> فقط — من البيانات الحالية فقط، بدون تخمين. الموظفون الدائمون (PERMANENT) مستبعدون من رسم التسجيلات المؤقتة، ويُحتسبون في رسم موظفي المستشفى فقط.</p>
         <p class="panel-desc small-muted">المصدر: gate_access_logs مرتبطة بـ employee_registrations عبر employee_registration_id أولًا ثم employee_id (فريد). logsData لا يحمل registration_category / affiliated_entity / classification مباشرة. السجلات غير المرتبطة تُعرض كبند “غير مرتبط بسجل” ولا تُحتسب كخارجي. الفئات غير المصنفة تبقى UNKNOWN ولا تُحتسب كخارجي ولا كموظف مستشفى.</p>
       </details>
-
-      <div class="panel" id="limitsUsagePanel">
-        <h2 class="panel-title">استخدام الحدود اليومية</h2>
-        <p class="panel-desc">للاختصاصات التي تعمل بنظام “مسموح جزئيًا”.</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الاختصاص</th>
-                <th>الحد اليومي</th>
-                <th>المستخدم اليوم</th>
-                <th>المتبقي</th>
-                <th>الاستخدام %</th>
-                <th>التقدم</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody id="limitsUsageBody"></tbody>
-          </table>
-        </div>
-      </div>
 
       <div class="panel health-compact" id="systemHealthPanel">
         <h2 class="panel-title">صحة النظام</h2>
@@ -547,6 +527,29 @@
               </tr>
             </thead>
             <tbody id="auditBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="dailyUsage" class="section">
+<div class="panel" id="limitsUsagePanel">
+        <h2 class="panel-title">استخدام الحدود اليومية</h2>
+        <p class="panel-desc">للاختصاصات التي تعمل بنظام “مسموح جزئيًا”.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الاختصاص</th>
+                <th>الحد اليومي</th>
+                <th>المستخدم اليوم</th>
+                <th>المتبقي</th>
+                <th>الاستخدام %</th>
+                <th>التقدم</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody id="limitsUsageBody"></tbody>
           </table>
         </div>
       </div>

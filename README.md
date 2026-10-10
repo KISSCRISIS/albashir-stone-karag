@@ -1036,3 +1036,7 @@ Owner correction: all admin navigation options now form two parallel columns, in
 
 ### Complete registration filters and brighter admin palette
 Employee directory reads the select options directly from same-origin register.html (job, specialty, affiliated entity, department), then unions historical/custom record values. All registration choices appear even with zero records; custom affiliated entities are covered by Other and their exact names. Department is a separate permanent-staff filter. Failure to load the catalog shows a retry-by-refresh message and keeps record-derived options. Brighter navy/turquoise panels preserve notification and decision semantics. No registration or backend changes.
+
+
+### Daily limit usage moved off overview
+Moved the unchanged limitsUsagePanel and its live data renderer to a dedicated sidebar section متابعة الحدود اليومية (dailyUsage). Overview no longer contains the table. Existing حدود الاختصاصات remains the configuration editor; usage calculations, access rules and export remain unchanged. Section arrows include the new tab.
