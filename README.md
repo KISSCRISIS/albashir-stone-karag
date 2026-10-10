@@ -1059,3 +1059,5 @@ Preserved owner-selected manual administrative review criteria. Fixed duplicate 
 
 ### Legacy registration cleanup (2026-10-10)
 Owner approved Staging-only revocation of client execution on the obsolete 8/13-argument register_employee_request signatures. Runtime source uses the 15-argument signature exclusively; no public/private SQL function depends on the obsolete entry points. Function bodies and records are preserved. Current registration criteria are unchanged. Regression: tests/registration-legacy-acl.cjs; canonical SQL: supabase/canonical/revoke_legacy_registration_execute.sql. Production is not modified.
+
+Current progress and continuation reference: [docs/CURRENT_PROGRESS.md](docs/CURRENT_PROGRESS.md).
