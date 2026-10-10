@@ -1,4 +1,4 @@
-const CACHE_VERSION = "emergency-room-parking-offline-v29";
+const CACHE_VERSION = "emergency-room-parking-offline-v30";
 
 const OFFLINE_ASSETS = [
   "./index.html",
@@ -7,6 +7,7 @@ const OFFLINE_ASSETS = [
   "./profile.html",
   "./login.html",
   "./admin_dashboard.html",
+  "./admin-live.js",
   "./global-leadership.js",
   "./global-theme.css",
   "./access-control.js",
@@ -139,3 +140,18 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+self.addEventListener('push',event=>{
+ event.waitUntil((async()=>{let data;try{data=event.data.json();}catch(_){return;}
+ const targets=new Set(['registrations','profileChanges','violations','limits','logs','guardRequests']);
+ if(typeof data.event_id!=='string'||!/^[a-f0-9-]{36}$/.test(data.event_id)||!targets.has(data.target))return;
+ await self.registration.showNotification(String(data.title||'إشعار الإدارة').slice(0,100),{body:String(data.body||'').slice(0,300),tag:'admin-'+data.event_id,icon:'./icon-192.png',badge:'./icon-192.png',data:{target:data.target,event_id:data.event_id}});
+ })());
+});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{
+ const target=event.notification.data?.target;const allowed=new Set(['registrations','profileChanges','violations','limits','logs','guardRequests']);
+ const url=new URL('./admin_dashboard.html',self.location.href);url.searchParams.set('section',allowed.has(target)?target:'notifications');
+ const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+ const existing=windows.find(w=>new URL(w.url).origin===url.origin&&new URL(w.url).pathname===url.pathname);
+ if(existing){await existing.navigate(url.href);await existing.focus();}else await self.clients.openWindow(url.href);
+})());});

@@ -2,7 +2,7 @@
   'use strict';
   const $ = id => document.getElementById(id), key = 'alb_guard_session_v1';
   const client = supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY, {auth:{persistSession:false,autoRefreshToken:false}});
-  let token = '', picture, removePicture = false, processing = false, busy = false;
+  let token = '', picture, removePicture = false, processing = false, busy = false, shared = false, requestId = crypto.randomUUID();
   try { token = localStorage.getItem(key) || ''; } catch (_) {}
   const notice = text => { $('profileStatus').textContent = text; };
   async function rpc(name, payload) {
@@ -52,13 +52,29 @@
     if (picture !== undefined) profile.photo_base64 = picture;
     if (removePicture) profile.remove_photo = true;
     busy = true; $('profileSave').disabled = true;
-    try { const data = await rpc('guard_save_profile',{p_token:token,p_profile:profile}); picture = undefined; removePicture = false; notice(data.message); }
+    try {
+      const data = shared
+        ? await rpc('guard_submit_registration',{p_token:token,p_request_id:requestId,p_national_id:$('profileNational').value.trim(),p_phone:$('profilePhone').value,p_profile:profile})
+        : await rpc('guard_save_profile',{p_token:token,p_profile:profile});
+      picture = undefined; removePicture = false; $('profilePhone').value = ''; notice(data.message);
+      if (shared) { $('guardProfileForm').hidden = true; requestId = crypto.randomUUID(); }
+    }
     catch (err) { notice(err.message); }
     finally { busy = false; $('profileSave').disabled = false; }
   };
   (async () => {
     if (!token) { notice('سجّل دخول الحارس أولًا من شاشة الحارس، ثم افتح صفحتك الشخصية.'); return; }
     try {
+      const session = await rpc('guard_session_profile',{p_token:token});
+      shared = session.is_shared === true;
+      if (shared) {
+        document.querySelector('h1').textContent = 'طلب حساب حارس شخصي — اختياري';
+        $('profileNational').readOnly = false; $('profileNational').required = true; $('profileNational').inputMode = 'numeric';
+        $('profilePhoneLabel').hidden = false; $('profilePhone').required = true;
+        $('profileSave').textContent = 'إرسال الطلب للموافقة'; $('guardProfileForm').hidden = false;
+        notice('يمكنك الاستمرار بالحساب الجماعي دون تقديم طلب. الرقم الوطني والهاتف مطلوبان للحساب الشخصي؛ بقية المعلومات اختيارية.');
+        return;
+      }
       const {profile:p} = await rpc('guard_get_profile',{p_token:token});
       $('profileNational').value = p.national_id; $('profileName').value = p.full_name || '';
       $('profileAge').value = p.age ?? ''; $('profileResidence').value = p.residence || ''; $('profileAbout').value = p.about || '';

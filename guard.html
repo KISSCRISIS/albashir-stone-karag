@@ -3,16 +3,19 @@
 <link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./guard-manual.css"><script src="./supabase.min.js"></script><script src="./qrcode.min.js"></script>
 <style>*{box-sizing:border-box}body{margin:0;background:#03121e;color:#e5f2ff;font-family:Tahoma,Arial;min-height:100vh}main{max-width:900px;margin:auto;padding:20px}section{background:#0b2638;padding:20px;border:1px solid #27516a;border-radius:18px;margin:16px 0;text-align:center}canvas{display:block;margin:auto;max-width:100%;height:auto!important;background:white}button{padding:14px 24px;background:#087eae;color:white;border:0;border-radius:12px;font:inherit;cursor:pointer}.error{color:#fecaca}.allowed{border-color:#22c55e}.denied{border-color:#ef4444}.limited{border-color:#fb923c}[hidden]{display:none!important}img{width:140px;height:160px;object-fit:cover;border-radius:16px}#countdown{font-size:30px}#result{position:fixed;inset:0;z-index:9999;margin:0;border-radius:0;border-width:4px;background:#03121e;display:grid;place-items:center;align-content:center;padding:clamp(24px,5vw,64px);overflow:auto}#result[hidden]{display:none!important}#result h2{font-size:clamp(42px,8vw,88px);margin:0 0 24px}#result img{width:min(260px,46vw);height:min(300px,52vw);max-width:260px;max-height:300px}#result h3{font-size:clamp(28px,5vw,48px);margin:20px 0 10px}#result p{font-size:clamp(20px,3vw,32px);margin:8px 0}@media(max-height:400px){main{padding:8px}section{padding:10px}canvas{max-height:210px;width:auto!important}#result{padding:16px}#result h2{font-size:36px;margin-bottom:12px}#result img{width:120px;height:130px}#result h3{font-size:24px;margin:8px 0}#result p{font-size:18px}} </style></head>
 <body><main><h1>شاشة الحارس — ALBASHIR</h1><p>اعرض الرمز ليمسحه الموظف بهاتفه.</p><p id="runtime" role="status">جارِ الاتصال...</p>
-<section id="qrPanel"><canvas id="qr" hidden></canvas><p id="countdown">—</p><button id="refresh">تحديث الرمز</button><p><button id="manualOpen" type="button">الدخول اليدوي للطوارئ</button></p></section>
+<aside id="guardSessionHeader" hidden><img id="guardAvatar" hidden alt="صورة الحارس" style="width:48px;height:48px;vertical-align:middle"><strong id="guardSessionName"></strong><small id="guardSessionTime" style="display:block"></small><a href="./guard-profile.html">صفحتي الشخصية / طلب حساب اختياري</a></aside>
+<section id="qrPanel"><canvas id="qr" hidden></canvas><p id="countdown">—</p><button id="refresh">تحديث الرمز</button><p><button id="manualOpen" type="button">دخول الحارس / الدخول اليدوي للطوارئ</button></p></section>
 <section id="guardManualPanel" hidden aria-label="الدخول اليدوي للطوارئ">
   <h2>الدخول اليدوي للطوارئ</h2>
   <form id="guardLoginForm">
+    <p><button id="guardSharedLogin" type="button">استخدام الحساب الجماعي مؤقتًا</button></p>
     <p><label>الرقم الوطني للحارس (اسم المستخدم)<br><input id="guardIdentity" inputmode="numeric" autocomplete="username" maxlength="20" required></label></p>
     <p><label>كلمة المرور: رقم هاتف الحارس المسجّل<br><input id="guardPhone" type="password" inputmode="tel" autocomplete="current-password" maxlength="25" required></label></p>
     <button id="guardLoginButton">دخول الحارس</button>
   </form>
   <form id="guardEntryForm" hidden>
     <p id="guardWelcome"></p>
+    <p><button id="guardEmergencyToggle" type="button">تفعيل الدخول اليدوي عند تعطل QR</button></p>
     <p><a id="guardProfileLink" href="./guard-profile.html">صفحتي الشخصية — معلومات وصورة اختيارية</a></p>
     <p><label>رقم الموظف الوظيفي أو الوطني<br><input id="manualEmployeeId" maxlength="100" autocomplete="off" required></label></p>
     <button id="guardEntryButton">تسجيل دخول الموظف</button>

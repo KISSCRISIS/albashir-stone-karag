@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id), storageKey = 'alb_guard_session_v1';
-  let token = '', busy = false, pending = null;
+  let token = '', busy = false, pending = null, emergencyEnabled = false;
   try { token = localStorage.getItem(storageKey) || ''; } catch (_) {}
   const message = text => { $('guardManualMessage').textContent = text; };
   function clearSession() {
@@ -9,11 +9,27 @@
     try { localStorage.removeItem(storageKey); } catch (_) {}
     $('guardLoginForm').hidden = false; $('guardEntryForm').hidden = true;
     $('manualEmployeeId').value = ''; $('guardPhone').value = '';
+    if ($('guardSessionHeader')) $('guardSessionHeader').hidden = true;
+    if ($('guardAvatar')) { $('guardAvatar').hidden = true; $('guardAvatar').removeAttribute('src'); }
+  }
+  async function showIdentity() {
+    if (!token || !$('guardSessionHeader')) return;
+    try {
+      const data = await rpc('guard_session_profile',{p_token:token});
+      $('guardSessionName').textContent = data.full_name || 'حارس';
+      $('guardSessionTime').textContent = 'وقت الدخول: ' + new Date(data.logged_in_at).toLocaleString('ar-JO',{timeZone:'Asia/Amman'});
+      $('guardAvatar').hidden = !data.photo_base64;
+      if (data.photo_base64) $('guardAvatar').src = 'data:image/jpeg;base64,'+data.photo_base64.replace(/\s/g,'');
+      else $('guardAvatar').removeAttribute('src');
+      $('guardSessionHeader').hidden = false;
+    } catch (err) { message(err.message); }
   }
   function authenticated(data) {
     $('guardLoginForm').hidden = true; $('guardEntryForm').hidden = false;
     $('guardWelcome').textContent = data.full_name ? 'مرحبًا ' + data.full_name : 'مرحبًا بك في شاشة الحارس';
-    message(data.emergency_enabled ? 'أدخل رقم الموظف لتسجيل الزيارة.' : 'وضع الطوارئ غير مفعّل؛ تطلب الإدارة تفعيله عند الحاجة.');
+    emergencyEnabled = data.emergency_enabled === true;
+    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').textContent = emergencyEnabled ? 'إيقاف الدخول اليدوي للطوارئ' : 'تفعيل الدخول اليدوي عند تعطل QR';
+    message(emergencyEnabled ? 'أدخل رقم الموظف لتسجيل الزيارة.' : 'فعّل الدخول اليدوي عند تعطل QR؛ تسجّل الزيارات وتحتسب ضمن الحد اليومي.');
     $('guardEntryButton').disabled = !data.emergency_enabled;
     if (data.emergency_enabled) $('manualEmployeeId').focus();
   }
@@ -41,7 +57,7 @@
       const data = await rpc('guard_login', { p_identity: $('guardIdentity').value.trim(), p_phone: $('guardPhone').value });
       token = data.token;
       try { localStorage.setItem(storageKey, token); } catch (_) {}
-      $('guardPhone').value = ''; authenticated(data);
+      $('guardPhone').value = ''; authenticated(data); await showIdentity();
     } catch (err) { message(err.message); }
     finally { busy = false; $('guardLoginButton').disabled = false; }
   };
@@ -49,6 +65,11 @@
     if (busy) return;
     try { await rpc('guard_logout', { p_token: token }); clearSession(); message('تم تسجيل خروج الحارس.'); }
     catch (err) { message('تعذر إلغاء الجلسة؛ أعد محاولة الخروج عند عودة الاتصال.'); }
+  };
+  if ($('guardEmergencyToggle')) $('guardEmergencyToggle').onclick = async () => {
+    if (busy || !token) return; busy = true; $('guardEmergencyToggle').disabled = true;
+    try { const data = await rpc('guard_set_emergency',{p_token:token,p_enabled:!emergencyEnabled}); authenticated(await rpc('guard_session_status',{p_token:token})); message(data.message); }
+    catch(err) { message(err.message); } finally { busy=false; $('guardEmergencyToggle').disabled=false; }
   };
   $('guardEntryForm').onsubmit = async event => {
     event.preventDefault(); if (busy || !token) return;
@@ -74,4 +95,6 @@
     } catch (err) { message('لم تُؤكد نتيجة الطلب. ' + err.message + ' إعادة المحاولة بنفس الرقم لا تحتسب زيارة ثانية.'); }
     finally { busy = false; $('guardEntryButton').disabled = false; }
   };
+  if ($('guardSharedLogin')) $('guardSharedLogin').onclick = () => { $('guardIdentity').value = '7000000000'; $('guardPhone').focus(); };
+  showIdentity();
 })();

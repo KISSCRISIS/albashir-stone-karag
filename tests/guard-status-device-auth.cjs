@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),vm=require('vm');
 const {PGlite}=require('@electric-sql/pglite');
-const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8').replace(/\r\n/g,'\n');
 const intro=read('supabase/migrations/20261007110000_guard_status_device_auth.sql'),retire=read('supabase/guard_status_retire_direct_read.sql');
 (async()=>{const db=await PGlite.create();try{
 await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;

@@ -15,6 +15,7 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
   if(name==='create_public_guard_qr')return send({ok:true,token:crypto.randomUUID(),read_key:'b'.repeat(64),expires_at:new Date(Date.now()+30000).toISOString()});
   if(name==='get_public_guard_result')return send({ok:true,result:'WAITING'});
   if(name==='guard_login'){logins++;assert.equal(body.p_identity,'999999991');assert.equal(body.p_phone,'0799999901');return send({ok:true,token:session,full_name:'',emergency_enabled:true});}
+  if(name==='guard_session_profile')return send({ok:true,is_shared:false,full_name:'Synthetic guard',logged_in_at:new Date().toISOString()});
   if(name==='guard_session_status'){assert.equal(body.p_token,session);return send({ok:true,full_name:'Synthetic guard',emergency_enabled:true});}
   if(name==='guard_manual_employee_entry'){
    requests.push(body);assert.equal(body.p_token,session);assert.equal(body.p_employee_id,'SYN-ENTRY');assert(body.p_request_id);

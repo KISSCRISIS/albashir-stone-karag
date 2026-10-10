@@ -90,6 +90,7 @@
       <button class="tab-btn" onclick="showTab('admins', this)">المشرفون</button>
       <button class="tab-btn" onclick="showTab('audit', this)">Audit</button>
       <button class="tab-btn" onclick="showTab('exports', this)">تصدير CSV</button>
+      <button class="tab-btn" onclick="showTab('notifications', this)">الإشعارات <span id="adminNoticeCount" class="badge yellow">0</span></button>
     </nav>
 
     <section id="overview" class="section active">
@@ -565,6 +566,12 @@
         <span class="creator-name">Dr. Alaa Aqrabawi</span>
       </div>
     </footer>
+    <section class="section panel" id="notifications">
+      <h2>إشعارات الإدارة</h2><p>طلبات جديدة، نهاية الشفتات والحد اليومي. التفضيل محفوظ لهذا الحساب وهذا الجهاز.</p>
+      <button id="adminNoticeEnable" type="button">تفعيل تنبيهات هذا الجهاز</button>
+      <button id="adminNoticeDisable" type="button">إيقاف تنبيهات هذا الجهاز</button>
+      <p id="adminNoticeStatus" role="status"></p><div id="adminNoticeList"></div>
+    </section>
     <section class="panel" id="guardAdminPanel" hidden>
       <h2>ملفات الحراس والدخول اليدوي للطوارئ</h2>
       <p>اسم المستخدم هو الرقم الوطني، وكلمة المرور هي رقم الهاتف المسجّل. الاسم اختياري. تعديل الحساب يُلغي جلساته الحالية.</p>
@@ -579,6 +586,10 @@
       <p class="guard-emergency-option"><label class="admin-check-option"><input id="guardEmergencyEnabled" type="checkbox"><span>تفعيل الدخول اليدوي عند تعطل QR</span><small>يسمح للحارس المسجّل بإدخال رقم الموظف وتسجيل زيارته</small></label>
         <button id="guardEmergencySave" type="button">حفظ وضع الطوارئ</button></p>
       <p id="guardAdminMessage" role="status"></p><div id="guardAccountsList"></div>
+      <h3>الحساب الجماعي المؤقت</h3>
+      <form id="guardSharedForm"><label>كلمة المرور الرقمية للحساب الجماعي<input id="guardSharedPhone" type="password" inputmode="tel" autocomplete="new-password" required></label><label class="admin-check-option"><input id="guardSharedEnabled" type="checkbox" checked><span>الحساب الجماعي فعال</span></label><button>حفظ الحساب الجماعي</button></form>
+      <h3>طلبات حسابات الحراس الشخصية</h3><div id="guardRequestsList"></div>
+      <h3>آخر أوقات دخول الحراس</h3><div id="guardSigninList"></div>
     </section>
   </main>
 
@@ -734,6 +745,7 @@
     function toggleAdminSound() {
       adminAlertsEnabled = !adminAlertsEnabled;
       localStorage.setItem("adminAlertsEnabled_v2", String(adminAlertsEnabled));
+      window.AdminLive?.rememberSound(adminAlertsEnabled);
       if (adminAlertsEnabled) {
         ensureAudioContext();
         playWatarLikeChime();
@@ -812,6 +824,7 @@
     async function enableAdminAlerts() {
       adminAlertsEnabled = true;
       localStorage.setItem("adminAlertsEnabled_v2", "true");
+      window.AdminLive?.rememberSound(true);
       ensureAudioContext();
       updateAdminAlertState();
       playWatarLikeChime();
@@ -993,6 +1006,7 @@
       setupRoleUi();
       await refreshAll();
       subscribeRealtime();
+      window.AdminLive?.start();
     }
 
     async function verifyAdmin() {
@@ -2289,6 +2303,7 @@
     }
 
     async function logout() {
+      await window.AdminLive?.stop(true);
       window.EmployeePhoto?.clearCache();
       if (!supabaseClient) return;
       await supabaseClient.auth.signOut();
@@ -2316,6 +2331,7 @@
     });
   </script>
 <script src="./guard-admin.js"></script>
+<script src="./admin-live.js"></script>
 <script src="./global-leadership.js"></script>
 </body>
 </html>

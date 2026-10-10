@@ -1,5 +1,5 @@
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict'),{chromium}=require('playwright');
-const root=path.resolve(__dirname,'..'),token='a'.repeat(64),saves=[];
+const root=path.resolve(__dirname,'..'),token='a'.repeat(64),saves=[];let shared=false;const submissions=[];
 const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://localhost').pathname.slice(1),file=path.resolve(root,name);if(!file.startsWith(root+path.sep))return res.writeHead(403).end();try{res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'application/octet-stream');res.end(fs.readFileSync(file));}catch{res.writeHead(404).end();}});
 (async()=>{let browser;try{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
@@ -7,8 +7,8 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
  await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url());if(url.origin===origin)return route.continue();if(!url.hostname.endsWith('.supabase.co'))return route.abort();
  if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,GET,OPTIONS'}});
  const name=url.pathname.split('/').pop(),body=req.postDataJSON();assert.equal(body.p_token,token);
- let data;if(name==='guard_get_profile')data={ok:true,profile:{national_id:'9988776611',full_name:'',age:null,residence:'',about:'',photo_base64:null}};
- else if(name==='guard_save_profile'){saves.push(body.p_profile);data={ok:true,message:'تم حفظ صفحتك الشخصية'};}else throw Error(name);
+ let data;if(name==='guard_session_profile')data={ok:true,is_shared:shared};else if(name==='guard_get_profile')data={ok:true,profile:{national_id:'9988776611',full_name:'',age:null,residence:'',about:'',photo_base64:null}};
+ else if(name==='guard_submit_registration'){submissions.push(body);data={ok:true,message:'تم إرسال طلب حسابك للموافقة'};}else if(name==='guard_save_profile'){saves.push(body.p_profile);data={ok:true,message:'تم حفظ صفحتك الشخصية'};}else throw Error(name);
  return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(data)});
  });
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
@@ -24,5 +24,6 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
  assert(Buffer.from(saves[1].photo_base64,'base64').subarray(0,3).equals(Buffer.from([255,216,255])));assert(Buffer.from(saves[1].photo_base64,'base64').length<=196608);
  await page.locator('#profilePhoto').setInputFiles({name:'invalid.png',mimeType:'image/png',buffer:Buffer.from('not an image')});await page.waitForFunction(()=>document.querySelector('#profileStatus').textContent.includes('تعذرت قراءة'));
  await page.locator('#profileRemovePhoto').click();await page.locator('#profileSave').click();await page.waitForFunction(()=>document.querySelector('#profileStatus').textContent==='تم حفظ صفحتك الشخصية');assert.equal(saves[2].remove_photo,true);assert(!('photo_base64' in saves[2]));assert.equal(await page.locator('#profilePreview').isVisible(),false);
+ shared=true;await page.reload();await page.locator('#guardProfileForm').waitFor();assert.equal(await page.locator('#profileNational').getAttribute('readonly'),null);await page.locator('#profileNational').fill('9988776699');await page.locator('#profilePhone').fill('0799999999');await page.locator('#guardProfileForm').evaluate(f=>{f.requestSubmit();f.requestSubmit();});await page.waitForFunction(()=>document.querySelector('#profileStatus').textContent.includes('تم إرسال طلب'));assert.equal(submissions.length,1);assert(submissions[0].p_request_id);assert.equal(submissions[0].p_national_id,'9988776699');assert.equal(await page.evaluate(()=>localStorage.getItem('alb_guard_session_v1')),token);assert.equal(await page.locator('#guardProfileForm').isVisible(),false);
  assert.deepEqual(errors,[]);console.log('PASS guard profile requires session, mobile layout, optional fields, JPEG conversion/compression, invalid photo, duplicate-submit lock and photo removal; mocked backend');
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1});
