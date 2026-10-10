@@ -43,7 +43,7 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
  assert.equal(await page.locator('.top-actions a[href="./index.html"]').count(),0);
  assert.equal(await page.locator('#registrationCopyShortcut').count(),0);
  assert.equal(await page.locator('section:not(#exports) [onclick^="exportCsv"]').count(),0);
- await page.evaluate(()=>{window.csvDownload=null;window.downloadCsv=(name,rows)=>window.csvDownload={name,rows};showTab('exports');});
+ await page.setViewportSize({width:1366,height:900});await page.evaluate(()=>{window.csvDownload=null;window.downloadCsv=(name,rows)=>window.csvDownload={name,rows};showTab('exports');});
  assert(await page.locator('.nav-tabs').getByRole('button',{name:'تصدير CSV',exact:true}).isVisible());
  await page.getByRole('button',{name:'تحميل البيانات المحددة',exact:true}).click();assert((await page.evaluate(()=>csvDownload.rows)).some(row=>row.dataset==='logs'));
  await page.evaluate(()=>{adminProfile={role:'ADMIN',permissions:{}};csvDownload=null;exportSelectedCsv();});assert.equal(await page.evaluate(()=>csvDownload),null);

@@ -1024,3 +1024,7 @@ Guard screen organization: QR stays on the main screen; emergency entry uses one
 
 ### Employee directory (Staging review)
 The admin sidebar now offers دليل الموظفين using the existing authorized employee_registrations dataset. Approved records are shown by default; registration category, job, specialty, entity, status and name/ID/phone filters retain unknown classifications explicitly. Cards include private photo hydration, safe employee details and 24-record pagination. Counters describe registration records, not entry visits; filter option counts cover all current registrations. The classification-method diagnostic block is hidden without removing its chart dependencies. No backend, entry policy, permissions or offline storage changes. Regression: tests/employee-directory-browser.cjs and public runtime audits.
+
+
+### Readable navigation and reference-inspired actions (Staging)
+Fixed admin sidebar flex shrink/wrap causing crowded lower items: nonshrinking wrapped labels, in-flow unread badges, independent vertical desktop scrolling. Mobile uses a labeled expandable menu in document flow, retaining every section and closing after selection. Glossy rounded actions and circular sidebar icons follow owner image references; gold directional arrows keep original navigation text/handlers. Backend and permissions unchanged. Browser coverage includes all menu items, badges, scrolling, mobile expansion and content boundaries.

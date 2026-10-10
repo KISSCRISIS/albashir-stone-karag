@@ -4,7 +4,18 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
 (async()=>{let browser;try{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;browser=await chromium.launch();const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));await ctx.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());
- await page.goto(origin+'/admin_dashboard.html');await page.evaluate(()=>{
+ await page.goto(origin+'/admin_dashboard.html');
+ for(const width of [320,390,768,1366]){
+  await page.setViewportSize({width,height:650});
+  if(width<=760){await page.locator('.admin-menu-toggle').click();assert.equal(await page.locator('.admin-menu-toggle').getAttribute('aria-expanded'),'true');}
+  const bounds=await page.locator('.nav-tabs .tab-btn').evaluateAll(items=>items.map(e=>{const b=e.getBoundingClientRect();return {top:b.top,bottom:b.bottom,width:b.width,height:b.height};}));
+  for(let i=0;i<bounds.length;i++){assert(bounds[i].height>=44);if(i)assert(bounds[i].top>=bounds[i-1].bottom,'overlap '+width);}
+  assert(await page.locator('.nav-tabs').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+  await page.locator('.nav-tabs').getByRole('button',{name:'دليل الموظفين',exact:true}).click();
+  if(width<=760){assert.equal(await page.locator('.admin-menu-toggle').getAttribute('aria-expanded'),'false');assert(!(await page.locator('.nav-tabs').isVisible()));}
+ }
+ await page.setViewportSize({width:1366,height:900});
+ await page.evaluate(()=>{
   adminProfile={role:'SUPER_ADMIN'};supabaseClient={auth:{getSession:async()=>({data:{session:{access_token:'synthetic'}}})}};
   window.photoHydrates=0;window.EmployeePhoto={hydrate:()=>{window.photoHydrates++;}};window.actionCalls=[];
   window.updateRegistration=(...args)=>window.actionCalls.push(['registration',...args]);window.setTrustedDevice=(...args)=>window.actionCalls.push(['device',...args]);
@@ -43,9 +54,9 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
  assert.equal(await page.locator('.top-actions a[href="./index.html"]').count(),0);
  assert.equal(await page.locator('#registrationCopyShortcut').count(),0);
  assert.equal(await page.locator('section:not(#exports) [onclick^="exportCsv"]').count(),0);
- await page.evaluate(()=>{window.csvDownload=null;window.downloadCsv=(name,rows)=>window.csvDownload={name,rows};showTab('exports');});
+ await page.setViewportSize({width:1366,height:900});await page.evaluate(()=>{window.csvDownload=null;window.downloadCsv=(name,rows)=>window.csvDownload={name,rows};showTab('exports');});
  assert(await page.locator('.nav-tabs').getByRole('button',{name:'تصدير CSV',exact:true}).isVisible());
  await page.getByRole('button',{name:'تحميل البيانات المحددة',exact:true}).click();assert((await page.evaluate(()=>csvDownload.rows)).some(row=>row.dataset==='logs'));
  await page.evaluate(()=>{adminProfile={role:'ADMIN',permissions:{}};csvDownload=null;exportSelectedCsv();});assert.equal(await page.evaluate(()=>csvDownload),null);
- assert.deepEqual(errors,[]);console.log('PASS all 13 request fields/actions retained, permission-disabled controls, private photo hydration, escaped data, six KPI filters, empty/search reset, responsive cards/grid and labeled checkbox sizing; synthetic browser data');
+ assert.equal(await page.locator('#directoryPrevious .navigation-arrow').count(),1);assert.equal(await page.locator('#directoryNext .navigation-arrow.left').count(),1);assert.deepEqual(errors,[]);console.log('PASS all 13 request fields/actions retained, permission-disabled controls, private photo hydration, escaped data, six KPI filters, empty/search reset, responsive cards/grid and labeled checkbox sizing; synthetic browser data');
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1});
