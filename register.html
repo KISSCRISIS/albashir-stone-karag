@@ -137,7 +137,7 @@
 
   <section class="panel" id="employee-registration">
     <h2>موظف جديد — التسجيل</h2>
-    <p class="desc">عبّئ الطلب مرة واحدة، (كل البيانات ادناه اجباريه)، ثم تنتظر موافقة الإدارة. بعد الاعتماد توجّه لبوابة الدخول وامسح رمز QR من شاشة الحارس للدخول.</p>
+    <p class="desc">عبّئ الطلب مرة واحدة، الحقول الظاهرة والصورة والإقرار مطلوبة؛ حفظ الهاتف اختياري. ثم انتظر موافقة الإدارة. بعد الاعتماد توجّه لبوابة الدخول وامسح رمز QR من شاشة الحارس للدخول.</p>
 
     <form id="registerForm">
       <label for="registrationCategory">نوع التسجيل</label>
@@ -248,7 +248,7 @@
 
       <label style="display:flex;align-items:flex-start;gap:8px;margin-top:16px;cursor:pointer">
         <input id="rememberTrustedDevice" type="checkbox" checked style="width:auto;margin-top:3px" />
-        <span style="color:var(--muted);font-size:13px;line-height:1.6">حفظ هذا الهاتف للدخول عبر QR بعد موافقة الإدارة. عند تفعيله لن تحتاج لإدخال الرقم الوظيفي أو الهاتف مرة أخرى على هذا الجهاز.</span>
+        <span style="color:var(--muted);font-size:13px;line-height:1.6">حفظ هذا الهاتف للدخول عبر QR بعد موافقة الإدارة. بعد اعتماد الطلب والجهاز تُستعاد بياناتك في نفس المتصفح. قد تحتاج لإدخالها مجددًا عند مسح بيانات المتصفح أو تغيير الجهاز أو انتهاء صلاحية الربط. لا تفعّله على جهاز مشترك.</span>
       </label>
       <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
         <input id="confirmAccuracy" type="checkbox" required style="width:auto;margin-top:3px" />
@@ -264,6 +264,7 @@
 
 <script src="./verify-shared.js"></script>
 <script src="./employee-photo.js"></script>
+<script src="./registration-validation.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
 
@@ -507,7 +508,7 @@
   }
 
   // Stepper: device review is a real pending workflow state — never mark completed here.
-  function updateStepper(state) {
+  function updateStepper(state, rememberDevice = true) {
     const reg = $("stepRegister");
     const dev = $("stepDevice");
     const note = $("deviceReviewNote");
@@ -516,9 +517,9 @@
       reg.classList.remove("active");
       reg.classList.add("done");
       reg.querySelector(".progress-dot").textContent = "✓";
-      dev.classList.add("review");
+      dev.classList.toggle("review", rememberDevice);
       dev.classList.remove("done");
-      if (note) note.hidden = false;
+      if (note) note.hidden = !rememberDevice;
     } else {
       reg.classList.add("active");
       reg.classList.remove("done");
@@ -538,13 +539,17 @@
     updateRegistrationForm();
   }
 
+  let registrationSubmitting = false;
   $("registerForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (registrationSubmitting) return;
+    if (!$("registerForm").reportValidity()) return;
     if (!supabaseClient) { setResult("DENIED", "لا يمكن الاتصال بالنظام."); return; }
     if (!navigator.onLine) { setResult("DENIED", "لا يوجد اتصال بالإنترنت. التسجيل يحتاج اتصالاً فعالاً — حاول مرة أخرى عند توفر الشبكة."); return; }
     const category = $("registrationCategory").value;
     if (category !== "PERMANENT" && category !== "TEMPORARY") { setResult("DENIED", "الرجاء اختيار نوع التسجيل أولاً."); return; }
 
+    registrationSubmitting = true;
     try {
       disableButton("registerButton", true, "جارِ رفع الصورة...", "إرسال طلب التسجيل");
       const employeeId = $("employeeId").value.trim();
@@ -579,23 +584,31 @@
         (result.result === "PENDING"
           ? "تم إرسال طلب التسجيل بنجاح.\nحالة الحساب الآن: قيد المراجعة.\nبعد اعتماد الإدارة توجّه لبوابة الدخول وامسح QR من شاشة الحارس للدخول."
           : "تمت معالجة الطلب.");
-      setResult(result.result || "PENDING", resultMessage, result.employee || null);
-      if (result.ok === true) {
-        if (rememberDevice) {
-          saveTrustedDeviceToken(pendingDeviceToken);
-        } else {
-          clearTrustedDeviceToken();
-          localStorage.removeItem(TRUSTED_DEVICE_ID_STORAGE_KEY);
+      setResult(result.ok === false ? "DENIED" : (result.result || "PENDING"), resultMessage, result.employee || null);
+      if (result.ok === true && ["PENDING", "LIMITED", "ALLOWED"].includes(result.result)) {
+        try {
+          if (rememberDevice) {
+            saveTrustedDeviceToken(pendingDeviceToken);
+          } else {
+            clearTrustedDeviceToken();
+            localStorage.removeItem(TRUSTED_DEVICE_ID_STORAGE_KEY);
+          }
+        } catch (_) {
+          setResult(result.result || "PENDING", resultMessage + "\nتم استلام الطلب، لكن تعذر تحديث حفظ الهاتف في هذا المتصفح. راجع إعدادات حفظ بيانات المواقع.", result.employee || null);
         }
         $("registerForm").reset();
         updateRegistrationForm();
-        window.updateStepper?.("submitted");
+        window.updateStepper?.("submitted", rememberDevice);
+        const preview = $("employeePhotoPreview");
+        if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+        delete preview.dataset.objectUrl;
         $("employeePhotoPreview").removeAttribute("src");
         $("employeePhotoPreview").style.display = "none";
       }
     } catch (err) {
       setResult("DENIED", "حدث خطأ: " + err.message);
     } finally {
+      registrationSubmitting = false;
       disableButton("registerButton", false, "جارِ إرسال الطلب...", "إرسال طلب التسجيل");
     }
   });
