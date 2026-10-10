@@ -37,7 +37,7 @@
     if ($('guardEmergencyToggle')) $('guardEmergencyToggle').textContent = emergencyEnabled ? 'إيقاف وضع الطوارئ' : 'تفعيل وضع الطوارئ';
     message(emergencyEnabled ? 'أدخل رقم الموظف لتسجيل الزيارة.' : 'فعّل الدخول اليدوي عند تعطل QR؛ تسجّل الزيارات وتحتسب ضمن الحد اليومي.');
     $('guardEntryButton').disabled = !data.emergency_enabled || !qrFailureOnThisPhone();
-    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').disabled = !qrFailureOnThisPhone();
+    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').disabled = !qrFailureOnThisPhone() && !emergencyEnabled;
     if (data.emergency_enabled) $('manualEmployeeId').focus();
   }
   async function rpc(name, payload) {
@@ -82,9 +82,11 @@
     catch (err) { message('تعذر إلغاء الجلسة؛ أعد محاولة الخروج عند عودة الاتصال.'); }
   };
   if ($('guardEmergencyToggle')) $('guardEmergencyToggle').onclick = async () => {
-    if (busy || !token || !qrFailureOnThisPhone()) { message('الدخول اليدوي متاح فقط عند تعطل توليد QR على هذا الهاتف.'); return; } busy = true; $('guardEmergencyToggle').disabled = true;
+    if (busy || !token) return;
+    if (!emergencyEnabled && !qrFailureOnThisPhone()) { message('الدخول اليدوي متاح فقط عند تعطل توليد QR على هذا الهاتف.'); return; }
+    busy = true; $('guardEmergencyToggle').disabled = true;
     try { const data = await rpc('guard_set_emergency',{p_token:token,p_enabled:!emergencyEnabled}); authenticated(await rpc('guard_session_status',{p_token:token})); message(data.message); }
-    catch(err) { message(err.message); } finally { busy=false; $('guardEmergencyToggle').disabled=false; }
+    catch(err) { message(err.message); } finally { busy=false; $('guardEmergencyToggle').disabled=!qrFailureOnThisPhone() && !emergencyEnabled; }
   };
   $('guardEntryForm').onsubmit = async event => {
     event.preventDefault(); if (busy || !token) return;
