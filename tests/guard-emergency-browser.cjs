@@ -45,6 +45,8 @@ const server=http.createServer((req,res)=>{const name=new URL(req.url,'http://lo
  assert.equal(await page.locator('#name').textContent(),'');assert.equal(await page.locator('#manualEmployeeId').inputValue(),'');
  await page.close();page=await context.newPage();await page.goto(origin+'/guard.html');await page.locator('#manualOpen').click();
  await page.waitForFunction(()=>document.querySelector('#guardEntryForm').hidden===false);assert.equal(logins,1,'guard session restored without phone reentry');
- await page.locator('#guardLogoutButton').click();await page.waitForFunction(()=>!localStorage.getItem('alb_guard_session_v1'));
+ for(const width of [320,390,768,1366]){await page.setViewportSize({width,height:844});const box=await page.locator('#guardManualPanel').boundingBox();assert(box.x>=0&&box.x+box.width<=width+1&&box.y>=0&&box.y+box.height<=845);assert.equal(await page.evaluate(()=>document.body.classList.contains('guard-panel-open')),true);assert.equal(await page.locator('#qrPanel').evaluate(e=>e.inert),true);}
+ await page.keyboard.press('Escape');assert.equal(await page.locator('#guardManualPanel').isVisible(),false);assert.equal(await page.locator('#qrPanel').evaluate(e=>e.inert),false);await page.locator('#manualOpen').click();
+ await page.locator('#guardAccountOptions summary').click();await page.locator('#guardLogoutButton').click();await page.waitForFunction(()=>!localStorage.getItem('alb_guard_session_v1'));
  assert.deepEqual(errors,[]);console.log('PASS public QR, simple remembered guard login, no saved phone, manual-entry retry ID, duplicate-submit lock, result replacement and ten-second cleanup; mocked backend');
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1});

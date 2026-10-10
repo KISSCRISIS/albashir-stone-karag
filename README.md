@@ -1018,3 +1018,5 @@ Portal dialog: added an explicit return-to-page button with the destination name
 # Staging update — 2026-10-10
 
 Temporary concurrent shared guard login, optional personal-account applications with approval, QR-header guard photo/name/sign-in time, audited guard emergency activation, and permission-filtered administrator notices are available on Staging. Existing employee decisions and quota rules are retained. See [Staging acceptance](docs/SHARED_GUARDS_ADMIN_NOTICES_STAGING.md) for deployment, checks and phone notification activation. Background phone delivery requires device permission and owner acceptance; Production is unchanged.
+
+Guard screen organization: QR stays on the main screen; emergency entry uses one opaque, scroll-contained dialog with focus containment and Escape/back support. Green confirms employee entry, amber controls emergency mode, and neutral controls return/refresh. Profile/logout are grouped under account options. Browser regression checks cover 320/390/768/1366 widths and counted-entry retry/ten-second result behavior. Staging only.

@@ -4,6 +4,10 @@
   let token = '', busy = false, pending = null, emergencyEnabled = false;
   try { token = localStorage.getItem(storageKey) || ''; } catch (_) {}
   const message = text => { $('guardManualMessage').textContent = text; };
+  function panelState(open) {
+    document.body.classList.toggle('guard-panel-open',open);
+    for(const child of document.querySelector('main').children) if(!['guardManualPanel','result'].includes(child.id)) child.inert=open;
+  }
   function clearSession() {
     token = ''; pending = null;
     try { localStorage.removeItem(storageKey); } catch (_) {}
@@ -28,14 +32,14 @@
     $('guardLoginForm').hidden = true; $('guardEntryForm').hidden = false;
     $('guardWelcome').textContent = data.full_name ? 'مرحبًا ' + data.full_name : 'مرحبًا بك في شاشة الحارس';
     emergencyEnabled = data.emergency_enabled === true;
-    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').textContent = emergencyEnabled ? 'إيقاف الدخول اليدوي للطوارئ' : 'تفعيل الدخول اليدوي عند تعطل QR';
+    if ($('guardEmergencyToggle')) $('guardEmergencyToggle').textContent = emergencyEnabled ? 'إيقاف وضع الطوارئ' : 'تفعيل وضع الطوارئ';
     message(emergencyEnabled ? 'أدخل رقم الموظف لتسجيل الزيارة.' : 'فعّل الدخول اليدوي عند تعطل QR؛ تسجّل الزيارات وتحتسب ضمن الحد اليومي.');
     $('guardEntryButton').disabled = !data.emergency_enabled;
     if (data.emergency_enabled) $('manualEmployeeId').focus();
   }
   async function rpc(name, payload) {
     const { data, error } = await guardRpc(name, payload, 8000);
-    if (error) throw Error('تعذر الاتصال. أعد المحاولة بنفس الرقم.');
+    if (error) throw Error('تعذر الاتصال بالخادم. حاول مجددًا.');
     if (data?.ok !== true) {
       if (data?.error === 'AUTH_REQUIRED') clearSession();
       throw Error(data?.message || 'تعذر إكمال الطلب؛ سجل دخول الحارس مجددًا.');
@@ -43,13 +47,21 @@
     return data;
   }
   $('manualOpen').onclick = async () => {
-    $('guardManualPanel').hidden = false; message('');
-    $('guardManualPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('guardManualPanel').hidden = false; panelState(true); message('');
+
     if (!token) { clearSession(); $('guardIdentity').focus(); return; }
     try { authenticated(await rpc('guard_session_status', { p_token: token })); }
     catch (err) { message(err.message); }
   };
-  $('manualClose').onclick = () => { $('guardManualPanel').hidden = true; $('manualEmployeeId').value = ''; };
+  $('manualClose').onclick = () => { $('guardManualPanel').hidden = true; panelState(false); $('manualEmployeeId').value = ''; $('manualOpen').focus(); };
+  $('guardManualPanel').addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();$('manualClose').click();return;}
+    if(event.key!=='Tab')return;
+    const controls=[...$('guardManualPanel').querySelectorAll('button,input,a,summary')].filter(e=>!e.disabled&&e.getClientRects().length);
+    const first=controls[0],last=controls[controls.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+  });
   $('guardLoginForm').onsubmit = async event => {
     event.preventDefault(); if (busy) return;
     busy = true; $('guardLoginButton').disabled = true;
@@ -79,7 +91,7 @@
     busy = true; $('guardEntryButton').disabled = true; message('جارِ تسجيل الزيارة...');
     try {
       const data = await rpc('guard_manual_employee_entry', { p_token: token, p_employee_id: employeeId, p_request_id: pending.id });
-      pending = null; $('manualEmployeeId').value = ''; $('guardManualPanel').hidden = true;
+      pending = null; $('manualEmployeeId').value = ''; $('guardManualPanel').hidden = true; panelState(false);
       // Reuse the existing result/photo display and its ten-second cleanup.
       resultUntil = Date.now() + 10000;
       $('result').className = ({ ALLOWED: 'allowed', LIMITED: 'limited', DENIED: 'denied' })[data.result] || 'denied';
