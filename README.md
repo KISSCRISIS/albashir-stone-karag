@@ -1040,3 +1040,7 @@ Employee directory reads the select options directly from same-origin register.h
 
 ### Daily limit usage moved off overview
 Moved the unchanged limitsUsagePanel and its live data renderer to a dedicated sidebar section متابعة الحدود اليومية (dailyUsage). Overview no longer contains the table. Existing حدود الاختصاصات remains the configuration editor; usage calculations, access rules and export remain unchanged. Section arrows include the new tab.
+
+
+### Calm main workspace palette
+Owner feedback: replaced bright saturated main dashboard panels with matte navy/slate backgrounds, softer text and input borders. Accepted two-column sidebar colors remain unchanged; warning/decision colors and all functionality retained. Verified admin browser layout and navigation.

@@ -47,3 +47,15 @@ body.theme-admin{--text:#eff8ff;--muted:#b8cedb;--line:#52778e;background:linear
 .theme-admin button:not(.tab-btn):not(.kpi-card):not(.panel):not(.btn-red):not(.btn-green):not(.btn-yellow):not(.btn-soft){background-color:#086c91;color:#fff}.theme-admin button.btn-yellow{background-color:#b98412;color:#fff}.theme-admin button.btn-soft{background-color:#31566b;color:#fff}
 
 .theme-admin .nav-tabs .tab-btn[onclick*="dailyUsage"]::before{content:"◴"}
+
+/* Owner correction: calm main workspace; accepted sidebar palette unchanged. */
+body.theme-admin{background:#101e2b!important;color:#e0e8ef;--text:#e0e8ef;--muted:#aab9c5}
+.theme-admin .topbar{background:#142535!important}
+.theme-admin .panel,.theme-admin .table-wrap{background:#182c3d!important;border-color:#365064!important;box-shadow:none}
+.theme-admin .panel-title,.theme-admin h2,.theme-admin h3{color:#e4edf3}
+.theme-admin .panel-desc,.theme-admin .small-muted,.theme-admin .stat-helper{color:#b0c0cc}
+.theme-admin input:not([type=checkbox]),.theme-admin select,.theme-admin textarea{background:#122331!important;color:#e1eaf1!important;border-color:#526a7b!important}
+.theme-admin select option{background:#122331;color:#e1eaf1}
+.theme-admin .directory-card{background:#1b3041;border-color:#405b6e;box-shadow:none}
+.theme-admin #directorySummary,.theme-admin .admin-section-navigation{background:#203647;border-color:#405b6e;color:#e1eaf1}
+.theme-admin .kpi-card:not(.kpi-warning):not(.kpi-danger){background:#1c3142!important;border-color:#405b6e!important}
