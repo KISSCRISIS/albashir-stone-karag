@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="./assets/css/design-system.css" />
   <link rel="stylesheet" href="./assets/css/components.css" />
   <link rel="stylesheet" href="./assets/css/responsive.css" />
+  <link rel="stylesheet" href="./admin-review-cards.css" />
   <script src="./assets/js/app-state.js" defer></script>
   <script src="./assets/js/ui-components.js" defer></script>
 </head>
@@ -94,34 +95,13 @@
 
     <section id="overview" class="section active">
       <div class="stats-grid kpi-strip" aria-label="مؤشرات الأداء الرئيسية">
-        <div class="stat-card blue kpi-card">
-          <div class="stat-label">طلبات التسجيل</div>
-          <div class="stat-helper">طلبات مكتملة بانتظار مراجعة الهوية وقرار السماح أو المنع</div>
-          <div class="stat-value" id="statPendingRequests">0</div>
-        </div>
-        <div class="stat-card kpi-card">
-          <div class="stat-label">إجمالي آخر 30 يوم</div>
-          <div class="stat-value" id="stat30Days">0</div>
-        </div>
-        <div class="stat-card green kpi-card">
-          <div class="stat-label">موافق عليهم اليوم</div>
-          <div class="stat-value" id="statApprovedToday">0</div>
-        </div>
-        <div class="stat-card yellow kpi-card">
-          <div class="stat-label">بلاغات جديدة</div>
-          <div class="stat-value" id="statNewViolations">0</div>
-        </div>
-        <div class="stat-card red kpi-card">
-          <div class="stat-label">مرفوضون</div>
-          <div class="stat-value" id="statRejected">0</div>
-        </div>
-        <div class="stat-card kpi-card">
-          <div class="stat-label">عمليات تحقق QR</div>
-          <div class="stat-value" id="statQrVerifications">0</div>
-        </div>
-      </div>
-
-      <div class="panel shift-panel">
+        <button type="button" class="stat-card kpi-card kpi-warning" data-kpi="pending" onclick="openDashboardMetric('pending')"><span class="stat-label">طلبات التسجيل</span><span class="stat-value" id="statPendingRequests">0</span><span class="stat-helper">طلبات بانتظار المراجعة</span></button>
+        <button type="button" class="stat-card kpi-card kpi-neutral" data-kpi="last30" onclick="openDashboardMetric('last30')"><span class="stat-label">إجمالي آخر 30 يوم</span><span class="stat-value" id="stat30Days">0</span><span class="stat-helper">عرض سجلات آخر 30 يومًا</span></button>
+        <button type="button" class="stat-card kpi-card kpi-neutral" data-kpi="approvedToday" onclick="openDashboardMetric('approvedToday')"><span class="stat-label">موافق عليهم اليوم</span><span class="stat-value" id="statApprovedToday">0</span><span class="stat-helper">محاولات دخول مسموحة اليوم</span></button>
+        <button type="button" class="stat-card kpi-card kpi-alert" data-kpi="violations" onclick="openDashboardMetric('violations')"><span class="stat-label">بلاغات جديدة</span><span class="stat-value" id="statNewViolations">0</span><span class="stat-helper">عرض البلاغات الجديدة في السجل التاريخي</span></button>
+        <button type="button" class="stat-card kpi-card kpi-alert" data-kpi="denied" onclick="openDashboardMetric('denied')"><span class="stat-label">مرفوضون</span><span class="stat-value" id="statRejected">0</span><span class="stat-helper">محاولات دخول مرفوضة في السجلات الحالية</span></button>
+        <button type="button" class="stat-card kpi-card kpi-neutral" data-kpi="qr" onclick="openDashboardMetric('qr')"><span class="stat-label">عمليات تحقق QR</span><span class="stat-value" id="statQrVerifications">0</span><span class="stat-helper">محاولات التحقق خلال آخر 24 ساعة</span></button>
+      </div>  <div class="panel shift-panel">
         <h2 class="panel-title">إحصائيات الشفتات A / B / C</h2>
         <p class="panel-desc">توزيع عمليات التحقق في اليوم التشغيلي الحالي حسب الشفت. الشفت C محسوب لتاريخ بدايته.</p>
         <p class="panel-desc">اليوم التشغيلي: <strong id="shiftOpDate">-</strong></p>
@@ -216,24 +196,7 @@
           <button type="button" class="btn-soft" onclick="showTab('logs', this)">سجلات الدخول</button>
         </div>
       </div>
-      <details class="panel filters-collapse">
-        <summary class="filters-summary">البحث والفلاتر</summary>
-        <div class="toolbar dashboard-filters" aria-label="فلاتر لوحة الإدارة">
-          <input id="dashboardSearch" type="search" placeholder="البحث بالاسم أو الرقم الوظيفي..." oninput="applyDashboardFilters()" />
-          <select id="dashboardStatus" onchange="applyDashboardFilters()">
-            <option value="">جميع الحالات</option>
-            <option value="PENDING">قيد المراجعة</option>
-            <option value="APPROVED">موافق عليه</option>
-            <option value="REJECTED">مرفوض</option>
-          </select>
-          <select id="dashboardDepartment" onchange="applyDashboardFilters()">
-            <option value="">جميع الأقسام</option>
-          </select>
-          <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
-          <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
-          <button type="button" onclick="exportCsv('registrations')">تصدير</button>
-        </div>
-      </details>
+
 
       <div class="dashboard-activity-grid">
         <div class="panel">
@@ -322,28 +285,25 @@
           <button onclick="loadRegistrations()">تحديث الطلبات</button>
           <button class="btn-soft" onclick="exportCsv('registrations')">تصدير CSV</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الصورة</th>
-                <th>الاسم</th>
-                <th>رقم الموظف</th>
-                <th>الهاتف</th>
-                <th>الوظيفة</th>
-                <th>الاختصاص</th>
-                <th>نوع التسجيل</th>
-                <th>الجهة التابعة</th>
-                <th>الحالة</th>
-                <th>الدخول الأول</th>
-                <th>التحقق السريع</th>
-                <th>تاريخ الطلب</th>
-                <th>الوضع</th>
-              </tr>
-            </thead>
-            <tbody id="registrationsBody"></tbody>
-          </table>
+      <details class="panel filters-collapse">
+        <summary class="filters-summary">البحث والفلاتر</summary>
+        <div class="toolbar dashboard-filters" aria-label="فلاتر لوحة الإدارة">
+          <input id="dashboardSearch" type="search" placeholder="البحث بالاسم أو الرقم الوظيفي..." oninput="applyDashboardFilters()" />
+          <select id="dashboardStatus" onchange="applyDashboardFilters()">
+            <option value="">جميع الحالات</option>
+            <option value="PENDING">قيد المراجعة</option>
+            <option value="APPROVED">موافق عليه</option>
+            <option value="REJECTED">مرفوض</option>
+          </select>
+          <select id="dashboardDepartment" onchange="applyDashboardFilters()">
+            <option value="">جميع الأقسام</option>
+          </select>
+          <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
+          <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
+          <button type="button" onclick="exportCsv('registrations')">تصدير</button>
         </div>
+      </details>
+        <div id="registrationsBody" class="registration-card-grid" aria-live="polite"></div>
       </div>
     </section>
 
@@ -420,6 +380,7 @@
           <button onclick="loadLogs()">تحديث السجلات</button>
           <button class="btn-soft" onclick="exportCsv('logs')">تصدير CSV</button>
         </div>
+<div class="toolbar log-view-filters"><label>الفترة<select id="logViewPeriod" onchange="renderLogs()"><option value="ALL">كل السجلات</option><option value="DAYS30">آخر 30 يومًا</option><option value="TODAY">اليوم</option><option value="LAST24">آخر 24 ساعة</option></select></label><label>النتيجة<select id="logViewResult" onchange="renderLogs()"><option value="">جميع النتائج</option><option value="ALLOWED">مسموح</option><option value="DENIED">مرفوض</option><option value="LIMITED">مسموح جزئيًا</option><option value="PENDING_FIRST_ENTRY">الدخول الأول</option></select></label><button type="button" class="btn-soft" onclick="clearLogViewFilters()">مسح الفلاتر</button><p id="logViewSummary" role="status"></p></div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -447,6 +408,7 @@
           <button onclick="loadViolations()">تحديث البلاغات</button>
           <button class="btn-soft" onclick="exportCsv('violations')">تصدير CSV</button>
         </div>
+<label>حالة البلاغ<select id="violationViewStatus" onchange="renderViolations()"><option value="">كل الحالات</option><option value="NEW">بلاغات جديدة</option></select></label>
         <div class="table-wrap">
           <table>
             <thead>
@@ -601,16 +563,16 @@
     </footer>
     <section class="panel" id="guardAdminPanel" hidden>
       <h2>ملفات الحراس والدخول اليدوي للطوارئ</h2>
-      <p>يستخدم الحارس اسمه أو رقمه الوطني مع رقم هاتفه. تعديل ملفه يُلغي جلساته الحالية.</p>
+      <p>اسم المستخدم هو الرقم الوطني، وكلمة المرور هي رقم الهاتف المسجّل. الاسم اختياري. تعديل الحساب يُلغي جلساته الحالية.</p>
       <form id="guardAdminForm" class="form-grid">
         <label>اسم الحارس (اختياري)<input id="guardAdminName" maxlength="100"></label>
         <label>الرقم الوطني<input id="guardAdminNational" inputmode="numeric" maxlength="20" required></label>
         <label>رقم الهاتف<input id="guardAdminPhone" type="password" inputmode="tel" autocomplete="new-password" placeholder="رقم هاتف الحارس"></label>
-        <label><input id="guardAdminActive" type="checkbox" checked>الحارس فعال</label>
+        <label class="admin-check-option"><input id="guardAdminActive" type="checkbox" checked><span>الحارس فعال</span><small>يسمح للحارس بتسجيل الدخول بحسابه</small></label>
         <button id="guardAdminSave" type="submit">حفظ ملف الحارس</button>
         <button id="guardAdminNew" type="button">ملف جديد</button>
       </form>
-      <p><label><input id="guardEmergencyEnabled" type="checkbox">تفعيل الدخول اليدوي عند تعطل QR</label>
+      <p class="guard-emergency-option"><label class="admin-check-option"><input id="guardEmergencyEnabled" type="checkbox"><span>تفعيل الدخول اليدوي عند تعطل QR</span><small>يسمح للحارس المسجّل بإدخال رقم الموظف وتسجيل زيارته</small></label>
         <button id="guardEmergencySave" type="button">حفظ وضع الطوارئ</button></p>
       <p id="guardAdminMessage" role="status"></p><div id="guardAccountsList"></div>
     </section>
@@ -1122,7 +1084,7 @@
       filteredRegistrationsData = registrationsData.slice();
       populateDepartmentFilter();
       handleRegistrationNotifications(registrationsData);
-      renderRegistrations();
+      applyDashboardFilters();
       renderOverview();
     }
 
@@ -1369,32 +1331,36 @@
       const rows = filteredRegistrationsData;
 
       if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="13">لا توجد طلبات حتى الآن.</td></tr>`;
+        body.innerHTML = '<p class="registration-empty">لا توجد طلبات مطابقة للفلاتر الحالية.</p>';
         return;
       }
-
-      body.innerHTML = rows.map((row) => `
-        <tr>
-          <td>${(() => { const ref = String(row.employee_photo_url ?? "").trim(); return ref ? `<a data-photo-href="${escapeHtml(ref)}" target="_blank" rel="noopener"><img class="photo-thumb" data-photo-ref="${escapeHtml(ref)}" alt="صورة شخصية" /></a>` : "-"; })()}</td>
-          <td>${escapeHtml(row.full_name)}</td>
-          <td>${escapeHtml(row.employee_id)}</td>
-          <td>${escapeHtml(row.mobile_number)}</td>
-          <td>${escapeHtml(row.job_type || "-")}</td>
-          <td>${escapeHtml(row.specialty)}</td>
-          <td>${row.registration_category === "PERMANENT" ? "موظف دائم" : row.registration_category === "TEMPORARY" ? "مؤقت / خارجي" : "غير مصنف (سجل سابق)"}</td>
-          <td>${escapeHtml(row.affiliated_entity || "-")}</td>
-          <td>${statusBadge(row.status)}</td>
-          <td>${row.first_entry_used ? `<span class="badge yellow">مستخدم</span><br><span class="small-muted">${formatDate(row.first_entry_at)}</span>` : `<span class="badge blue">غير مستخدم</span>`}</td>
-          <td>${renderTrustedDeviceCell(row)}</td>
-          <td>${formatDate(row.created_at)}</td>
-          <td>
-            <div class="row-actions">
-              <button class="btn-green" onclick="updateRegistration('${row.id}', 'APPROVED')" ${row.status === "APPROVED" || !hasPermission("can_approve_requests") ? "disabled" : ""}>موافقة</button>
-              <button class="btn-red" onclick="updateRegistration('${row.id}', 'REJECTED')" ${row.status === "REJECTED" || !hasPermission("can_approve_requests") ? "disabled" : ""}>رفض</button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
+      body.innerHTML = rows.map((row) => {
+        const ref = String(row.employee_photo_url ?? '').trim();
+        const category = row.registration_category === 'PERMANENT' ? 'موظف دائم' : row.registration_category === 'TEMPORARY' ? 'مؤقت / خارجي' : 'غير مصنف (سجل سابق)';
+        return `
+        <article class="registration-card" aria-label="طلب ${escapeAttr(row.full_name || row.employee_id)}">
+          <header class="registration-card-head">
+            ${ref ? `<a class="registration-photo" data-photo-href="${escapeAttr(ref)}" target="_blank" rel="noopener"><img class="photo-thumb" data-photo-ref="${escapeAttr(ref)}" alt="صورة ${escapeAttr(row.full_name || 'الموظف')}" /></a>` : '<span class="registration-photo-missing">لا توجد صورة</span>'}
+            <div><h3>${escapeHtml(row.full_name || '-')}</h3><p>رقم الموظف: <bdi>${escapeHtml(row.employee_id)}</bdi></p><p>الهاتف: <bdi>${escapeHtml(row.mobile_number || '-')}</bdi></p></div>
+          </header>
+          <dl class="registration-fields">
+            <div><dt>الوظيفة</dt><dd>${escapeHtml(row.job_type || '-')}</dd></div>
+            <div><dt>الاختصاص</dt><dd>${escapeHtml(row.specialty || '-')}</dd></div>
+            <div><dt>نوع التسجيل</dt><dd>${category}</dd></div>
+            <div><dt>الجهة التابعة</dt><dd>${escapeHtml(row.affiliated_entity || '-')}</dd></div>
+          </dl>
+          <section class="registration-status"><h4>الحالة</h4>${statusBadge(row.status)}</section>
+          <section class="registration-device"><h4>التحقق السريع والجهاز المربوط</h4>${renderTrustedDeviceCell(row)}</section>
+          <dl class="registration-fields registration-times">
+            <div><dt>تاريخ الطلب</dt><dd>${escapeHtml(formatDate(row.created_at))}</dd></div>
+            <div><dt>الدخول الأول</dt><dd>${row.first_entry_used ? `<span class="badge yellow">مستخدم</span><span class="registration-first-time">${escapeHtml(formatDate(row.first_entry_at))}</span>` : '<span class="badge blue">غير مستخدم</span>'}</dd></div>
+          </dl>
+          <footer class="registration-actions"><h4>الوضع والإجراءات</h4><div class="row-actions">
+            <button class="btn-green" onclick="updateRegistration('${row.id}', 'APPROVED')" ${row.status === 'APPROVED' || !hasPermission('can_approve_requests') ? 'disabled' : ''}>موافقة</button>
+            <button class="btn-red" onclick="updateRegistration('${row.id}', 'REJECTED')" ${row.status === 'REJECTED' || !hasPermission('can_approve_requests') ? 'disabled' : ''}>رفض</button>
+          </div></footer>
+        </article>`;
+      }).join('');
       hydrateAdminPhotos(body);
     }
     // Employee photos are private: an admin session token is exchanged for a
@@ -1433,15 +1399,44 @@
       populateLimitSpecialtyOptions();
     }
 
+
+    function filteredLogView() {
+      const period = $("logViewPeriod")?.value || "ALL", result = $("logViewResult")?.value || "";
+      const now = new Date(), today = new Date(now); today.setHours(0,0,0,0);
+      const since = period === 'DAYS30' ? now.getTime()-30*24*60*60*1000 : period === 'LAST24' ? now.getTime()-24*60*60*1000 : period === 'TODAY' ? today.getTime() : null;
+      return logsData.filter(row => (!result || row.result === result) && (since === null || new Date(row.created_at).getTime() >= since));
+    }
+    function clearLogViewFilters() {
+      $("logViewPeriod").value = 'ALL'; $("logViewResult").value = ''; renderLogs();
+    }
+    function openDashboardMetric(metric) {
+      let target;
+      if (metric === 'pending') {
+        target = 'registrations'; $("dashboardSearch").value = ''; $("dashboardDepartment").value = ''; $("dashboardStatus").value = 'PENDING';
+        applyDashboardFilters(); document.querySelector('#registrations .filters-collapse').open = true;
+      } else if (metric === 'violations') {
+        target = 'violations'; $("violationViewStatus").value = 'NEW'; renderViolations();
+      } else {
+        target = 'logs'; $("logViewPeriod").value = ({last30:'DAYS30',approvedToday:'TODAY',qr:'LAST24'})[metric] || 'ALL';
+        $("logViewResult").value = ({approvedToday:'ALLOWED',denied:'DENIED'})[metric] || ''; renderLogs();
+      }
+      const button = Array.from(document.querySelectorAll('.tab-btn')).find(el => (el.getAttribute('onclick') || '').includes("'"+target+"'"));
+      showTab(target,button); $(target).scrollIntoView({behavior:'smooth',block:'start'});
+      const control = target === 'registrations' ? $("dashboardStatus") : target === 'violations' ? $("violationViewStatus") : $("logViewPeriod");
+      control.focus({preventScroll:true});
+    }
+
     function renderLogs() {
       const body = $("logsBody");
 
-      if (!logsData.length) {
+      const rows = filteredLogView();
+      $("logViewSummary").textContent = "عدد السجلات المعروضة: " + rows.length;
+      if (!rows.length) {
         body.innerHTML = `<tr><td colspan="7">لا توجد سجلات حتى الآن.</td></tr>`;
         return;
       }
 
-      body.innerHTML = logsData.map((row) => `
+      body.innerHTML = rows.map((row) => `
         <tr>
           <td>${formatDate(row.created_at)}</td>
           <td>${escapeHtml(row.full_name)}</td>
@@ -1457,12 +1452,14 @@
     function renderViolations() {
       const body = $("violationsBody");
 
-      if (!violationsData.length) {
+      const status = $("violationViewStatus")?.value || "";
+      const rows = violationsData.filter(row => !status || row.status === status);
+      if (!rows.length) {
         body.innerHTML = `<tr><td colspan="6">لا توجد بلاغات حتى الآن.</td></tr>`;
         return;
       }
 
-      body.innerHTML = violationsData.map((row) => `
+      body.innerHTML = rows.map((row) => `
         <tr>
           <td>
             ${(() => { const u = safeImageUrl(row.photo_url); return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(u)}" alt="صورة بلاغ" /></a>` : `<span class="small-muted">الصورة غير متاحة</span>`; })()}

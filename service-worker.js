@@ -1,4 +1,4 @@
-const CACHE_VERSION = "emergency-room-parking-offline-v26";
+const CACHE_VERSION = "emergency-room-parking-offline-v27";
 
 const OFFLINE_ASSETS = [
   "./index.html",

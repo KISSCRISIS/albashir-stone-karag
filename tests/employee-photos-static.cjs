@@ -98,7 +98,7 @@ const ENTRY = "supabase/functions/employee-photo-url/index.ts";
 }
 {
   const admin = read("admin_dashboard.html");
-  assert.match(admin, /data-photo-ref="\$\{escapeHtml\(ref\)\}"/);
+  assert.match(admin, /data-photo-ref="\$\{escapeAttr\(ref\)\}"/);
   assert.match(admin, /data-photo-href="\$\{escapeHtml\(ref\)\}"/);
   assert.match(admin, /hydrateAdminPhotos\(body\)/);
   assert.doesNotMatch(admin, /safeImageUrl\(row\.employee_photo_url\)/, "registration photos must not use the URL helper");

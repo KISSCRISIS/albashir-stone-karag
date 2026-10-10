@@ -1,5 +1,36 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Admin request cards and interactive indicators — Staging, 2026-10-10
+
+Registration requests now render as responsive cards instead of a 13-column
+table. All existing fields remain: private photo, name, employee ID, phone, job,
+specialty, registration category, affiliated entity, status, first-entry usage
+and time, trusted-device status/details/activity/actions, request time and approval
+or rejection. Existing RPC handlers, permission checks and one photo hydration
+pass per render are retained. Registration filters moved into the request section
+and selected filters survive data refresh. CSV exports still use the complete
+existing datasets.
+
+The six KPI buttons use a 3x2 desktop grid, two mobile columns or one on narrow
+phones. Pending requests are yellow; new violations and denied entry attempts
+are soft red. Buttons open corresponding filtered lists: PENDING registrations,
+last-30-day logs, today's ALLOWED logs, NEW historical violations, DENIED logs,
+and last-24-hour verification logs. Counts/meaning are unchanged; the rejected
+metric counts DENIED attempts, not REJECTED registration requests. Historical
+violation access and existing permissions are not expanded. Guard checkboxes are
+small labeled controls with a description below, rather than full-width inputs.
+
+`admin-review-cards.css` supplies the scoped presentation overrides.
+`tests/admin-review-cards-browser.cjs` covers all retained data/actions, unchanged
+disabled permissions, escaped names, photo references, six KPI routes/filters,
+search/reset/empty results and responsive layout at 320/390/768/1366 pixels.
+Browser data and actions in this regression are synthetic; no live approval or
+device revocation is performed. A separate read-only test on published Staging
+verified real SUPER_ADMIN access, the five actual request cards, pending KPI
+filtering, decoded private photos, mobile sizing and checkbox labels. No employee
+data, approval decisions or device bindings were changed. Cache advances to v27. No Backend,
+Auth, schema, RLS or account-setting change is part of this UI update.
+
 ## Guard national-ID login and optional profile — Staging, 2026-10-10
 
 Guard login now accepts only the national ID, with the registered phone as its
