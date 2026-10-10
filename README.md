@@ -1044,3 +1044,7 @@ Moved the unchanged limitsUsagePanel and its live data renderer to a dedicated s
 
 ### Calm main workspace palette
 Owner feedback: replaced bright saturated main dashboard panels with matte navy/slate backgrounds, softer text and input borders. Accepted two-column sidebar colors remain unchanged; warning/decision colors and all functionality retained. Verified admin browser layout and navigation.
+
+
+### Admin header typography and hierarchy
+A single logo and prominent Arabic dashboard heading replace the repeated hospital identity blocks. Enlarged Tajawal title, hospital name, compact English subtitle and signed-in name form a responsive masthead. Role is displayed in Arabic while its original value remains in title; connection/sound/refresh/logout handlers unchanged. The duplicate role-navigation strip is hidden on the admin dashboard only; authentication checks remain intact.

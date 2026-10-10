@@ -28,19 +28,13 @@
 <body class="hospital-ui theme-admin">
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon" role="img" aria-label="البشير ALBASHIR Gate"></div>
-        <div>
-          <h1 class="brand-title" id="appTitle">لوحة إدارة ALBASHIR EMERGENCY HOSPITAL</h1>
+      <div class="brand admin-header-brand">
+        <img class="admin-header-logo" src="./albashir-gate-logo.png" alt="شعار مستشفى البشير" width="88" height="88">
+        <div class="admin-header-copy">
+          <div class="admin-header-hospital">مستشفى الإسعاف والطوارئ / البشير</div>
+          <h1 class="brand-title" id="appTitle">لوحة الإدارة</h1>
+          <div class="hospital-name-en" lang="en" dir="ltr">ALBASHIR EMERGENCY HOSPITAL</div>
           <div class="brand-subtitle" id="adminLine">جارِ التحقق من صلاحية الإدارة...</div>
-        <div class="hospital-identity">
-          <img class="hospital-logo" src="./albashir-gate-logo.png" alt="البشير ALBASHIR Gate" />
-          <div>
-            <div class="hospital-name-ar">مستشفى الإسعاف والطوارئ / البشير</div>
-            <div class="hospital-name-en">ALBASHIR EMERGENCY HOSPITAL</div>
-          </div>
-        </div>
-
         </div>
       </div>
 
@@ -976,7 +970,8 @@
         return;
       }
 
-      badge.textContent = adminProfile.role || "ADMIN";
+      badge.textContent = adminProfile.role === "SUPER_ADMIN" ? "المشرف الرئيسي" : "مشرف الإدارة";
+      badge.title = adminProfile.role || "ADMIN";
       badge.className = "pill";
       if (adminProfile.role === "SUPER_ADMIN") badge.classList.add("super");
       else badge.classList.add("ready");
@@ -995,7 +990,7 @@
     }
 
     async function init() {
-      $("appTitle").textContent = APP_CONFIG.APP_NAME || "ALBASHIR EMERGENCY HOSPITAL";
+      $("appTitle").textContent = "لوحة الإدارة";
       updateAdminAlertState();
 
       if (!isConfigReady()) {
@@ -1046,7 +1041,7 @@
       }
 
       adminProfile = data;
-      $("adminLine").textContent = `مرحبًا ${data.full_name || data.email} — ${data.role}`;
+      $("adminLine").textContent = `مرحبًا، ${data.full_name || data.email}`;
       setRoleBadge();
       return true;
     }

@@ -59,3 +59,19 @@ body.theme-admin{background:#101e2b!important;color:#e0e8ef;--text:#e0e8ef;--mut
 .theme-admin .directory-card{background:#1b3041;border-color:#405b6e;box-shadow:none}
 .theme-admin #directorySummary,.theme-admin .admin-section-navigation{background:#203647;border-color:#405b6e;color:#e1eaf1}
 .theme-admin .kpi-card:not(.kpi-warning):not(.kpi-danger){background:#1c3142!important;border-color:#405b6e!important}
+
+/* Single clear administrative masthead; authenticated actions stay intact. */
+.theme-admin #portalRoleNavigation{display:none!important}
+.theme-admin .topbar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:170px;padding-top:24px!important;padding-bottom:24px!important;border-bottom:1px solid #587285;box-shadow:0 5px 15px #07131f25}
+.theme-admin .admin-header-brand{gap:20px;min-width:0;flex:1;align-items:center}
+.theme-admin .admin-header-logo{width:88px;height:88px;object-fit:contain;flex:none;filter:drop-shadow(0 3px 6px #0005)}
+.theme-admin .admin-header-hospital{font-size:clamp(17px,2vw,24px);font-weight:700;color:#b6d5df;line-height:1.5}
+.theme-admin .brand-title{font-size:clamp(32px,4vw,48px)!important;line-height:1.2;letter-spacing:0;margin:6px 0;color:#f0f5f8;font-weight:700}
+.theme-admin .hospital-name-en{font:700 clamp(12px,1.4vw,16px)/1.5 Tajawal,Tahoma,sans-serif;letter-spacing:1px;color:#93b3c5;overflow-wrap:anywhere}
+.theme-admin .brand-subtitle{font-size:17px;line-height:1.6;margin-top:12px;color:#c7d5df;overflow-wrap:anywhere}
+.theme-admin .top-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:10px;max-width:420px}
+.theme-admin .top-actions .pill{font-family:Tajawal,Tahoma,sans-serif;font-size:15px;padding:10px 16px;background:#182e40}
+.theme-admin .top-actions button{font-size:17px;padding:10px 18px;min-height:46px}
+.theme-admin .top-actions .sound-toggle{width:46px;height:46px;min-width:46px;padding:0;font-size:22px}
+@media(max-width:1050px){.theme-admin .topbar{flex-direction:column;align-items:stretch}.theme-admin .top-actions{max-width:none;width:100%}}
+@media(max-width:760px){.theme-admin .topbar{min-height:0;gap:18px;padding:18px 14px!important;border-radius:16px}.theme-admin .admin-header-brand{gap:12px}.theme-admin .admin-header-logo{width:64px;height:64px}.theme-admin .admin-header-copy{min-width:0}.theme-admin .brand-title{font-size:34px!important}.theme-admin .brand-subtitle{font-size:16px}.theme-admin .top-actions .pill{font-size:14px}.theme-admin .top-actions button{font-size:16px}}
