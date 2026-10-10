@@ -1,5 +1,31 @@
 # PROJECT RULES — ALBASHIR Gate
 
+## Owner exception — optional guard profile, 2026-10-10
+
+The owner revised guard credentials to national ID only as username, with the
+registered phone as password. Names are optional and need not be unique. An
+authenticated guard may edit only their own optional name, age, residence, about
+text and official-uniform portrait. National ID, login phone and account activation
+remain administrator-controlled. Profile rows/photos stay private with RLS and
+no direct anon/authenticated table grants; scoped RPCs validate the active guard
+session. Photos are re-encoded to JPEG and bounded to 192 KiB. No public guard QR
+response includes guard profile information. This request specifically authorizes
+the additive profile migration; Staging first. Existing employee decision logic,
+daily limits and the public QR flow must remain unchanged.
+
+## Owner exception — guard emergency entry, 2026-10-10
+
+The owner explicitly selected counted emergency entries and simple guard accounts:
+national ID plus phone (revised above). Public QR display remains account-free; manual
+entry requires a valid active guard session and administrator-enabled emergency
+mode. Reuse the existing decision function with a server-only single-use token
+issued after guard authorization. Never expose that token, stored employee phone,
+or private table rows. Existing `manual_employee_check` and mandatory QR for
+ordinary employee entry remain unchanged. Audit the guard/request and make retries
+idempotent. Guard sessions last 24 hours; account edits/disable revoke them. New
+private tables stay RLS-enabled without direct public grants. This specifically
+authorizes the guard-account migration; Staging first, Production after acceptance.
+
 ## Owner exception — public guard screen, 2026-10-07
 
 For `guard.html` only, the owner explicitly approved database-issued QR and session-scoped result RPCs without login/PIN/gate-device approval or gate-device credentials. This exception supersedes P0-2 for this new public issuance RPC only; the existing authenticated `index.html` flow remains unchanged. Results may expose only the owner's approved fields: name, photo, job and specialty, plus access decision. A separate high-entropy expiring read capability binds those fields to this screen's QR session; never expose the shared latest employee to everyone. Photos stay private and use the resolver with signed URLs of at most 60 seconds. No direct table grants are allowed. `manual_employee_check`, Mandatory QR and P0-3 order stay unchanged. Staging first; Production needs coordinated approval after acceptance.
@@ -315,3 +341,10 @@ The public guard page is opened by a direct link distributed to guards only. Pub
 ## Autonomous audit repairs — 2026-10-07
 
 Registration shortcuts must target the current registration page. CSV exports must neutralize formula-like string cells. Service Worker page caches must omit credential-bearing queries and never persist third-party responses. Cache version is v19. The QR/heartbeat/layout browser suite now runs in CI with pinned Playwright. See docs/PROJECT_AUDIT_2026_10_07.md for evidence and unresolved database/Production gates.
+
+
+## Owner-approved employee admin appointment — 2026-10-10
+Explicit owner authorization: implement employee-based admin nomination, restricted permissions or unrestricted SUPER_ADMIN, employee self-completion of verified email/password, and reminders in the employee profile. Migration creation and application are approved for this feature on Staging (adwvokwucotohwayorgx) only; this is a scoped exception to P1-12, not general migration authorization. Production remains untouched. Only APPROVED employees may be appointed; only an active SUPER_ADMIN can nominate or alter grants. Private assignment/proof tables have RLS and no public direct access. Completion requires verified employee identity plus verified Auth email, a short-lived one-use proof and immutable server-side assigned role/permissions. Never accept employee-supplied role/permissions; preserve existing admin accounts, last-owner safeguards, Mandatory QR and employee entry policies. Record appointment, activation and revocation in audit logs; never record passwords/proofs.
+
+## Owner approval — legacy registration cleanup (2026-10-10)
+Approved revoking PUBLIC/anon/authenticated EXECUTE on obsolete 8- and 13-argument register_employee_request signatures on Staging only. Current 15-argument function, admission criteria, records, QR authorization and Production remain unchanged. Verify source dependencies, function hashes and client denial before rollout.

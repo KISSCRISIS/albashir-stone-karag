@@ -147,6 +147,7 @@
 
   function renderRegistrationShortcut() {
     document.getElementById("registrationCopyShortcut")?.remove();
+    if (document.body.classList.contains("theme-admin")) return;
     const button = document.createElement("button");
     button.id = "registrationCopyShortcut";
     button.type = "button";

@@ -19,26 +19,22 @@
   <link rel="stylesheet" href="./assets/css/design-system.css" />
   <link rel="stylesheet" href="./assets/css/components.css" />
   <link rel="stylesheet" href="./assets/css/responsive.css" />
+  <link rel="stylesheet" href="./admin-review-cards.css" />
   <script src="./assets/js/app-state.js" defer></script>
   <script src="./assets/js/ui-components.js" defer></script>
+<link rel="stylesheet" href="./navigation-polish.css">
 </head>
 
 <body class="hospital-ui theme-admin">
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon" role="img" aria-label="البشير ALBASHIR Gate"></div>
-        <div>
-          <h1 class="brand-title" id="appTitle">لوحة إدارة ALBASHIR EMERGENCY HOSPITAL</h1>
+      <div class="brand admin-header-brand">
+        <img class="admin-header-logo" src="./albashir-gate-logo.png" alt="شعار مستشفى البشير" width="88" height="88">
+        <div class="admin-header-copy">
+          <div class="admin-header-hospital">مستشفى الإسعاف والطوارئ / البشير</div>
+          <h1 class="brand-title" id="appTitle">لوحة الإدارة</h1>
+          <div class="hospital-name-en" lang="en" dir="ltr">ALBASHIR EMERGENCY HOSPITAL</div>
           <div class="brand-subtitle" id="adminLine">جارِ التحقق من صلاحية الإدارة...</div>
-        <div class="hospital-identity">
-          <img class="hospital-logo" src="./albashir-gate-logo.png" alt="البشير ALBASHIR Gate" />
-          <div>
-            <div class="hospital-name-ar">مستشفى الإسعاف والطوارئ / البشير</div>
-            <div class="hospital-name-en">ALBASHIR EMERGENCY HOSPITAL</div>
-          </div>
-        </div>
-
         </div>
       </div>
 
@@ -47,7 +43,6 @@
         <span class="pill" id="roleBadge">غير معروف</span>
         <button class="sound-toggle" id="adminSoundToggle" type="button" onclick="toggleAdminSound()" aria-label="تشغيل أو كتم صوت التنبيهات" title="تشغيل أو كتم صوت التنبيهات">🔇</button>
         <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
-        <a class="btn btn-soft" href="./index.html">شاشة الحارس</a>
         <button class="btn-red" type="button" onclick="logout()">خروج</button>
       </div>
     </header>
@@ -85,43 +80,25 @@
       <button class="tab-btn" onclick="showTab('registrations', this)">طلبات التسجيل</button>
       <button class="tab-btn" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">تغيير بيانات الموظفين</button>
       <button class="tab-btn" onclick="showTab('limits', this)">حدود الاختصاصات</button>
+      <button class="tab-btn" onclick="showTab('dailyUsage', this)">متابعة الحدود اليومية</button>
       <button class="tab-btn" onclick="showTab('logs', this)">سجلات الدخول</button>
-      <button class="tab-btn" onclick="showTab('violations', this)">بلاغات الحارس</button>
+      <button class="tab-btn" onclick="showTab('violations', this)">أمن الصخره وتبليغات التجاوزات</button>
       <button class="tab-btn" onclick="showTab('admins', this)">المشرفون</button>
       <button class="tab-btn" onclick="showTab('audit', this)">Audit</button>
-      <button class="tab-btn" onclick="showTab('exports', this)">CSV</button>
+      <button class="tab-btn" onclick="showTab('exports', this)">تصدير CSV</button>
+      <button class="tab-btn employee-directory-nav" onclick="showTab('employeeDirectory', this)">دليل الموظفين</button>
+      <button class="tab-btn" onclick="showTab('notifications', this)">الإشعارات <span id="adminNoticeCount" class="badge yellow">0</span></button>
     </nav>
 
     <section id="overview" class="section active">
       <div class="stats-grid kpi-strip" aria-label="مؤشرات الأداء الرئيسية">
-        <div class="stat-card blue kpi-card">
-          <div class="stat-label">طلبات التسجيل</div>
-          <div class="stat-helper">طلبات مكتملة بانتظار مراجعة الهوية وقرار السماح أو المنع</div>
-          <div class="stat-value" id="statPendingRequests">0</div>
-        </div>
-        <div class="stat-card kpi-card">
-          <div class="stat-label">إجمالي آخر 30 يوم</div>
-          <div class="stat-value" id="stat30Days">0</div>
-        </div>
-        <div class="stat-card green kpi-card">
-          <div class="stat-label">موافق عليهم اليوم</div>
-          <div class="stat-value" id="statApprovedToday">0</div>
-        </div>
-        <div class="stat-card yellow kpi-card">
-          <div class="stat-label">بلاغات جديدة</div>
-          <div class="stat-value" id="statNewViolations">0</div>
-        </div>
-        <div class="stat-card red kpi-card">
-          <div class="stat-label">مرفوضون</div>
-          <div class="stat-value" id="statRejected">0</div>
-        </div>
-        <div class="stat-card kpi-card">
-          <div class="stat-label">عمليات تحقق QR</div>
-          <div class="stat-value" id="statQrVerifications">0</div>
-        </div>
-      </div>
-
-      <div class="panel shift-panel">
+        <button type="button" class="stat-card kpi-card kpi-warning" data-kpi="pending" onclick="openDashboardMetric('pending')"><span class="stat-label">طلبات التسجيل</span><span class="stat-value" id="statPendingRequests">0</span><span class="stat-helper">طلبات بانتظار المراجعة</span></button>
+        <button type="button" class="stat-card kpi-card kpi-neutral" data-kpi="last30" onclick="openDashboardMetric('last30')"><span class="stat-label">إجمالي آخر 30 يوم</span><span class="stat-value" id="stat30Days">0</span><span class="stat-helper">عرض سجلات آخر 30 يومًا</span></button>
+        <button type="button" class="stat-card kpi-card kpi-neutral" data-kpi="approvedToday" onclick="openDashboardMetric('approvedToday')"><span class="stat-label">موافق عليهم اليوم</span><span class="stat-value" id="statApprovedToday">0</span><span class="stat-helper">محاولات دخول مسموحة اليوم</span></button>
+        <button type="button" class="stat-card kpi-card kpi-alert" data-kpi="violations" onclick="openDashboardMetric('violations')"><span class="stat-label">بلاغات جديدة</span><span class="stat-value" id="statNewViolations">0</span><span class="stat-helper">عرض البلاغات الجديدة في السجل التاريخي</span></button>
+        <button type="button" class="stat-card kpi-card kpi-alert" data-kpi="denied" onclick="openDashboardMetric('denied')"><span class="stat-label">مرفوضون</span><span class="stat-value" id="statRejected">0</span><span class="stat-helper">محاولات دخول مرفوضة في السجلات الحالية</span></button>
+        <button type="button" class="stat-card kpi-card kpi-neutral" data-kpi="qr" onclick="openDashboardMetric('qr')"><span class="stat-label">عمليات تحقق QR</span><span class="stat-value" id="statQrVerifications">0</span><span class="stat-helper">محاولات التحقق خلال آخر 24 ساعة</span></button>
+      </div>  <div class="panel shift-panel">
         <h2 class="panel-title">إحصائيات الشفتات A / B / C</h2>
         <p class="panel-desc">توزيع عمليات التحقق في اليوم التشغيلي الحالي حسب الشفت. الشفت C محسوب لتاريخ بدايته.</p>
         <p class="panel-desc">اليوم التشغيلي: <strong id="shiftOpDate">-</strong></p>
@@ -170,7 +147,7 @@
           <div class="external-bars" id="externalSpecialtyBars"></div>
         </div>
       </div>
-      <details class="analytics-method-details">
+      <details class="analytics-method-details" hidden style="display:none">
         <summary>طريقة احتساب تصنيف الموظفين</summary>
         <div class="external-summary" id="externalSummary"></div>
         <p class="unknown-line" id="unknownSummary"></p>
@@ -178,27 +155,6 @@
         <p class="panel-desc">نشاط سجلات الدخول المرتبطة بتسجيلات <strong>مؤقت / خارجي (TEMPORARY)</strong> فقط — من البيانات الحالية فقط، بدون تخمين. الموظفون الدائمون (PERMANENT) مستبعدون من رسم التسجيلات المؤقتة، ويُحتسبون في رسم موظفي المستشفى فقط.</p>
         <p class="panel-desc small-muted">المصدر: gate_access_logs مرتبطة بـ employee_registrations عبر employee_registration_id أولًا ثم employee_id (فريد). logsData لا يحمل registration_category / affiliated_entity / classification مباشرة. السجلات غير المرتبطة تُعرض كبند “غير مرتبط بسجل” ولا تُحتسب كخارجي. الفئات غير المصنفة تبقى UNKNOWN ولا تُحتسب كخارجي ولا كموظف مستشفى.</p>
       </details>
-
-      <div class="panel" id="limitsUsagePanel">
-        <h2 class="panel-title">استخدام الحدود اليومية</h2>
-        <p class="panel-desc">للاختصاصات التي تعمل بنظام “مسموح جزئيًا”.</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الاختصاص</th>
-                <th>الحد اليومي</th>
-                <th>المستخدم اليوم</th>
-                <th>المتبقي</th>
-                <th>الاستخدام %</th>
-                <th>التقدم</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody id="limitsUsageBody"></tbody>
-          </table>
-        </div>
-      </div>
 
       <div class="panel health-compact" id="systemHealthPanel">
         <h2 class="panel-title">صحة النظام</h2>
@@ -212,28 +168,11 @@
         <div class="toolbar" style="margin-bottom:0">
           <button type="button" onclick="showTab('registrations', this)">مراجعة طلبات التسجيل</button>
           <button type="button" class="btn-soft" onclick="showTab('profileChanges', this); loadProfileChangeRequests()">مراجعة تغيير البيانات</button>
-          <button type="button" class="btn-soft" onclick="showTab('violations', this)">عرض سجل بلاغات الحارس</button>
+          <button type="button" class="btn-soft" onclick="showTab('violations', this)">عرض سجل أمن الصخره وتبليغات التجاوزات</button>
           <button type="button" class="btn-soft" onclick="showTab('logs', this)">سجلات الدخول</button>
         </div>
       </div>
-      <details class="panel filters-collapse">
-        <summary class="filters-summary">البحث والفلاتر</summary>
-        <div class="toolbar dashboard-filters" aria-label="فلاتر لوحة الإدارة">
-          <input id="dashboardSearch" type="search" placeholder="البحث بالاسم أو الرقم الوظيفي..." oninput="applyDashboardFilters()" />
-          <select id="dashboardStatus" onchange="applyDashboardFilters()">
-            <option value="">جميع الحالات</option>
-            <option value="PENDING">قيد المراجعة</option>
-            <option value="APPROVED">موافق عليه</option>
-            <option value="REJECTED">مرفوض</option>
-          </select>
-          <select id="dashboardDepartment" onchange="applyDashboardFilters()">
-            <option value="">جميع الأقسام</option>
-          </select>
-          <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
-          <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
-          <button type="button" onclick="exportCsv('registrations')">تصدير</button>
-        </div>
-      </details>
+
 
       <div class="dashboard-activity-grid">
         <div class="panel">
@@ -320,30 +259,25 @@
         <p class="panel-desc">الموظفون الجدد يظهرون هنا. يمكن الموافقة أو الرفض، والدخول الأول لا يعني الاعتماد النهائي.</p>
         <div class="toolbar">
           <button onclick="loadRegistrations()">تحديث الطلبات</button>
-          <button class="btn-soft" onclick="exportCsv('registrations')">تصدير CSV</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الصورة</th>
-                <th>الاسم</th>
-                <th>رقم الموظف</th>
-                <th>الهاتف</th>
-                <th>الوظيفة</th>
-                <th>الاختصاص</th>
-                <th>نوع التسجيل</th>
-                <th>الجهة التابعة</th>
-                <th>الحالة</th>
-                <th>الدخول الأول</th>
-                <th>التحقق السريع</th>
-                <th>تاريخ الطلب</th>
-                <th>الوضع</th>
-              </tr>
-            </thead>
-            <tbody id="registrationsBody"></tbody>
-          </table>
+      <details class="panel filters-collapse">
+        <summary class="filters-summary">البحث والفلاتر</summary>
+        <div class="toolbar dashboard-filters" aria-label="فلاتر لوحة الإدارة">
+          <input id="dashboardSearch" type="search" placeholder="البحث بالاسم أو الرقم الوظيفي..." oninput="applyDashboardFilters()" />
+          <select id="dashboardStatus" onchange="applyDashboardFilters()">
+            <option value="">جميع الحالات</option>
+            <option value="PENDING">قيد المراجعة</option>
+            <option value="APPROVED">موافق عليه</option>
+            <option value="REJECTED">مرفوض</option>
+          </select>
+          <select id="dashboardDepartment" onchange="applyDashboardFilters()">
+            <option value="">جميع الأقسام</option>
+          </select>
+          <button class="btn-soft" type="button" onclick="clearDashboardFilters()">مسح الفلاتر</button>
+          <button class="btn-soft" type="button" onclick="refreshAll()">تحديث</button>
         </div>
+      </details>
+        <div id="registrationsBody" class="registration-card-grid" aria-live="polite"></div>
       </div>
     </section>
 
@@ -392,7 +326,6 @@
 
         <div class="toolbar" style="margin-top:12px">
           <button onclick="loadLimits()">تحديث الحدود</button>
-          <button class="btn-soft" onclick="exportCsv('limits')">تصدير CSV</button>
         </div>
 
         <div class="table-wrap">
@@ -418,8 +351,8 @@
         <p class="panel-desc">كل محاولة دخول تظهر هنا: مسموح، مرفوض، مسموح جزئيًا، أو دخول أول مرة.</p>
         <div class="toolbar">
           <button onclick="loadLogs()">تحديث السجلات</button>
-          <button class="btn-soft" onclick="exportCsv('logs')">تصدير CSV</button>
         </div>
+<div class="toolbar log-view-filters"><label>الفترة<select id="logViewPeriod" onchange="renderLogs()"><option value="ALL">كل السجلات</option><option value="DAYS30">آخر 30 يومًا</option><option value="TODAY">اليوم</option><option value="LAST24">آخر 24 ساعة</option></select></label><label>النتيجة<select id="logViewResult" onchange="renderLogs()"><option value="">جميع النتائج</option><option value="ALLOWED">مسموح</option><option value="DENIED">مرفوض</option><option value="LIMITED">مسموح جزئيًا</option><option value="PENDING_FIRST_ENTRY">الدخول الأول</option></select></label><button type="button" class="btn-soft" onclick="clearLogViewFilters()">مسح الفلاتر</button><p id="logViewSummary" role="status"></p></div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -441,12 +374,12 @@
 
     <section id="violations" class="section">
       <div class="panel">
-        <h2 class="panel-title">بلاغات الحارس</h2>
+        <h2 class="panel-title">أمن الصخره وتبليغات التجاوزات</h2>
         <p class="panel-desc">سجل تاريخي للبلاغات السابقة — العرض فقط. إرسال البلاغات وتغيير حالتها متوقفان.</p>
         <div class="toolbar">
           <button onclick="loadViolations()">تحديث البلاغات</button>
-          <button class="btn-soft" onclick="exportCsv('violations')">تصدير CSV</button>
         </div>
+<label>حالة البلاغ<select id="violationViewStatus" onchange="renderViolations()"><option value="">كل الحالات</option><option value="NEW">بلاغات جديدة</option></select></label>
         <div class="table-wrap">
           <table>
             <thead>
@@ -463,18 +396,40 @@
           </table>
         </div>
       </div>
+    <section class="panel" id="guardAdminPanel" hidden>
+      <h2>ملفات الحراس والدخول اليدوي للطوارئ</h2>
+      <p>اسم المستخدم هو الرقم الوطني، وكلمة المرور هي رقم الهاتف المسجّل. الاسم اختياري. تعديل الحساب يُلغي جلساته الحالية.</p>
+      <form id="guardAdminForm" class="form-grid">
+        <label>اسم الحارس (اختياري)<input id="guardAdminName" maxlength="100"></label>
+        <label>الرقم الوطني<input id="guardAdminNational" inputmode="numeric" maxlength="20" required></label>
+        <label>رقم الهاتف<input id="guardAdminPhone" type="password" inputmode="tel" autocomplete="new-password" placeholder="رقم هاتف الحارس"></label>
+        <label class="admin-check-option"><input id="guardAdminActive" type="checkbox" checked><span>الحارس فعال</span><small>يسمح للحارس بتسجيل الدخول بحسابه</small></label>
+        <button id="guardAdminSave" type="submit">حفظ ملف الحارس</button>
+        <button id="guardAdminNew" type="button">ملف جديد</button>
+      </form>
+      <p class="guard-emergency-option"><label class="admin-check-option"><input id="guardEmergencyEnabled" type="checkbox"><span>تفعيل الدخول اليدوي عند تعطل QR</span><small>يسمح للحارس المسجّل بإدخال رقم الموظف وتسجيل زيارته</small></label>
+        <button id="guardEmergencySave" type="button">حفظ وضع الطوارئ</button></p>
+      <p id="guardAdminMessage" role="status"></p><div id="guardAccountsList"></div>
+      <h3>الحساب الجماعي المؤقت</h3>
+      <form id="guardSharedForm"><label>كلمة المرور الرقمية للحساب الجماعي<input id="guardSharedPhone" type="password" inputmode="tel" autocomplete="new-password" required></label><label class="admin-check-option"><input id="guardSharedEnabled" type="checkbox" checked><span>الحساب الجماعي فعال</span></label><button>حفظ الحساب الجماعي</button></form>
+      <h3>طلبات حسابات الحراس الشخصية</h3><div id="guardRequestsList"></div>
+      <h3>آخر أوقات دخول الحراس</h3><div id="guardSigninList"></div>
+    </section>
+
     </section>
 
     <section id="admins" class="section">
       <div class="panel">
         <h2 class="panel-title">إدارة المشرفين والصلاحيات</h2>
         <p class="panel-desc">
-          يمكنك إضافة مشرف، إزالة مشرف، أو تحديد مهامه من هنا. يجب إنشاء إيميل المشرف أولًا من Supabase Authentication → Users، ثم إضافته هنا.
+          يمكنك إضافة مشرف، إزالة مشرف، أو تحديد مهامه من هنا. يمكن للسوبر أدمن إنشاء حساب دخول جديد بكلمة مرور أولية، أو ربط حساب موجود، وتحديد الدور والصلاحيات من هنا.
         </p>
 
         <div id="superOnlyAdminNotice" class="notice hidden">إضافة أو تعديل أو حذف المشرفين متاح للسوبر أدمن فقط.</div>
 
         <div id="adminFormBox">
+          <div id="adminEmployeeSelection"><label for="adminEmployeePicker">الموظف المعتمد المراد تعيينه</label><select id="adminEmployeePicker"><option value="">اختر موظفًا معتمدًا</option></select><div id="adminEmployeePreview"></div></div>
+          <div id="adminExistingIdentity" hidden>
           <div class="form-grid">
             <div>
               <label for="adminEmail">إيميل المشرف</label>
@@ -485,14 +440,21 @@
               <input id="adminName" type="text" placeholder="اسم المشرف" />
             </div>
             <div>
+              <label for="adminPassword" hidden>كلمة المرور الأولية</label>
+              <input hidden id="adminPassword" type="password" autocomplete="new-password" minlength="12" placeholder="12 حرفًا على الأقل" dir="ltr" />
+            </div>
+            <div>
               <label for="adminPhone">رقم الهاتف</label>
               <input id="adminPhone" type="tel" placeholder="07xxxxxxxx" dir="ltr" />
             </div>
+          </div>
+          </div>
+          <div class="form-grid">
             <div>
               <label for="adminRole">الدور</label>
               <select id="adminRole" onchange="applyRoleDefaultPermissions()">
-                <option value="SUB_ADMIN">SUB_ADMIN</option>
-                <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                <option value="SUB_ADMIN">مشرف بصلاحيات محددة</option>
+                <option value="SUPER_ADMIN">مشرف بصلاحية كاملة</option>
               </select>
             </div>
             <div>
@@ -507,7 +469,7 @@
           <label style="margin-top:14px">مهام وحدود هذا الأدمن</label>
           <div class="permission-grid">
             <label class="permission-box"><input type="checkbox" id="permApprove" /> موافقة / رفض طلبات التسجيل</label>
-            <label class="permission-box"><input type="checkbox" id="permViolations" /> مراجعة بلاغات الحارس</label>
+            <label class="permission-box"><input type="checkbox" id="permViolations" /> مراجعة أمن الصخره وتبليغات التجاوزات</label>
             <label class="permission-box"><input type="checkbox" id="permLogs" /> رؤية سجلات الدخول والإحصائيات</label>
             <label class="permission-box"><input type="checkbox" id="permExport" /> تصدير CSV</label>
             <label class="permission-box"><input type="checkbox" id="permLimits" /> تعديل حدود الاختصاصات اليومية</label>
@@ -516,16 +478,17 @@
         </div>
 
         <div class="toolbar">
-          <button class="btn-green" id="saveAdminButton" type="button" onclick="saveAdmin()">إضافة مشرف</button>
-          <button class="btn-soft" onclick="clearAdminForm()">تفريغ النموذج</button>
+          <button class="btn-green" id="saveAdminButton" type="button" onclick="saveAdmin()">تعيين الموظف كمشرف</button>
+          <button class="btn-soft" onclick="clearAdminForm()">تعيين جديد</button>
           <button onclick="loadAdmins()">تحديث المشرفين</button>
-          <button class="btn-soft" onclick="exportCsv('admins')">تصدير CSV</button>
         </div>
 
         <div class="notice">
-          المشرفون الذين زودتِني بأسمائهم وأرقامهم تمت إضافتهم في التعليمات، لكن لا يمكن تفعيل دخولهم فعليًا حتى تزوّديني بإيميلاتهم وتنشئي لهم Users في Supabase Auth.
+          اختر الموظف المعتمد وحدد صلاحياته. الموظف يُكمل بريده وكلمة مروره بنفسه من ملفه الشخصي بعد التعيين. تظل الحسابات الحالية قابلة للتعديل.
         </div>
 
+        <h3>تعيينات الموظفين</h3><p id="adminAppointmentStatus" role="status"></p><div id="adminAssignmentList" class="directory-grid"></div>
+        <h3>حسابات المشرفين الحالية</h3>
         <div class="table-wrap">
           <table>
             <thead>
@@ -552,7 +515,6 @@
         <p class="panel-desc">تسجيل العمليات المهمة: موافقة، رفض، تغيير حد، وإدارة المشرفين.</p>
         <div class="toolbar">
           <button onclick="loadAudit()">تحديث Audit</button>
-          <button class="btn-soft" onclick="exportCsv('audit')">تصدير CSV</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -571,6 +533,40 @@
       </div>
     </section>
 
+    <section id="dailyUsage" class="section">
+<div class="panel" id="limitsUsagePanel">
+        <h2 class="panel-title">استخدام الحدود اليومية</h2>
+        <p class="panel-desc">للاختصاصات التي تعمل بنظام “مسموح جزئيًا”.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الاختصاص</th>
+                <th>الحد اليومي</th>
+                <th>المستخدم اليوم</th>
+                <th>المتبقي</th>
+                <th>الاستخدام %</th>
+                <th>التقدم</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody id="limitsUsageBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="employeeDirectory" class="section">
+      <div class="panel"><h2>دليل الموظفين</h2><p>سجلات التسجيل الحالية؛ يعرض المعتمدين افتراضيًا. التصنيف بحسب نوع التسجيل المسجّل، دون تخمين الجهة.</p>
+      <p id="directoryCatalogStatus" role="status"></p><div id="directorySummary" aria-live="polite"></div>
+      <div class="directory-filters">
+      <label>البحث<input id="directorySearch" type="search" placeholder="الاسم أو رقم الموظف أو الهاتف"></label>
+      <label>مجموعة التسجيل<select id="directoryCategory"><option value="">جميع المجموعات</option><option value="PERMANENT">موظفو مستشفى البشير — تسجيل دائم</option><option value="TEMPORARY">موظفو الجهات الأخرى — مؤقت / خارجي</option><option value="UNKNOWN">غير مصنّفين</option></select></label>
+      <label>الحالة<select id="directoryStatus"><option value="APPROVED">المعتمدون</option><option value="">جميع حالات التسجيل</option><option value="PENDING">بانتظار الاعتماد</option><option value="REJECTED">المرفوضون</option></select></label>
+      <label>الوظيفة<select id="directoryJob"></select></label><label>القسم<select id="directoryDepartment"></select></label><label>الاختصاص<select id="directorySpecialty"></select></label><label>الجهة<select id="directoryEntity"></select></label>
+      </div><p id="directoryCount" aria-live="polite"></p><div id="directoryCards" class="directory-grid"></div>
+      <div class="directory-pagination"><button id="directoryPrevious" type="button">السابق</button><span id="directoryPage"></span><button id="directoryNext" type="button">التالي</button></div></div>
+    </section>
     <section id="exports" class="section">
       <div class="panel">
         <h2 class="panel-title">تصدير CSV</h2>
@@ -578,11 +574,23 @@
         <div class="toolbar">
           <button onclick="exportCsv('registrations')">طلبات التسجيل</button>
           <button onclick="exportCsv('logs')">سجلات الدخول</button>
-          <button onclick="exportCsv('violations')">بلاغات الحارس</button>
+          <button onclick="exportCsv('violations')">أمن الصخره وتبليغات التجاوزات</button>
           <button onclick="exportCsv('limits')">حدود الاختصاصات</button>
           <button onclick="exportCsv('admins')">المشرفون</button>
           <button onclick="exportCsv('audit')">Audit</button>
         </div>
+        <fieldset class="export-selection"><legend>اختر البيانات المطلوبة أو جميعها</legend>
+          <label><input type="checkbox" name="csvDataset" value="registrations" checked> طلبات التسجيل</label>
+          <label><input type="checkbox" name="csvDataset" value="profileChanges" checked> طلبات تغيير بيانات الموظفين</label>
+          <label><input type="checkbox" name="csvDataset" value="logs" checked> سجلات الدخول</label>
+          <label><input type="checkbox" name="csvDataset" value="violations" checked> أمن الصخره وتبليغات التجاوزات</label>
+          <label><input type="checkbox" name="csvDataset" value="limits" checked> حدود الاختصاصات</label>
+          <label><input type="checkbox" name="csvDataset" value="admins" checked> المشرفون</label>
+          <label><input type="checkbox" name="csvDataset" value="audit" checked> سجل التدقيق</label>
+          <label><input type="checkbox" name="csvDataset" value="devices" checked> الأجهزة</label>
+          <label><input type="checkbox" name="csvDataset" value="sync" checked> حالة المزامنة</label>
+        </fieldset>
+        <div class="toolbar"><button type="button" onclick="exportSelectedCsv()">تحميل البيانات المحددة</button><button type="button" class="btn-soft" onclick="document.querySelectorAll('[name=csvDataset]').forEach(e=>e.checked=true)">تحديد الكل</button><button type="button" class="btn-soft" onclick="document.querySelectorAll('[name=csvDataset]').forEach(e=>e.checked=false)">إلغاء التحديد</button></div>
         <div class="notice">
           إذا كان الجدول فارغًا، اضغطي تحديث أولًا أو انتظري وصول بيانات من التطبيق.
         </div>
@@ -595,7 +603,13 @@
         <span class="creator-name">Dr. Alaa Aqrabawi</span>
       </div>
     </footer>
-  </main>
+    <section class="section panel" id="notifications">
+      <h2>إشعارات الإدارة</h2><p>طلبات جديدة، نهاية الشفتات والحد اليومي. التفضيل محفوظ لهذا الحساب وهذا الجهاز.</p>
+      <button id="adminNoticeEnable" type="button">تفعيل تنبيهات هذا الجهاز</button>
+      <button id="adminNoticeDisable" type="button">إيقاف تنبيهات هذا الجهاز</button>
+      <p id="adminNoticeStatus" role="status"></p><div id="adminNoticeList"></div>
+    </section>
+</main>
 
   <script>
     // =========================================================
@@ -749,6 +763,7 @@
     function toggleAdminSound() {
       adminAlertsEnabled = !adminAlertsEnabled;
       localStorage.setItem("adminAlertsEnabled_v2", String(adminAlertsEnabled));
+      window.AdminLive?.rememberSound(adminAlertsEnabled);
       if (adminAlertsEnabled) {
         ensureAudioContext();
         playWatarLikeChime();
@@ -827,6 +842,7 @@
     async function enableAdminAlerts() {
       adminAlertsEnabled = true;
       localStorage.setItem("adminAlertsEnabled_v2", "true");
+      window.AdminLive?.rememberSound(true);
       ensureAudioContext();
       updateAdminAlertState();
       playWatarLikeChime();
@@ -961,7 +977,8 @@
         return;
       }
 
-      badge.textContent = adminProfile.role || "ADMIN";
+      badge.textContent = adminProfile.role === "SUPER_ADMIN" ? "المشرف الرئيسي" : "مشرف الإدارة";
+      badge.title = adminProfile.role || "ADMIN";
       badge.className = "pill";
       if (adminProfile.role === "SUPER_ADMIN") badge.classList.add("super");
       else badge.classList.add("ready");
@@ -980,7 +997,7 @@
     }
 
     async function init() {
-      $("appTitle").textContent = APP_CONFIG.APP_NAME || "ALBASHIR EMERGENCY HOSPITAL";
+      $("appTitle").textContent = "لوحة الإدارة";
       updateAdminAlertState();
 
       if (!isConfigReady()) {
@@ -1008,6 +1025,7 @@
       setupRoleUi();
       await refreshAll();
       subscribeRealtime();
+      window.AdminLive?.start();
     }
 
     async function verifyAdmin() {
@@ -1030,7 +1048,7 @@
       }
 
       adminProfile = data;
-      $("adminLine").textContent = `مرحبًا ${data.full_name || data.email} — ${data.role}`;
+      $("adminLine").textContent = `مرحبًا، ${data.full_name || data.email}`;
       setRoleBadge();
       return true;
     }
@@ -1067,7 +1085,8 @@
         loadViolations(),
         loadAdmins(),
         loadAudit(),
-        loadGateOperations()
+        loadGateOperations(),
+        window.GuardAdmin?.load()
       ]);
 
       renderOverview();
@@ -1100,9 +1119,11 @@
 
       registrationsData = data || [];
       filteredRegistrationsData = registrationsData.slice();
+      window.EmployeeDirectory?.update(registrationsData);
+      window.AdminAppointments?.employees(registrationsData);
       populateDepartmentFilter();
       handleRegistrationNotifications(registrationsData);
-      renderRegistrations();
+      applyDashboardFilters();
       renderOverview();
     }
 
@@ -1217,6 +1238,7 @@
 
       adminsData = data || [];
       renderAdmins();
+      await window.AdminAppointments?.load();
     }
 
     async function loadAudit() {
@@ -1349,32 +1371,36 @@
       const rows = filteredRegistrationsData;
 
       if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="13">لا توجد طلبات حتى الآن.</td></tr>`;
+        body.innerHTML = '<p class="registration-empty">لا توجد طلبات مطابقة للفلاتر الحالية.</p>';
         return;
       }
-
-      body.innerHTML = rows.map((row) => `
-        <tr>
-          <td>${(() => { const ref = String(row.employee_photo_url ?? "").trim(); return ref ? `<a data-photo-href="${escapeHtml(ref)}" target="_blank" rel="noopener"><img class="photo-thumb" data-photo-ref="${escapeHtml(ref)}" alt="صورة شخصية" /></a>` : "-"; })()}</td>
-          <td>${escapeHtml(row.full_name)}</td>
-          <td>${escapeHtml(row.employee_id)}</td>
-          <td>${escapeHtml(row.mobile_number)}</td>
-          <td>${escapeHtml(row.job_type || "-")}</td>
-          <td>${escapeHtml(row.specialty)}</td>
-          <td>${row.registration_category === "PERMANENT" ? "موظف دائم" : row.registration_category === "TEMPORARY" ? "مؤقت / خارجي" : "غير مصنف (سجل سابق)"}</td>
-          <td>${escapeHtml(row.affiliated_entity || "-")}</td>
-          <td>${statusBadge(row.status)}</td>
-          <td>${row.first_entry_used ? `<span class="badge yellow">مستخدم</span><br><span class="small-muted">${formatDate(row.first_entry_at)}</span>` : `<span class="badge blue">غير مستخدم</span>`}</td>
-          <td>${renderTrustedDeviceCell(row)}</td>
-          <td>${formatDate(row.created_at)}</td>
-          <td>
-            <div class="row-actions">
-              <button class="btn-green" onclick="updateRegistration('${row.id}', 'APPROVED')" ${row.status === "APPROVED" || !hasPermission("can_approve_requests") ? "disabled" : ""}>موافقة</button>
-              <button class="btn-red" onclick="updateRegistration('${row.id}', 'REJECTED')" ${row.status === "REJECTED" || !hasPermission("can_approve_requests") ? "disabled" : ""}>رفض</button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
+      body.innerHTML = rows.map((row) => {
+        const ref = String(row.employee_photo_url ?? '').trim();
+        const category = row.registration_category === 'PERMANENT' ? 'موظف دائم' : row.registration_category === 'TEMPORARY' ? 'مؤقت / خارجي' : 'غير مصنف (سجل سابق)';
+        return `
+        <article class="registration-card" aria-label="طلب ${escapeAttr(row.full_name || row.employee_id)}">
+          <header class="registration-card-head">
+            ${ref ? `<a class="registration-photo" data-photo-href="${escapeAttr(ref)}" target="_blank" rel="noopener"><img class="photo-thumb" data-photo-ref="${escapeAttr(ref)}" alt="صورة ${escapeAttr(row.full_name || 'الموظف')}" /></a>` : '<span class="registration-photo-missing">لا توجد صورة</span>'}
+            <div><h3>${escapeHtml(row.full_name || '-')}</h3><p>رقم الموظف: <bdi>${escapeHtml(row.employee_id)}</bdi></p><p>الهاتف: <bdi>${escapeHtml(row.mobile_number || '-')}</bdi></p></div>
+          </header>
+          <dl class="registration-fields">
+            <div><dt>الوظيفة</dt><dd>${escapeHtml(row.job_type || '-')}</dd></div>
+            <div><dt>الاختصاص</dt><dd>${escapeHtml(row.specialty || '-')}</dd></div>
+            <div><dt>نوع التسجيل</dt><dd>${category}</dd></div>
+            <div><dt>الجهة التابعة</dt><dd>${escapeHtml(row.affiliated_entity || '-')}</dd></div>
+          </dl>
+          <section class="registration-status"><h4>الحالة</h4>${statusBadge(row.status)}</section>
+          <section class="registration-device"><h4>التحقق السريع والجهاز المربوط</h4>${renderTrustedDeviceCell(row)}</section>
+          <dl class="registration-fields registration-times">
+            <div><dt>تاريخ الطلب</dt><dd>${escapeHtml(formatDate(row.created_at))}</dd></div>
+            <div><dt>الدخول الأول</dt><dd>${row.first_entry_used ? `<span class="badge yellow">مستخدم</span><span class="registration-first-time">${escapeHtml(formatDate(row.first_entry_at))}</span>` : '<span class="badge blue">غير مستخدم</span>'}</dd></div>
+          </dl>
+          <footer class="registration-actions"><h4>الوضع والإجراءات</h4><div class="row-actions">
+            <button class="btn-green" onclick="updateRegistration('${row.id}', 'APPROVED')" ${row.status === 'APPROVED' || !hasPermission('can_approve_requests') ? 'disabled' : ''}>موافقة</button>
+            <button class="btn-red" onclick="updateRegistration('${row.id}', 'REJECTED')" ${row.status === 'REJECTED' || !hasPermission('can_approve_requests') ? 'disabled' : ''}>رفض</button>
+          </div></footer>
+        </article>`;
+      }).join('');
       hydrateAdminPhotos(body);
     }
     // Employee photos are private: an admin session token is exchanged for a
@@ -1413,15 +1439,44 @@
       populateLimitSpecialtyOptions();
     }
 
+
+    function filteredLogView() {
+      const period = $("logViewPeriod")?.value || "ALL", result = $("logViewResult")?.value || "";
+      const now = new Date(), today = new Date(now); today.setHours(0,0,0,0);
+      const since = period === 'DAYS30' ? now.getTime()-30*24*60*60*1000 : period === 'LAST24' ? now.getTime()-24*60*60*1000 : period === 'TODAY' ? today.getTime() : null;
+      return logsData.filter(row => (!result || row.result === result) && (since === null || new Date(row.created_at).getTime() >= since));
+    }
+    function clearLogViewFilters() {
+      $("logViewPeriod").value = 'ALL'; $("logViewResult").value = ''; renderLogs();
+    }
+    function openDashboardMetric(metric) {
+      let target;
+      if (metric === 'pending') {
+        target = 'registrations'; $("dashboardSearch").value = ''; $("dashboardDepartment").value = ''; $("dashboardStatus").value = 'PENDING';
+        applyDashboardFilters(); document.querySelector('#registrations .filters-collapse').open = true;
+      } else if (metric === 'violations') {
+        target = 'violations'; $("violationViewStatus").value = 'NEW'; renderViolations();
+      } else {
+        target = 'logs'; $("logViewPeriod").value = ({last30:'DAYS30',approvedToday:'TODAY',qr:'LAST24'})[metric] || 'ALL';
+        $("logViewResult").value = ({approvedToday:'ALLOWED',denied:'DENIED'})[metric] || ''; renderLogs();
+      }
+      const button = Array.from(document.querySelectorAll('.tab-btn')).find(el => (el.getAttribute('onclick') || '').includes("'"+target+"'"));
+      showTab(target,button); $(target).scrollIntoView({behavior:'smooth',block:'start'});
+      const control = target === 'registrations' ? $("dashboardStatus") : target === 'violations' ? $("violationViewStatus") : $("logViewPeriod");
+      control.focus({preventScroll:true});
+    }
+
     function renderLogs() {
       const body = $("logsBody");
 
-      if (!logsData.length) {
+      const rows = filteredLogView();
+      $("logViewSummary").textContent = "عدد السجلات المعروضة: " + rows.length;
+      if (!rows.length) {
         body.innerHTML = `<tr><td colspan="7">لا توجد سجلات حتى الآن.</td></tr>`;
         return;
       }
 
-      body.innerHTML = logsData.map((row) => `
+      body.innerHTML = rows.map((row) => `
         <tr>
           <td>${formatDate(row.created_at)}</td>
           <td>${escapeHtml(row.full_name)}</td>
@@ -1437,12 +1492,14 @@
     function renderViolations() {
       const body = $("violationsBody");
 
-      if (!violationsData.length) {
+      const status = $("violationViewStatus")?.value || "";
+      const rows = violationsData.filter(row => !status || row.status === status);
+      if (!rows.length) {
         body.innerHTML = `<tr><td colspan="6">لا توجد بلاغات حتى الآن.</td></tr>`;
         return;
       }
 
-      body.innerHTML = violationsData.map((row) => `
+      body.innerHTML = rows.map((row) => `
         <tr>
           <td>
             ${(() => { const u = safeImageUrl(row.photo_url); return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img class="photo-thumb" src="${escapeHtml(u)}" alt="صورة بلاغ" /></a>` : `<span class="small-muted">الصورة غير متاحة</span>`; })()}
@@ -2073,6 +2130,7 @@
       $("adminEmail").value = "";
       $("adminName").value = "";
       $("adminPhone").value = "";
+      $("adminPassword").value = "";
       $("adminRole").value = "SUB_ADMIN";
       $("adminActive").value = "true";
       applyRoleDefaultPermissions();
@@ -2085,6 +2143,7 @@
       $("adminEmail").value = row.email || "";
       $("adminName").value = row.full_name || "";
       $("adminPhone").value = row.phone_number || "";
+      $("adminPassword").value = "";
       $("adminRole").value = row.role || "SUB_ADMIN";
       $("adminActive").value = row.is_active ? "true" : "false";
       setPermissionCheckboxes(row.permissions || {});
@@ -2094,6 +2153,8 @@
 
 
     async function saveAdmin() {
+      const saveButton = $("saveAdminButton");
+      if (saveButton.disabled) return;
       if (adminProfile?.role !== "SUPER_ADMIN") {
         showToast("هذه العملية للسوبر أدمن فقط.", "error");
         return;
@@ -2108,17 +2169,40 @@
         p_permissions: getAdminPermissionsFromForm()
       };
 
-      const { data, error } = await supabaseClient.rpc("super_admin_upsert_admin_profile", payload);
+      const initialPassword = $("adminPassword").value;
+      if (initialPassword && initialPassword.length < 12) {
+        showToast("كلمة المرور الأولية يجب ألا تقل عن 12 حرفًا.", "error");
+        return;
+      }
+      saveButton.disabled = true;
+      try {
+      let data, error;
+      if (initialPassword) {
+        const response = await supabaseClient.functions.invoke("admin-create-user", {
+          body: { ...payload, password: initialPassword }
+        });
+        data = response.data;
+        error = response.error;
+      } else {
+        const response = await supabaseClient.rpc("super_admin_upsert_admin_profile", payload);
+        data = response.data;
+        error = response.error;
+      }
 
       if (error || !data || data.ok !== true) {
         showToast(error?.message || data?.message || "فشل حفظ المشرف.", "error");
         return;
       }
 
-      showToast(data.message || "تم حفظ المشرف.", "ok");
+      showToast(data.message || "تم حفظ المشرف.", data.confirmation_sent === false ? "error" : "ok");
       clearAdminForm();
       await loadAdmins();
       await loadAudit();
+      } catch (err) {
+        showToast("تعذر تأكيد نتيجة الطلب. تحقق من قائمة المشرفين قبل إعادة إنشاء الحساب لتجنب التكرار.", "error");
+      } finally {
+        saveButton.disabled = false;
+      }
     }
 
 
@@ -2180,7 +2264,7 @@
         return;
       }
 
-      const headers = Object.keys(rows[0]);
+      const headers = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
       const csv = [
         headers.map(csvEscape).join(","),
         ...rows.map((row) => headers.map((key) => csvEscape(row[key])).join(","))
@@ -2195,6 +2279,15 @@
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+    }
+
+    function exportSelectedCsv() {
+      if (!hasPermission("can_export_csv")) { showToast("غير مصرح لك بتصدير CSV.", "error"); return; }
+      const datasets = {registrations:registrationsData,profileChanges:profileChangeRequestsData,logs:logsData,violations:violationsData,limits:limitsData,admins:adminsData,audit:auditData,devices:gateDevicesData,sync:gateSyncStatusData};
+      const selected = Array.from(document.querySelectorAll('[name="csvDataset"]:checked')).map(e=>e.value);
+      if (!selected.length) { showToast("اختر بيانات للتصدير أولًا.", "error"); return; }
+      const rows = selected.flatMap(type=>(datasets[type] || []).map(row=>({...row,dataset:type})));
+      downloadCsv("albashir_selected_data.csv",rows);
     }
 
     function exportCsv(type) {
@@ -2232,6 +2325,7 @@
     }
 
     async function logout() {
+      await window.AdminLive?.stop(true);
       window.EmployeePhoto?.clearCache();
       if (!supabaseClient) return;
       await supabaseClient.auth.signOut();
@@ -2258,6 +2352,12 @@
       showSetupWarning("تعذر تشغيل لوحة الإدارة: " + err.message, "error");
     });
   </script>
+<link rel="stylesheet" href="./employee-directory.css">
+<script src="./employee-directory.js"></script>
+<script src="./admin-appointments.js"></script>
+<script src="./guard-admin.js"></script>
+<script src="./admin-live.js"></script>
 <script src="./global-leadership.js"></script>
+<script src="./navigation-polish.js"></script>
 </body>
 </html>

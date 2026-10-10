@@ -149,6 +149,7 @@
       font-size: 13px;
     }
 
+    .tab-btn.has-new-notice { border-color:#facc15; background:#4a390b; color:#fff3b0; }
     .tab-btn.active {
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.95), rgba(14, 165, 233, 0.95));
       color: white;
@@ -463,7 +464,7 @@
       margin: 4px 0 6px;
     }
 
-    input,
+    input:not([type="checkbox"]),
     select {
       width: 100%;
       border: 1px solid rgba(148, 163, 184, 0.26);

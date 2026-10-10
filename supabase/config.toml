@@ -1,0 +1,2 @@
+[functions.admin-notice-dispatch]
+verify_jwt = false

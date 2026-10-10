@@ -1,0 +1,11 @@
+#guardManualPanel input {
+  width: 100%; max-width: 480px; padding: 16px; margin-top: 10px;
+  border: 2px solid #46819b; border-radius: 12px;
+  background: #051c2c; color: #fff; font: inherit; font-size: 24px;
+}
+#guardManualPanel label, #guardManualPanel button { font-size: 22px; }
+#guardManualPanel button { min-height: 56px; margin: 8px; }
+#guardManualMessage { color: #ffd78a; font-size: 20px; line-height: 1.7; }
+#guardManualPanel { scroll-margin-top: 20px; }
+#guardProfileLink { display:inline-flex; align-items:center; justify-content:center; min-height:56px; padding:14px 20px; border:2px solid #48bddd; border-radius:12px; background:#06374c; color:#e5f2ff; font-size:22px; text-decoration:none; }
+#guardProfileLink:focus-visible { outline:3px solid #ffd78a; outline-offset:4px; }

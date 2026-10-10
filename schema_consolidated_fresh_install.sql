@@ -9309,3 +9309,741 @@ revoke all on function public.public_guard_employee_check_v2(uuid,text,text,text
 grant execute on function public.claim_qr_session_v2(text,uuid) to anon, authenticated, service_role;
 grant execute on function public.public_guard_auto_employee_check_v2(uuid,text,text,text) to anon, authenticated, service_role;
 grant execute on function public.public_guard_employee_check_v2(uuid,text,text,text,text) to anon, authenticated, service_role;
+
+-- Owner-authorized authenticated emergency entry, 2026-10-10.
+-- QR display remains public. Only the new manual-entry path needs guard login.
+create table private.guard_accounts (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null check(length(full_name) between 2 and 100),
+  national_id text not null unique check(national_id ~ '^[0-9]{6,20}$'),
+  phone_hash text not null,
+  phone_hint text not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create unique index guard_accounts_name_unique on private.guard_accounts(lower(trim(full_name)));
+create table private.guard_login_attempts (
+  id bigint generated always as identity primary key,
+  identity_hash text not null,
+  created_at timestamptz not null default now()
+);
+create index guard_login_attempts_time on private.guard_login_attempts(created_at);
+create index guard_login_attempts_identity on private.guard_login_attempts(identity_hash,created_at);
+create table private.guard_sessions (
+  token_hash text primary key,
+  guard_id uuid not null references private.guard_accounts(id) on delete cascade,
+  expires_at timestamptz not null default now()+interval '24 hours'
+);
+create table private.guard_emergency_settings (
+  singleton boolean primary key default true check(singleton),
+  enabled boolean not null default false
+);
+insert into private.guard_emergency_settings(singleton,enabled) values(true,false);
+create table private.guard_manual_entries (
+  guard_id uuid not null references private.guard_accounts(id),
+  request_id uuid not null,
+  employee_id text not null,
+  response jsonb not null,
+  created_at timestamptz not null default now(),
+  primary key(guard_id,request_id)
+);
+create index guard_manual_entries_time on private.guard_manual_entries(created_at);
+alter table private.guard_accounts enable row level security;
+alter table private.guard_login_attempts enable row level security;
+alter table private.guard_sessions enable row level security;
+alter table private.guard_emergency_settings enable row level security;
+alter table private.guard_manual_entries enable row level security;
+revoke all on private.guard_accounts,private.guard_login_attempts,private.guard_sessions,
+  private.guard_emergency_settings,private.guard_manual_entries from public,anon,authenticated;
+
+create function private.guard_normalize_phone(p_phone text) returns text
+language sql immutable set search_path=pg_catalog as $$
+  select regexp_replace(regexp_replace(
+    translate(trim(coalesce(p_phone,'')),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789'),
+    '[^0-9]','','g'),'^(00962|962)','0');
+$$;
+revoke all on function private.guard_normalize_phone(text) from public,anon,authenticated;
+
+create function public.admin_save_guard(p_guard_id uuid,p_full_name text,p_national_id text,p_phone text,p_is_active boolean)
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare g_id uuid; phone text:=private.guard_normalize_phone(p_phone); name text:=trim(p_full_name); national text:=translate(trim(p_national_id),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789');
+begin
+  if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','هذه العملية للسوبر أدمن فقط'); end if;
+  if name is null or length(name) not between 2 and 100 or name ~ '^[0-9]+$' or national is null or national !~ '^[0-9]{6,20}$'
+     or p_is_active is null or (phone<>'' and phone !~ '^[0-9]{8,15}$') or (p_guard_id is null and phone='') then
+    return jsonb_build_object('ok',false,'message','تحقق من الاسم والرقم الوطني ورقم الهاتف');
+  end if;
+  if p_guard_id is null then
+    insert into private.guard_accounts(full_name,national_id,phone_hash,phone_hint,is_active)
+    values(name,national,extensions.crypt(phone,extensions.gen_salt('bf',10)),right(phone,4),p_is_active) returning id into g_id;
+  else
+    update private.guard_accounts set full_name=name,national_id=national,is_active=p_is_active,
+      phone_hash=case when phone='' then phone_hash else extensions.crypt(phone,extensions.gen_salt('bf',10)) end,
+      phone_hint=case when phone='' then phone_hint else right(phone,4) end
+    where id=p_guard_id returning id into g_id;
+    if g_id is null then return jsonb_build_object('ok',false,'message','ملف الحارس غير موجود'); end if;
+    -- Editing identity, phone or status revokes all existing sessions immediately.
+    delete from private.guard_sessions where guard_id=g_id;
+  end if;
+  insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details)
+  values(auth.uid(),'SAVE_GUARD_ACCOUNT','guard_accounts',g_id::text,jsonb_build_object('is_active',p_is_active));
+  return jsonb_build_object('ok',true,'message','تم حفظ ملف الحارس');
+exception when unique_violation then
+  return jsonb_build_object('ok',false,'message','الاسم أو الرقم الوطني مستخدم؛ اختر اسمًا مميزًا للحارس');
+end; $$;
+revoke all on function public.admin_save_guard(uuid,text,text,text,boolean) from public,anon;
+grant execute on function public.admin_save_guard(uuid,text,text,text,boolean) to authenticated;
+
+create function public.admin_list_guards() returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private as $$
+begin
+  if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','غير مصرح'); end if;
+  return jsonb_build_object('ok',true,'emergency_enabled',(select enabled from private.guard_emergency_settings),
+    'guards',coalesce((select jsonb_agg(jsonb_build_object('id',id,'full_name',full_name,'national_id',national_id,
+      'phone_hint',phone_hint,'is_active',is_active) order by full_name) from private.guard_accounts),'[]'::jsonb));
+end; $$;
+revoke all on function public.admin_list_guards() from public,anon;
+grant execute on function public.admin_list_guards() to authenticated;
+
+create function public.admin_set_guard_emergency(p_enabled boolean) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private as $$
+begin
+  if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','غير مصرح'); end if;
+  if p_enabled is null then return jsonb_build_object('ok',false,'message','حالة غير صحيحة'); end if;
+  update private.guard_emergency_settings set enabled=p_enabled;
+  insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,details)
+  values(auth.uid(),'SET_GUARD_EMERGENCY','guard_emergency_settings',jsonb_build_object('enabled',p_enabled));
+  return jsonb_build_object('ok',true,'message','تم تحديث وضع الطوارئ');
+end; $$;
+revoke all on function public.admin_set_guard_emergency(boolean) from public,anon;
+grant execute on function public.admin_set_guard_emergency(boolean) to authenticated;
+
+create function public.guard_login(p_identity text,p_phone text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare g private.guard_accounts%rowtype; identity text:=translate(lower(trim(coalesce(p_identity,''))),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789'); phone text:=private.guard_normalize_phone(p_phone);
+  ih text; token text; expiry timestamptz:=now()+interval '24 hours';
+begin
+  if length(identity) not between 2 and 100 or phone !~ '^[0-9]{8,15}$' then return jsonb_build_object('ok',false,'message','تحقق من الاسم أو الرقم الوطني ورقم الهاتف'); end if;
+  perform pg_advisory_xact_lock(610100901);
+  delete from private.guard_login_attempts where created_at<now()-interval '1 day';
+  delete from private.guard_sessions where expires_at<=now();
+  ih:=encode(extensions.digest(identity,'sha256'),'hex');
+  if (select count(*) from private.guard_login_attempts where created_at>now()-interval '1 minute')>=120
+     or (select count(*) from private.guard_login_attempts where identity_hash=ih and created_at>now()-interval '15 minutes')>=5 then
+    return jsonb_build_object('ok',false,'message','محاولات كثيرة؛ انتظر 15 دقيقة ثم حاول مجددًا');
+  end if;
+  insert into private.guard_login_attempts(identity_hash) values(ih);
+  select * into g from private.guard_accounts where lower(trim(full_name))=identity or national_id=identity for update;
+  if g.id is null or not g.is_active then
+    perform extensions.crypt(phone,extensions.gen_salt('bf',10));
+    return jsonb_build_object('ok',false,'message','تحقق من الاسم أو الرقم الوطني ورقم الهاتف');
+  end if;
+  if extensions.crypt(phone,g.phone_hash)<>g.phone_hash then return jsonb_build_object('ok',false,'message','تحقق من الاسم أو الرقم الوطني ورقم الهاتف'); end if;
+  token:=encode(extensions.gen_random_bytes(32),'hex');
+  delete from private.guard_sessions where guard_id=g.id;
+  insert into private.guard_sessions(token_hash,guard_id,expires_at) values(encode(extensions.digest(token,'sha256'),'hex'),g.id,expiry);
+  return jsonb_build_object('ok',true,'token',token,'expires_at',expiry,'full_name',g.full_name,
+    'emergency_enabled',(select enabled from private.guard_emergency_settings));
+end; $$;
+revoke all on function public.guard_login(text,text) from public;
+grant execute on function public.guard_login(text,text) to anon,authenticated;
+
+create function private.guard_session_id(p_token text) returns uuid
+language sql stable set search_path=pg_catalog,private,extensions as $$
+  select g.id from private.guard_sessions s join private.guard_accounts g on g.id=s.guard_id
+  where p_token ~ '^[0-9a-f]{64}$' and s.token_hash=encode(extensions.digest(p_token,'sha256'),'hex')
+    and s.expires_at>now() and g.is_active;
+$$;
+revoke all on function private.guard_session_id(text) from public,anon,authenticated;
+
+create function public.guard_session_status(p_token text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private as $$
+declare g_id uuid:=private.guard_session_id(p_token);
+begin
+  if g_id is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+  return jsonb_build_object('ok',true,'full_name',(select full_name from private.guard_accounts where id=g_id),
+    'emergency_enabled',(select enabled from private.guard_emergency_settings));
+end; $$;
+revoke all on function public.guard_session_status(text) from public;
+grant execute on function public.guard_session_status(text) to anon,authenticated;
+
+create function public.guard_logout(p_token text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,private,extensions as $$
+begin
+  if p_token ~ '^[0-9a-f]{64}$' then delete from private.guard_sessions where token_hash=encode(extensions.digest(p_token,'sha256'),'hex'); end if;
+  return jsonb_build_object('ok',true);
+end; $$;
+revoke all on function public.guard_logout(text) from public;
+grant execute on function public.guard_logout(text) to anon,authenticated;
+
+create function public.guard_manual_employee_entry(p_token text,p_employee_id text,p_request_id uuid) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare g_id uuid; reg public.employee_registrations%rowtype; q public.qr_sessions%rowtype;
+  prior private.guard_manual_entries%rowtype; r jsonb; response jsonb; read_key text; emp text:=translate(trim(coalesce(p_employee_id,'')),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789');
+begin
+  g_id:=private.guard_session_id(p_token);
+  if g_id is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED','message','سجّل دخول الحارس أولًا'); end if;
+  -- Lock the account against revocation for this decision, then recheck session.
+  perform 1 from private.guard_accounts where id=g_id for share;
+  if private.guard_session_id(p_token) is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+  if p_request_id is null or length(emp) not between 1 and 100 then return jsonb_build_object('ok',false,'message','أدخل الرقم الوظيفي أو الوطني'); end if;
+  perform pg_advisory_xact_lock(610100902);
+  select * into prior from private.guard_manual_entries where guard_id=g_id and request_id=p_request_id;
+  if prior.request_id is not null then
+    if prior.employee_id<>emp then return jsonb_build_object('ok',false,'error','REQUEST_MISMATCH'); end if;
+    return prior.response;
+  end if;
+  if not (select enabled from private.guard_emergency_settings) then return jsonb_build_object('ok',false,'message','الدخول اليدوي للطوارئ غير مفعّل؛ راجع الإدارة'); end if;
+  if (select count(*) from private.guard_manual_entries where guard_id=g_id and created_at>now()-interval '1 minute')>=30 then
+    return jsonb_build_object('ok',false,'message','محاولات كثيرة؛ انتظر دقيقة');
+  end if;
+  select * into reg from public.employee_registrations where employee_id=emp order by created_at desc limit 1;
+  if reg.id is null then
+    response:=jsonb_build_object('ok',true,'result','DENIED','message','الموظف غير موجود أو غير مصرح','employee',null,'counted',false);
+  else
+    -- Reuse the existing decision function, including status/device/specialty
+    -- and daily-limit rules. A server-only single-use QR is issued ONLY after
+    -- guard authorization; no caller receives or supplies this token.
+    insert into public.qr_sessions(expires_at) values(now()+interval '30 seconds') returning * into q;
+    r:=public.manual_employee_check(reg.employee_id,reg.mobile_number,q.token::text);
+    read_key:=encode(extensions.gen_random_bytes(32),'hex');
+    insert into private.public_guard_sessions(qr_session_id,read_key_hash,expires_at,result,employee_registration_id,decided_at)
+    values(q.id,encode(extensions.digest(read_key,'sha256'),'hex'),now()+interval '60 seconds',
+      case when r->>'result' in ('ALLOWED','LIMITED') then r->>'result' else 'DENIED' end,reg.id,now());
+    response:=public.get_public_guard_result(read_key)||jsonb_build_object('message',r->>'message','read_key',read_key,
+      'counted',(r->>'result') in ('ALLOWED','LIMITED'));
+    update public.gate_access_logs set reason='GUARD_MANUAL_EMERGENCY:'||coalesce(reason,'') where qr_token=q.token;
+  end if;
+  insert into private.guard_manual_entries(guard_id,request_id,employee_id,response) values(g_id,p_request_id,emp,response);
+  insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details)
+  values(null,'GUARD_MANUAL_ENTRY','employee_registrations',reg.id::text,
+    jsonb_build_object('guard_id',g_id,'request_id',p_request_id,'result',response->>'result','counted',response->'counted'));
+  return response;
+end; $$;
+revoke all on function public.guard_manual_employee_entry(text,text,uuid) from public;
+grant execute on function public.guard_manual_employee_entry(text,text,uuid) to anon,authenticated;
+
+-- Owner requested: national ID only login; optional private guard profile.
+alter table private.guard_accounts drop constraint guard_accounts_full_name_check;
+alter table private.guard_accounts add constraint guard_accounts_full_name_check check(length(full_name)=0 or length(full_name) between 2 and 100);
+drop index private.guard_accounts_name_unique;
+create or replace function public.admin_save_guard(p_guard_id uuid,p_full_name text,p_national_id text,p_phone text,p_is_active boolean)
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare g_id uuid; phone text:=private.guard_normalize_phone(p_phone); name text:=trim(coalesce(p_full_name,'')); national text:=translate(trim(p_national_id),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789');
+begin
+  if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','هذه العملية للسوبر أدمن فقط'); end if;
+  if length(name)>100 or length(name)=1 or national is null or national !~ '^[0-9]{6,20}$'
+     or p_is_active is null or (phone<>'' and phone !~ '^[0-9]{8,15}$') or (p_guard_id is null and phone='') then
+    return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف؛ الاسم اختياري');
+  end if;
+  if p_guard_id is null then
+    insert into private.guard_accounts(full_name,national_id,phone_hash,phone_hint,is_active)
+    values(name,national,extensions.crypt(phone,extensions.gen_salt('bf',10)),right(phone,4),p_is_active) returning id into g_id;
+  else
+    update private.guard_accounts set full_name=name,national_id=national,is_active=p_is_active,
+      phone_hash=case when phone='' then phone_hash else extensions.crypt(phone,extensions.gen_salt('bf',10)) end,
+      phone_hint=case when phone='' then phone_hint else right(phone,4) end
+    where id=p_guard_id returning id into g_id;
+    if g_id is null then return jsonb_build_object('ok',false,'message','ملف الحارس غير موجود'); end if;
+    -- Editing identity, phone or status revokes all existing sessions immediately.
+    delete from private.guard_sessions where guard_id=g_id;
+  end if;
+  insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details)
+  values(auth.uid(),'SAVE_GUARD_ACCOUNT','guard_accounts',g_id::text,jsonb_build_object('is_active',p_is_active));
+  return jsonb_build_object('ok',true,'message','تم حفظ ملف الحارس');
+exception when unique_violation then
+  return jsonb_build_object('ok',false,'message','الرقم الوطني مستخدم لحارس آخر');
+end; $$;
+revoke all on function public.admin_save_guard(uuid,text,text,text,boolean) from public,anon;
+grant execute on function public.admin_save_guard(uuid,text,text,text,boolean) to authenticated;
+
+create or replace function public.guard_login(p_identity text,p_phone text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare g private.guard_accounts%rowtype; identity text:=translate(lower(trim(coalesce(p_identity,''))),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789'); phone text:=private.guard_normalize_phone(p_phone);
+  ih text; token text; expiry timestamptz:=now()+interval '24 hours';
+begin
+  if identity !~ '^[0-9]{6,20}$' or phone !~ '^[0-9]{8,15}$' then return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف'); end if;
+  perform pg_advisory_xact_lock(610100901);
+  delete from private.guard_login_attempts where created_at<now()-interval '1 day';
+  delete from private.guard_sessions where expires_at<=now();
+  ih:=encode(extensions.digest(identity,'sha256'),'hex');
+  if (select count(*) from private.guard_login_attempts where created_at>now()-interval '1 minute')>=120
+     or (select count(*) from private.guard_login_attempts where identity_hash=ih and created_at>now()-interval '15 minutes')>=5 then
+    return jsonb_build_object('ok',false,'message','محاولات كثيرة؛ انتظر 15 دقيقة ثم حاول مجددًا');
+  end if;
+  insert into private.guard_login_attempts(identity_hash) values(ih);
+  select * into g from private.guard_accounts where national_id=identity for update;
+  if g.id is null or not g.is_active then
+    perform extensions.crypt(phone,extensions.gen_salt('bf',10));
+    return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف');
+  end if;
+  if extensions.crypt(phone,g.phone_hash)<>g.phone_hash then return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف'); end if;
+  token:=encode(extensions.gen_random_bytes(32),'hex');
+  delete from private.guard_sessions where guard_id=g.id;
+  insert into private.guard_sessions(token_hash,guard_id,expires_at) values(encode(extensions.digest(token,'sha256'),'hex'),g.id,expiry);
+  return jsonb_build_object('ok',true,'token',token,'expires_at',expiry,'full_name',g.full_name,
+    'emergency_enabled',(select enabled from private.guard_emergency_settings));
+end; $$;
+revoke all on function public.guard_login(text,text) from public;
+grant execute on function public.guard_login(text,text) to anon,authenticated;
+
+create table private.guard_profiles (
+ guard_id uuid primary key references private.guard_accounts(id) on delete cascade,
+ age integer check(age between 16 and 100), residence text not null default '' check(length(residence)<=200),
+ about text not null default '' check(length(about)<=1000), photo bytea,
+ updated_at timestamptz not null default now(),
+ check(photo is null or (octet_length(photo) between 4 and 196608 and encode(substring(photo from 1 for 3),'hex')='ffd8ff'))
+);
+alter table private.guard_profiles enable row level security;
+revoke all on private.guard_profiles from public,anon,authenticated;
+
+create function public.guard_get_profile(p_token text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare gid uuid:=private.guard_session_id(p_token); g private.guard_accounts%rowtype; p private.guard_profiles%rowtype;
+begin
+ if gid is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+ select * into g from private.guard_accounts where id=gid;
+ select * into p from private.guard_profiles where guard_id=gid;
+ return jsonb_build_object('ok',true,'profile',jsonb_build_object('full_name',g.full_name,'national_id',g.national_id,
+ 'age',p.age,'residence',coalesce(p.residence,''),'about',coalesce(p.about,''),
+ 'photo_base64',case when p.photo is null then null else encode(p.photo,'base64') end));
+end; $$;
+revoke all on function public.guard_get_profile(text) from public;
+grant execute on function public.guard_get_profile(text) to anon,authenticated;
+
+create function public.guard_save_profile(p_token text,p_profile jsonb) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare gid uuid:=private.guard_session_id(p_token); n text; a integer; r text; b text; picture bytea;
+begin
+ if gid is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+ perform 1 from private.guard_accounts where id=gid for update;
+ if private.guard_session_id(p_token) is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+ if p_profile is null or jsonb_typeof(p_profile)<>'object' then return jsonb_build_object('ok',false,'message','بيانات غير صحيحة'); end if;
+ n:=trim(coalesce(p_profile->>'full_name','')); r:=trim(coalesce(p_profile->>'residence','')); b:=trim(coalesce(p_profile->>'about',''));
+ if length(n)>100 or length(n)=1 or length(r)>200 or length(b)>1000 then return jsonb_build_object('ok',false,'message','تحقق من طول المعلومات المدخلة'); end if;
+ if nullif(p_profile->>'age','') is not null then
+  if (p_profile->>'age') !~ '^[0-9]{2,3}$' then return jsonb_build_object('ok',false,'message','أدخل عمرًا صحيحًا أو اتركه فارغًا'); end if;
+  a:=(p_profile->>'age')::integer;
+  if a not between 16 and 100 then return jsonb_build_object('ok',false,'message','العمر بين 16 و100 سنة'); end if;
+ end if;
+ if p_profile ? 'photo_base64' then
+  if length(coalesce(p_profile->>'photo_base64',''))>262144 then return jsonb_build_object('ok',false,'message','الصورة كبيرة؛ اختر صورة أصغر'); end if;
+  picture:=decode(coalesce(p_profile->>'photo_base64',''),'base64');
+  if octet_length(picture) not between 4 and 196608 or encode(substring(picture from 1 for 3),'hex')<>'ffd8ff' then
+   return jsonb_build_object('ok',false,'message','الصورة غير صالحة');
+  end if;
+ end if;
+ insert into private.guard_profiles(guard_id,age,residence,about,photo)
+ values(gid,a,r,b,picture)
+ on conflict(guard_id) do update set age=excluded.age,residence=excluded.residence,about=excluded.about,
+ photo=case when p_profile->>'remove_photo'='true' then null when p_profile ? 'photo_base64' then excluded.photo else guard_profiles.photo end,updated_at=now();
+ update private.guard_accounts set full_name=n where id=gid;
+ insert into public.admin_audit_logs(action,target_table,target_id,details)
+ values('GUARD_UPDATE_OWN_PROFILE','guard_profiles',gid::text,jsonb_build_object('photo_changed',p_profile ? 'photo_base64' or p_profile->>'remove_photo'='true'));
+ return jsonb_build_object('ok',true,'message','تم حفظ صفحتك الشخصية');
+exception when invalid_parameter_value or data_exception then
+ return jsonb_build_object('ok',false,'message','بيانات الصورة غير صالحة');
+end; $$;
+revoke all on function public.guard_save_profile(text,jsonb) from public;
+grant execute on function public.guard_save_profile(text,jsonb) to anon,authenticated;
+
+-- Owner-approved Staging transition: shared guards and private admin notices.
+-- Owner approved Staging-only shared transition, optional requests and notifications.
+alter table private.guard_accounts add column is_shared boolean not null default false;
+create unique index guard_one_shared on private.guard_accounts(is_shared) where is_shared;
+alter table private.guard_sessions add column created_at timestamptz not null default now();
+create table private.guard_signins(id uuid primary key default gen_random_uuid(),guard_id uuid not null references private.guard_accounts(id) on delete cascade,is_shared boolean not null,created_at timestamptz not null default now());
+create index guard_signins_recent on private.guard_signins(guard_id,created_at desc);
+alter table private.guard_signins enable row level security;
+revoke all on private.guard_signins from public,anon,authenticated;
+create table private.guard_registration_requests(
+ id uuid primary key default gen_random_uuid(),national_id text not null unique check(national_id ~ '^[0-9]{6,20}$'),
+ phone_hash text not null,phone_hint text not null,full_name text not null default '',age integer check(age between 16 and 100),residence text not null default '',about text not null default '',photo bytea,
+ status text not null default 'PENDING' check(status in ('PENDING','APPROVED','REJECTED')),
+ submitted_by uuid not null references private.guard_accounts(id),request_id uuid not null unique,created_at timestamptz not null default now(),reviewed_at timestamptz,reviewed_by uuid,
+ check(length(full_name)<=100 and length(full_name)<>1 and length(residence)<=200 and length(about)<=1000),
+ check(photo is null or (octet_length(photo) between 4 and 196608 and encode(substring(photo from 1 for 3),'hex')='ffd8ff'))
+);
+create index guard_requests_pending on private.guard_registration_requests(status,created_at desc);
+alter table private.guard_registration_requests enable row level security;
+revoke all on private.guard_registration_requests from public,anon,authenticated;
+create function public.admin_configure_shared_guard(p_phone text,p_enabled boolean default true) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare gid uuid; phone text:=private.guard_normalize_phone(p_phone);
+begin
+ if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','غير مصرح'); end if;
+ if phone !~ '^[0-9]{8,15}$' or p_enabled is null then return jsonb_build_object('ok',false,'message','أدخل كلمة مرور رقمية من 8–15 رقمًا'); end if;
+ select id into gid from private.guard_accounts where is_shared for update;
+ if gid is null then
+ insert into private.guard_accounts(full_name,national_id,phone_hash,phone_hint,is_active,is_shared) values('حساب الحراس الجماعي','7000000000',extensions.crypt(phone,extensions.gen_salt('bf',10)),right(phone,4),p_enabled,true) returning id into gid;
+ else update private.guard_accounts set phone_hash=extensions.crypt(phone,extensions.gen_salt('bf',10)),phone_hint=right(phone,4),is_active=p_enabled where id=gid;delete from private.guard_sessions where guard_id=gid; end if;
+ insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details) values(auth.uid(),'CONFIGURE_SHARED_GUARD','guard_accounts',gid::text,jsonb_build_object('enabled',p_enabled));
+ return jsonb_build_object('ok',true,'national_id','7000000000','message','تم تحديث الحساب الجماعي');
+ exception when unique_violation then return jsonb_build_object('ok',false,'message','معرف الحساب الجماعي مستخدم؛ راجع مسؤول النظام');
+end;$$;
+revoke all on function public.admin_configure_shared_guard(text,boolean) from public,anon;grant execute on function public.admin_configure_shared_guard(text,boolean) to authenticated;
+create function public.guard_session_profile(p_token text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare gid uuid:=private.guard_session_id(p_token);
+begin
+ if gid is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+ return (select jsonb_build_object('ok',true,'is_shared',g.is_shared,'full_name',g.full_name,'photo_base64',case when g.is_shared or p.photo is null then null else encode(p.photo,'base64') end,'logged_in_at',s.created_at,'emergency_enabled',(select enabled from private.guard_emergency_settings)) from private.guard_accounts g left join private.guard_profiles p on p.guard_id=g.id join private.guard_sessions s on s.guard_id=g.id and s.token_hash=encode(extensions.digest(p_token,'sha256'),'hex') where g.id=gid);
+end;$$;
+revoke all on function public.guard_session_profile(text) from public;grant execute on function public.guard_session_profile(text) to anon,authenticated;
+alter function public.guard_save_profile(text,jsonb) rename to guard_save_profile_personal;
+alter function public.guard_save_profile_personal(text,jsonb) set schema private;
+revoke all on function private.guard_save_profile_personal(text,jsonb) from public,anon,authenticated;
+create function public.guard_save_profile(p_token text,p_profile jsonb) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare gid uuid:=private.guard_session_id(p_token);
+begin
+ if gid is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+ if (select is_shared from private.guard_accounts where id=gid) then return jsonb_build_object('ok',false,'message','الحساب الجماعي لا يملك ملفًا شخصيًا؛ أرسل طلب حساب مستقل اختياريًا'); end if;
+ return private.guard_save_profile_personal(p_token,p_profile);
+end;$$;
+revoke all on function public.guard_save_profile(text,jsonb) from public;grant execute on function public.guard_save_profile(text,jsonb) to anon,authenticated;
+create function public.guard_submit_registration(p_token text,p_request_id uuid,p_national_id text,p_phone text,p_profile jsonb) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,private,public,extensions as $$
+declare gid uuid:=private.guard_session_id(p_token);nid text:=translate(trim(p_national_id),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789');phone text:=private.guard_normalize_phone(p_phone);n text:=trim(coalesce(p_profile->>'full_name',''));a integer;r text:=trim(coalesce(p_profile->>'residence',''));b text:=trim(coalesce(p_profile->>'about',''));picture bytea;prior private.guard_registration_requests%rowtype;rid uuid;
+begin
+ if gid is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED'); end if;
+ perform 1 from private.guard_accounts where id=gid and is_shared for share;
+ if not found or private.guard_session_id(p_token) is null then return jsonb_build_object('ok',false,'message','الطلب متاح من الحساب الجماعي الفعال فقط'); end if;
+ if p_request_id is null or nid is null or nid !~ '^[0-9]{6,20}$' or phone !~ '^[0-9]{8,15}$' or p_profile is null or jsonb_typeof(p_profile)<>'object' or length(n)>100 or length(n)=1 or length(r)>200 or length(b)>1000 then return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني والهاتف والمعلومات'); end if;
+ perform pg_advisory_xact_lock(hashtextextended(nid,61010));
+ select * into prior from private.guard_registration_requests where request_id=p_request_id;
+ if prior.id is not null then
+ if prior.national_id=nid and prior.submitted_by=gid then return jsonb_build_object('ok',true,'message','تم إرسال الطلب سابقًا للموافقة');end if;
+ return jsonb_build_object('ok',false,'message','أعد تحميل الصفحة لإرسال طلب جديد');end if;
+ if exists(select 1 from private.guard_accounts where national_id=nid) or exists(select 1 from private.guard_registration_requests where national_id=nid and status in ('PENDING','APPROVED')) then return jsonb_build_object('ok',false,'message','الرقم مسجل أو لديه طلب قائم؛ راجع الإدارة'); end if;
+ if (select count(*) from private.guard_registration_requests where submitted_by=gid and created_at>now()-interval '1 hour')>=30 then return jsonb_build_object('ok',false,'message','طلبات كثيرة؛ أعد المحاولة لاحقًا'); end if;
+ if nullif(p_profile->>'age','') is not null then if p_profile->>'age' !~ '^[0-9]{2,3}$' then return jsonb_build_object('ok',false,'message','العمر غير صحيح');end if;a:=(p_profile->>'age')::integer;if a not between 16 and 100 then return jsonb_build_object('ok',false,'message','العمر بين 16 و100');end if;end if;
+ if p_profile ? 'photo_base64' then if length(p_profile->>'photo_base64')>262144 then return jsonb_build_object('ok',false,'message','الصورة كبيرة');end if;picture:=decode(p_profile->>'photo_base64','base64');if octet_length(picture) not between 4 and 196608 or encode(substring(picture from 1 for 3),'hex')<>'ffd8ff' then return jsonb_build_object('ok',false,'message','الصورة غير صالحة');end if;end if;
+ insert into private.guard_registration_requests(national_id,phone_hash,phone_hint,full_name,age,residence,about,photo,submitted_by,request_id) values(nid,extensions.crypt(phone,extensions.gen_salt('bf',10)),right(phone,4),n,a,r,b,picture,gid,p_request_id)
+ on conflict(national_id) do update set phone_hash=excluded.phone_hash,phone_hint=excluded.phone_hint,full_name=excluded.full_name,age=excluded.age,residence=excluded.residence,about=excluded.about,photo=excluded.photo,status='PENDING',request_id=excluded.request_id,created_at=now(),reviewed_at=null,reviewed_by=null returning id into rid;
+ insert into public.admin_audit_logs(action,target_table,target_id,details) values('GUARD_REGISTRATION_REQUEST','guard_registration_requests',rid::text,'{}');
+ return jsonb_build_object('ok',true,'message','تم إرسال طلب حسابك للموافقة. يمكنك الاستمرار بالحساب الجماعي');
+ exception when data_exception then return jsonb_build_object('ok',false,'message','بيانات الصورة أو العمر غير صالحة');
+end;$$;
+revoke all on function public.guard_submit_registration(text,uuid,text,text,jsonb) from public;grant execute on function public.guard_submit_registration(text,uuid,text,text,jsonb) to anon,authenticated;
+create function public.admin_guard_requests() returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+begin
+ if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','غير مصرح');end if;
+ return jsonb_build_object('ok',true,'requests',coalesce((select jsonb_agg(jsonb_build_object('id',id,'national_id',national_id,'phone_hint',phone_hint,'full_name',full_name,'age',age,'residence',residence,'about',about,'photo_base64',case when photo is null then null else encode(photo,'base64') end,'status',status,'created_at',created_at) order by created_at desc) from (select * from private.guard_registration_requests order by created_at desc limit 100) r),'[]'::jsonb),'signins',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'full_name',g.full_name,'is_shared',s.is_shared,'created_at',s.created_at) order by s.created_at desc) from (select * from private.guard_signins order by created_at desc limit 100) s join private.guard_accounts g on g.id=s.guard_id),'[]'::jsonb));
+end;$$;
+revoke all on function public.admin_guard_requests() from public,anon;grant execute on function public.admin_guard_requests() to authenticated;
+create function public.admin_review_guard_request(p_id uuid,p_approve boolean) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare r private.guard_registration_requests%rowtype;gid uuid;
+begin
+ if not public.is_super_admin() or p_approve is null then return jsonb_build_object('ok',false,'message','غير مصرح');end if;
+ select * into r from private.guard_registration_requests where id=p_id for update;
+ if r.id is null or r.status<>'PENDING' then return jsonb_build_object('ok',false,'message','تمت مراجعة الطلب أو لم يعد موجودًا');end if;
+ if p_approve then
+ insert into private.guard_accounts(full_name,national_id,phone_hash,phone_hint,is_active) values(r.full_name,r.national_id,r.phone_hash,r.phone_hint,true) returning id into gid;
+ insert into private.guard_profiles(guard_id,age,residence,about,photo) values(gid,r.age,r.residence,r.about,r.photo);
+ end if;
+ update private.guard_registration_requests set status=case when p_approve then 'APPROVED' else 'REJECTED' end,reviewed_at=now(),reviewed_by=auth.uid() where id=p_id;
+ insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details) values(auth.uid(),'REVIEW_GUARD_REQUEST','guard_registration_requests',p_id::text,jsonb_build_object('approved',p_approve));
+ return jsonb_build_object('ok',true,'message',case when p_approve then 'تم اعتماد حساب الحارس الشخصي' else 'تم رفض الطلب' end);
+ exception when unique_violation then return jsonb_build_object('ok',false,'message','الرقم مسجل؛ لم تتغير حالة الطلب');
+end;$$;
+revoke all on function public.admin_review_guard_request(uuid,boolean) from public,anon;grant execute on function public.admin_review_guard_request(uuid,boolean) to authenticated;
+create or replace function public.guard_login(p_identity text,p_phone text) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare g private.guard_accounts%rowtype; identity text:=translate(lower(trim(coalesce(p_identity,''))),'٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹','01234567890123456789'); phone text:=private.guard_normalize_phone(p_phone);
+  ih text; token text; expiry timestamptz:=now()+interval '24 hours';
+begin
+  if identity !~ '^[0-9]{6,20}$' or phone !~ '^[0-9]{8,15}$' then return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف'); end if;
+  perform pg_advisory_xact_lock(610100901);
+  delete from private.guard_login_attempts where created_at<now()-interval '1 day';
+  delete from private.guard_sessions where expires_at<=now();
+  ih:=encode(extensions.digest(identity,'sha256'),'hex');
+  if (select count(*) from private.guard_login_attempts where created_at>now()-interval '1 minute')>=120
+     or (select count(*) from private.guard_login_attempts where identity_hash=ih and created_at>now()-interval '15 minutes')>=5 then
+    return jsonb_build_object('ok',false,'message','محاولات كثيرة؛ انتظر 15 دقيقة ثم حاول مجددًا');
+  end if;
+  insert into private.guard_login_attempts(identity_hash) values(ih);
+  select * into g from private.guard_accounts where national_id=identity for update;
+  if g.id is null or not g.is_active then
+    perform extensions.crypt(phone,extensions.gen_salt('bf',10));
+    return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف');
+  end if;
+  if extensions.crypt(phone,g.phone_hash)<>g.phone_hash then return jsonb_build_object('ok',false,'message','تحقق من الرقم الوطني ورقم الهاتف'); end if;
+  if g.is_shared then delete from private.guard_login_attempts where identity_hash=ih; end if;
+  token:=encode(extensions.gen_random_bytes(32),'hex');
+  if not g.is_shared then delete from private.guard_sessions where guard_id=g.id; end if;
+  insert into private.guard_sessions(token_hash,guard_id,expires_at) values(encode(extensions.digest(token,'sha256'),'hex'),g.id,expiry);
+  insert into private.guard_signins(guard_id,is_shared) values(g.id,g.is_shared);
+  return jsonb_build_object('is_shared',g.is_shared)||jsonb_build_object('ok',true,'token',token,'expires_at',expiry,'full_name',g.full_name,
+    'emergency_enabled',(select enabled from private.guard_emergency_settings));
+end; $$;
+revoke all on function public.guard_login(text,text) from public;
+grant execute on function public.guard_login(text,text) to anon,authenticated;
+
+create table private.admin_notice_events(id uuid primary key default gen_random_uuid(),event_key text not null unique,topic text not null,title text not null,body text not null,target text not null,created_at timestamptz not null default now());
+create index admin_notice_recent on private.admin_notice_events(created_at desc);
+create table private.admin_notice_reads(admin_id uuid not null,event_id uuid not null references private.admin_notice_events(id) on delete cascade,primary key(admin_id,event_id));
+create table private.admin_notice_devices(admin_id uuid not null,device_id uuid not null,label text not null default '',subscription jsonb,enabled boolean not null default true,last_seen_at timestamptz not null default now(),primary key(admin_id,device_id));
+create table private.admin_notice_outbox(id uuid primary key default gen_random_uuid(),event_id uuid not null references private.admin_notice_events(id) on delete cascade,admin_id uuid not null,device_id uuid not null,attempts integer not null default 0,available_at timestamptz not null default now(),sent_at timestamptz,last_error text,unique(event_id,admin_id,device_id));
+create table private.admin_notice_config(singleton boolean primary key default true check(singleton),enabled_at timestamptz not null default now(),vapid_public text,vapid_private text,dispatch_key_hash text);
+insert into private.admin_notice_config(singleton) values(true);
+alter table private.admin_notice_events enable row level security;alter table private.admin_notice_reads enable row level security;alter table private.admin_notice_devices enable row level security;alter table private.admin_notice_outbox enable row level security;alter table private.admin_notice_config enable row level security;
+revoke all on private.admin_notice_events,private.admin_notice_reads,private.admin_notice_devices,private.admin_notice_outbox,private.admin_notice_config from public,anon,authenticated;
+create function private.admin_notice_allowed(p_uid uuid,p_topic text) returns boolean language sql stable security definer set search_path=pg_catalog,public as $$
+ select coalesce((select is_active and (role='SUPER_ADMIN' or case p_topic when 'GUARD_REQUEST' then false when 'REGISTRATION' then coalesce((permissions->>'can_approve_requests')::boolean,false) when 'PROFILE_CHANGE' then coalesce((permissions->>'can_approve_requests')::boolean,false) when 'VIOLATION' then coalesce((permissions->>'can_review_violations')::boolean,false) when 'LIMIT' then coalesce((permissions->>'can_manage_limits')::boolean,false) when 'SHIFT' then coalesce((permissions->>'can_view_logs')::boolean,false) else false end) from public.admin_profiles where auth_user_id=p_uid),false);
+$$;
+revoke all on function private.admin_notice_allowed(uuid,text) from public,anon,authenticated;
+create function private.add_admin_notice(p_key text,p_topic text,p_title text,p_body text,p_target text) returns void language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare eid uuid;
+begin
+ insert into private.admin_notice_events(event_key,topic,title,body,target) values(p_key,p_topic,p_title,p_body,p_target) on conflict(event_key) do nothing returning id into eid;
+ if eid is null then return;end if;
+ insert into private.admin_notice_outbox(event_id,admin_id,device_id) select eid,d.admin_id,d.device_id from private.admin_notice_devices d where d.enabled and d.subscription is not null and private.admin_notice_allowed(d.admin_id,p_topic);
+end;$$;
+revoke all on function private.add_admin_notice(text,text,text,text,text) from public,anon,authenticated;
+create function private.registration_notice_trigger() returns trigger language plpgsql security definer set search_path=pg_catalog,private,public as $$
+begin
+ if tg_table_name='guard_registration_requests' then
+ if new.status='PENDING' then perform private.add_admin_notice('guard:'||new.id||':'||new.created_at,'GUARD_REQUEST','طلب حساب حارس جديد','وصل طلب اختياري لاعتماد حساب حارس.','guardRequests');end if;
+ elsif tg_table_name='employee_registrations' then
+ if new.status in ('PENDING','PENDING_FIRST_ENTRY','NEW') then perform private.add_admin_notice('employee:'||new.id||':'||new.created_at,'REGISTRATION','طلب تسجيل موظف جديد','يوجد طلب تسجيل بانتظار المراجعة.','registrations');end if;
+ elsif tg_table_name='violation_reports' then
+ perform private.add_admin_notice('violation:'||new.id,'VIOLATION','أمن الصخره وتبليغات التجاوزات','وصل بلاغ جديد للمراجعة.','violations');
+ end if;
+ return new;
+end;$$;
+revoke all on function private.registration_notice_trigger() from public,anon,authenticated;
+create trigger guard_request_notice after insert or update of status on private.guard_registration_requests for each row execute function private.registration_notice_trigger();
+create trigger employee_request_notice after insert on public.employee_registrations for each row execute function private.registration_notice_trigger();
+create trigger violation_request_notice after insert on public.violation_reports for each row execute function private.registration_notice_trigger();
+create function private.limit_notice_trigger() returns trigger language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare lim integer;used integer;
+begin
+ if new.result<>'LIMITED' then return new;end if;
+ select daily_limit into lim from public.specialty_daily_limits where specialty_name=new.specialty and is_active;
+ if lim is null or lim<1 then return new;end if;
+ select count(*) into used from public.gate_access_logs where specialty=new.specialty and result='LIMITED' and created_at>=date_trunc('day',now()) and created_at<date_trunc('day',now())+interval '1 day';
+ if used>=lim then perform private.add_admin_notice('limit:'||new.specialty||':'||date_trunc('day',now()),'LIMIT','اكتمل الحد اليومي','الاختصاص: '||new.specialty||' — الحد: '||lim,'limits');end if;
+ return new;
+end;$$;
+revoke all on function private.limit_notice_trigger() from public,anon,authenticated;
+create trigger daily_limit_notice after insert on public.gate_access_logs for each row execute function private.limit_notice_trigger();
+create function private.admin_notice_tick() returns void language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare d date;h integer;end_at timestamptz;start_at timestamptz;stats text;label text;
+begin
+ for d in select generate_series((now() at time zone 'Asia/Amman')::date-1,(now() at time zone 'Asia/Amman')::date,interval '1 day')::date loop
+ foreach h in array array[7,15,23] loop
+ end_at:=(d+make_time(h,0,0)) at time zone 'Asia/Amman';start_at:=end_at-interval '8 hours';
+ if end_at<=now() and end_at>=(select enabled_at from private.admin_notice_config) then
+ label:=case h when 7 then 'C' when 15 then 'A' else 'B' end;
+ select 'مسموح: '||count(*) filter(where result='ALLOWED')||'، مؤقت: '||count(*) filter(where result='LIMITED')||'، مرفوض: '||count(*) filter(where result='DENIED') into stats from public.gate_access_logs where created_at>=start_at and created_at<end_at;
+ perform private.add_admin_notice('shift:'||end_at,'SHIFT','خلاصة نهاية الشفت '||label,stats,'logs');
+ end if;
+ end loop;end loop;
+ delete from private.admin_notice_events where created_at<now()-interval '30 days';
+ delete from private.guard_signins where created_at<now()-interval '90 days';
+end;$$;
+revoke all on function private.admin_notice_tick() from public,anon,authenticated;
+create function public.admin_notice_feed() returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+begin
+ if not exists(select 1 from public.admin_profiles where auth_user_id=auth.uid() and is_active) then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED');end if;
+ return jsonb_build_object('ok',true,'events',coalesce((select jsonb_agg(jsonb_build_object('id',e.id,'title',e.title,'body',e.body,'topic',e.topic,'target',e.target,'created_at',e.created_at,'read',r.event_id is not null) order by e.created_at desc) from (select * from private.admin_notice_events where private.admin_notice_allowed(auth.uid(),topic) order by created_at desc limit 100) e left join private.admin_notice_reads r on r.event_id=e.id and r.admin_id=auth.uid()),'[]'::jsonb),'vapid_public',(select vapid_public from private.admin_notice_config));
+end;$$;
+revoke all on function public.admin_notice_feed() from public,anon;grant execute on function public.admin_notice_feed() to authenticated;
+create function public.admin_notice_read(p_id uuid) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+begin
+ if not exists(select 1 from private.admin_notice_events where id=p_id and private.admin_notice_allowed(auth.uid(),topic)) then return jsonb_build_object('ok',false,'message','غير مصرح');end if;
+ insert into private.admin_notice_reads(admin_id,event_id) values(auth.uid(),p_id) on conflict do nothing;return jsonb_build_object('ok',true);
+end;$$;
+revoke all on function public.admin_notice_read(uuid) from public,anon;grant execute on function public.admin_notice_read(uuid) to authenticated;
+create function public.admin_notice_device(p_id uuid,p_label text,p_subscription jsonb,p_enabled boolean) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+begin
+ if not exists(select 1 from public.admin_profiles where auth_user_id=auth.uid() and is_active) then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED');end if;
+ if p_id is null or length(coalesce(p_label,''))>100 or p_enabled is null or (p_subscription is not null and (jsonb_typeof(p_subscription)<>'object' or length(p_subscription::text)>5000 or coalesce(p_subscription->>'endpoint','') !~ '^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-zA-Z0-9-]+\.notify\.windows\.com)/' or coalesce(p_subscription#>>'{keys,p256dh}','') !~ '^[A-Za-z0-9_-]{80,100}$' or coalesce(p_subscription#>>'{keys,auth}','') !~ '^[A-Za-z0-9_-]{20,30}$')) then return jsonb_build_object('ok',false,'message','اشتراك الإشعارات غير صالح');end if;
+ if (select count(*) from private.admin_notice_devices where admin_id=auth.uid())>=10 and not exists(select 1 from private.admin_notice_devices where admin_id=auth.uid() and device_id=p_id) then return jsonb_build_object('ok',false,'message','الحد عشرة أجهزة لكل مشرف؛ ألغِ جهازًا سابقًا');end if;
+ insert into private.admin_notice_devices(admin_id,device_id,label,subscription,enabled) values(auth.uid(),p_id,coalesce(p_label,''),p_subscription,p_enabled) on conflict(admin_id,device_id) do update set label=excluded.label,subscription=excluded.subscription,enabled=excluded.enabled,last_seen_at=now();
+ insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details) values(auth.uid(),'ADMIN_NOTICE_DEVICE','admin_notice_devices',p_id::text,jsonb_build_object('enabled',p_enabled));
+ return jsonb_build_object('ok',true,'message','تم حفظ تفضيل إشعارات هذا الجهاز');
+end;$$;
+revoke all on function public.admin_notice_device(uuid,text,jsonb,boolean) from public,anon;grant execute on function public.admin_notice_device(uuid,text,jsonb,boolean) to authenticated;
+create function public.admin_notice_claim(p_key text) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public,extensions as $$
+declare jobs jsonb;
+begin
+ if p_key is null or length(p_key)<>64 or encode(extensions.digest(p_key,'sha256'),'hex') is distinct from (select dispatch_key_hash from private.admin_notice_config) then return jsonb_build_object('ok',false);end if;
+ perform private.admin_notice_tick();
+ with claim as (select o.id from private.admin_notice_outbox o join private.admin_notice_devices d on d.admin_id=o.admin_id and d.device_id=o.device_id join private.admin_notice_events e on e.id=o.event_id where o.sent_at is null and o.attempts<5 and o.available_at<=now() and d.enabled and d.subscription is not null and private.admin_notice_allowed(o.admin_id,e.topic) order by o.available_at limit 50 for update of o skip locked),updated as (update private.admin_notice_outbox o set attempts=attempts+1,available_at=now()+interval '5 minutes' from claim c where o.id=c.id returning o.*)
+ select jsonb_agg(jsonb_build_object('id',o.id,'subscription',d.subscription,'title',e.title,'body',e.body,'event_id',e.id,'target',e.target)) into jobs from updated o join private.admin_notice_devices d on d.admin_id=o.admin_id and d.device_id=o.device_id join private.admin_notice_events e on e.id=o.event_id;
+ return jsonb_build_object('ok',true,'jobs',coalesce(jobs,'[]'::jsonb),'vapid_public',(select vapid_public from private.admin_notice_config),'vapid_private',(select vapid_private from private.admin_notice_config));
+end;$$;
+revoke all on function public.admin_notice_claim(text) from public;grant execute on function public.admin_notice_claim(text) to anon,authenticated;
+create function public.admin_notice_complete(p_key text,p_id uuid,p_status integer) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,extensions as $$
+begin
+ if p_key is null or length(p_key)<>64 or encode(extensions.digest(p_key,'sha256'),'hex') is distinct from (select dispatch_key_hash from private.admin_notice_config) then return jsonb_build_object('ok',false);end if;
+ update private.admin_notice_outbox set sent_at=case when p_status between 200 and 299 or p_status in (404,410) then now() else null end,last_error=case when p_status between 200 and 299 then null else p_status::text end where id=p_id;
+ if p_status in (404,410) then update private.admin_notice_devices d set enabled=false,subscription=null from private.admin_notice_outbox o where o.id=p_id and d.admin_id=o.admin_id and d.device_id=o.device_id;end if;
+ return jsonb_build_object('ok',true);
+end;$$;
+revoke all on function public.admin_notice_complete(text,uuid,integer) from public;grant execute on function public.admin_notice_complete(text,uuid,integer) to anon,authenticated;
+
+alter table private.admin_notice_config add column dispatch_url text,add column publishable_key text;
+create function private.admin_notice_dispatch() returns void language plpgsql security definer set search_path=pg_catalog,private as $$
+declare cfg private.admin_notice_config%rowtype; credential text;
+begin
+ perform private.admin_notice_tick();
+ select * into cfg from private.admin_notice_config;
+ if cfg.dispatch_url is null or cfg.publishable_key is null then return;end if;
+ select decrypted_secret into credential from vault.decrypted_secrets where name='admin_notice_dispatch_key';
+ if credential is null then raise warning 'Notice dispatcher credential unavailable';return;end if;
+ perform net.http_post(url:=cfg.dispatch_url,headers:=jsonb_build_object('Content-Type','application/json','apikey',cfg.publishable_key,'x-dispatch-key',credential),body:='{}'::jsonb,timeout_milliseconds:=60000);
+end;$$;
+revoke all on function private.admin_notice_dispatch() from public,anon,authenticated;
+DO $$ BEGIN
+ IF EXISTS(select 1 from pg_available_extensions where name='pg_cron') AND EXISTS(select 1 from pg_available_extensions where name='pg_net') THEN
+ EXECUTE 'create extension if not exists pg_cron';EXECUTE 'create extension if not exists pg_net';
+ PERFORM cron.schedule('admin-notice-dispatch','* * * * *','select private.admin_notice_dispatch()');
+ END IF;
+END $$;
+
+-- Follow-up within the owner-approved Staging transition.
+-- Only database-owned scheduled jobs may use the network extension.
+DO $$ BEGIN
+ IF EXISTS(select 1 from pg_namespace where nspname='net') THEN
+ EXECUTE 'revoke usage on schema net from public,anon,authenticated';
+ EXECUTE 'revoke execute on all functions in schema net from public,anon,authenticated';
+ END IF;
+END $$;
+create function private.profile_change_notice_trigger() returns trigger language plpgsql security definer set search_path=pg_catalog,private,public as $$
+begin
+ if new.status='PENDING' then perform private.add_admin_notice('profile:'||new.id||':'||new.created_at,'PROFILE_CHANGE','طلب تعديل بيانات جديد','وصل طلب تعديل بيانات موظف للمراجعة.','profileChanges');end if;
+ return new;
+end;$$;
+revoke all on function private.profile_change_notice_trigger() from public,anon,authenticated;
+create trigger profile_change_request_notice after insert on public.employee_data_change_requests for each row execute function private.profile_change_notice_trigger();
+create function public.guard_set_emergency(p_token text,p_enabled boolean) returns jsonb language plpgsql security definer set search_path=pg_catalog,private,public as $$
+declare gid uuid:=private.guard_session_id(p_token);
+begin
+ if gid is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED');end if;
+ if p_enabled is null then return jsonb_build_object('ok',false,'message','اختيار غير صالح');end if;
+ perform 1 from private.guard_accounts where id=gid for share;
+ if private.guard_session_id(p_token) is null then return jsonb_build_object('ok',false,'error','AUTH_REQUIRED');end if;
+ update private.guard_emergency_settings set enabled=p_enabled;
+ insert into public.admin_audit_logs(action,target_table,target_id,details) values('GUARD_SET_EMERGENCY','guard_emergency_settings','true',jsonb_build_object('guard_id',gid,'enabled',p_enabled));
+ return jsonb_build_object('ok',true,'emergency_enabled',p_enabled,'message',case when p_enabled then 'تم تفعيل الدخول اليدوي للطوارئ؛ كل زيارة تسجل وتحتسب' else 'تم إيقاف الدخول اليدوي للطوارئ' end);
+end;$$;
+revoke all on function public.guard_set_emergency(text,boolean) from public;grant execute on function public.guard_set_emergency(text,boolean) to anon,authenticated;
+
+
+-- OWNER APPROVED EMPLOYEE ADMIN APPOINTMENTS, STAGING 2026-10-10
+-- Owner explicitly approved this feature on Staging only, 2026-10-10.
+create table private.employee_admin_assignments (
+ id uuid primary key default gen_random_uuid(), registration_id uuid not null unique references public.employee_registrations(id),
+ role text not null check(role in ('SUPER_ADMIN','SUB_ADMIN')), permissions jsonb not null,
+ assigned_by uuid not null, status text not null default 'PENDING' check(status in ('PENDING','ACTIVE','REVOKED')),
+ auth_user_id uuid unique, created_at timestamptz not null default now(), activated_at timestamptz, revoked_at timestamptz
+);
+create table private.employee_admin_proofs (
+ token_hash text primary key, assignment_id uuid not null references private.employee_admin_assignments(id) on delete cascade,
+ email text not null, created_at timestamptz not null default now(), expires_at timestamptz not null, consumed_at timestamptz
+);
+create index employee_admin_proofs_assignment on private.employee_admin_proofs(assignment_id,created_at);
+alter table private.employee_admin_assignments enable row level security;
+alter table private.employee_admin_proofs enable row level security;
+revoke all on private.employee_admin_assignments,private.employee_admin_proofs from public,anon,authenticated;
+
+create function public.super_admin_assign_employee(p_registration_id uuid,p_role text,p_permissions jsonb) returns jsonb
+language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare a private.employee_admin_assignments; r public.employee_registrations;
+begin
+ if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','هذه العملية للمشرف الرئيسي فقط.'); end if;
+ if p_role is null or p_role not in ('SUPER_ADMIN','SUB_ADMIN') or jsonb_typeof(p_permissions) is distinct from 'object' then return jsonb_build_object('ok',false,'message','الدور والصلاحيات غير صحيحين.'); end if;
+ if exists(select 1 from jsonb_each(p_permissions) e where jsonb_typeof(e.value)<>'boolean' or e.key not in ('can_approve_requests','can_review_violations','can_view_logs','can_export_csv','can_manage_limits','can_view_audit')) then return jsonb_build_object('ok',false,'message','صلاحية غير معروفة.'); end if;
+ perform pg_advisory_xact_lock(8101009);
+ select * into r from public.employee_registrations where id=p_registration_id for update;
+ if r.id is null or r.status<>'APPROVED' then return jsonb_build_object('ok',false,'message','اختر موظفًا معتمدًا فقط.'); end if;
+ select * into a from private.employee_admin_assignments where registration_id=r.id for update;
+ if a.status='ACTIVE' then return jsonb_build_object('ok',false,'message','حساب الموظف مفعّل؛ عدّل صلاحياته من قائمة المشرفين الحاليين.'); end if;
+ insert into private.employee_admin_assignments(registration_id,role,permissions,assigned_by) values(r.id,p_role,p_permissions,auth.uid())
+ on conflict(registration_id) do update set role=excluded.role,permissions=excluded.permissions,assigned_by=excluded.assigned_by,status='PENDING',activated_at=null,revoked_at=null returning * into a;
+ delete from private.employee_admin_proofs where assignment_id=a.id;
+ insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details) values(auth.uid(),'APPOINT_EMPLOYEE_ADMIN','employee_admin_assignments',a.id::text,jsonb_build_object('registration_id',r.id,'role',p_role,'permissions',p_permissions));
+ return jsonb_build_object('ok',true,'id',a.id,'message','تم تعيين الموظف؛ سيظهر له طلب إكمال حساب الإدارة في ملفه الشخصي.');
+end $$;
+
+create function public.super_admin_employee_assignments() returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private as $$
+begin
+ if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','غير مصرح.'); end if;
+ return jsonb_build_object('ok',true,'assignments',coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'registration_id',r.id,'employee_id',r.employee_id,'full_name',r.full_name,'role',a.role,'permissions',a.permissions,'status',a.status,'employee_status',r.status,'created_at',a.created_at,'activated_at',a.activated_at) order by a.created_at desc) from private.employee_admin_assignments a join public.employee_registrations r on r.id=a.registration_id),'[]'::jsonb));
+end $$;
+
+create function public.super_admin_revoke_employee_assignment(p_id uuid) returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private as $$
+declare a private.employee_admin_assignments;
+begin
+ if not public.is_super_admin() then return jsonb_build_object('ok',false,'message','غير مصرح.'); end if;
+ -- Serialize owner-affecting revocations; never disable the caller or last owner.
+ perform pg_advisory_xact_lock(8101009);
+ select * into a from private.employee_admin_assignments where id=p_id for update;
+ if a.id is null then return jsonb_build_object('ok',false,'message','التعيين غير موجود.'); end if;
+ if a.status='ACTIVE' and (a.auth_user_id=auth.uid() or (exists(select 1 from public.admin_profiles where auth_user_id=a.auth_user_id and role='SUPER_ADMIN' and is_active) and (select count(*) from public.admin_profiles where role='SUPER_ADMIN' and is_active)<=1)) then return jsonb_build_object('ok',false,'message','لا يمكن تعطيل حسابك أو آخر مشرف رئيسي.'); end if;
+ if a.status='ACTIVE' then update public.admin_profiles set is_active=false where auth_user_id=a.auth_user_id; end if;
+ update private.employee_admin_assignments set status='REVOKED',revoked_at=now() where id=a.id;
+ delete from private.employee_admin_proofs where assignment_id=a.id;
+ insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details) values(auth.uid(),'REVOKE_EMPLOYEE_ADMIN','employee_admin_assignments',a.id::text,'{}');
+ return jsonb_build_object('ok',true,'message','تم إلغاء التعيين وتعطيل حساب الإدارة إن كان مفعّلًا.');
+end $$;
+
+create function public.employee_admin_assignment(p_employee_id text,p_mobile_number text) returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private as $$
+declare identity jsonb; a private.employee_admin_assignments;
+begin
+ identity:=public.employee_profile_login(p_employee_id,p_mobile_number);
+ if identity->>'ok'<>'true' then return jsonb_build_object('ok',false,'message','تعذر التحقق من هوية الموظف.'); end if;
+ if identity->'profile'->>'status'<>'APPROVED' then return jsonb_build_object('ok',true,'assignment',null); end if;
+ select * into a from private.employee_admin_assignments where registration_id=(identity->'profile'->>'id')::uuid and status in ('PENDING','ACTIVE');
+ return jsonb_build_object('ok',true,'assignment',case when a.id is null then null else jsonb_build_object('id',a.id,'role',a.role,'status',a.status,'permissions',a.permissions) end);
+end $$;
+
+create function public.employee_admin_claim(p_id uuid,p_employee_id text,p_mobile_number text,p_email text) returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare identity jsonb; a private.employee_admin_assignments; proof text; email text:=lower(trim(p_email));
+begin
+ identity:=public.employee_profile_login(p_employee_id,p_mobile_number);
+ if identity->>'ok'<>'true' or identity->'profile'->>'status'<>'APPROVED' then return jsonb_build_object('ok',false,'message','تعذر التحقق من موظف معتمد.'); end if;
+ perform pg_advisory_xact_lock(8101009);
+ select * into a from private.employee_admin_assignments where id=p_id and registration_id=(identity->'profile'->>'id')::uuid for update;
+ if a.id is null or a.status<>'PENDING' then return jsonb_build_object('ok',false,'message','التعيين غير متاح للإكمال.'); end if;
+ if email is null or length(email)>254 or email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then return jsonb_build_object('ok',false,'message','أدخل بريدًا صحيحًا.'); end if;
+ delete from private.employee_admin_proofs where expires_at<now()-interval '1 day';
+ if (select count(*) from private.employee_admin_proofs where assignment_id=a.id and created_at>now()-interval '10 minutes')>=5 then return jsonb_build_object('ok',false,'message','انتظر عشر دقائق قبل إعادة المحاولة.'); end if;
+ proof:=encode(extensions.gen_random_bytes(32),'hex');
+ insert into private.employee_admin_proofs(token_hash,assignment_id,email,expires_at) values(encode(extensions.digest(proof,'sha256'),'hex'),a.id,email,now()+interval '10 minutes');
+ return jsonb_build_object('ok',true,'proof',proof,'expires_at',now()+interval '10 minutes');
+end $$;
+
+create function public.employee_admin_complete(p_proof text) returns jsonb language plpgsql security definer set search_path=pg_catalog,public,private,extensions as $$
+declare proof private.employee_admin_proofs; a private.employee_admin_assignments; r public.employee_registrations; mail text; confirmed timestamptz;
+begin
+ if auth.uid() is null then return jsonb_build_object('ok',false,'message','سجّل الدخول ببريدك المؤكد أولًا.'); end if;
+ select lower(email),email_confirmed_at into mail,confirmed from auth.users where id=auth.uid();
+ if confirmed is null then return jsonb_build_object('ok',false,'message','يجب تأكيد البريد أولًا.'); end if;
+ perform pg_advisory_xact_lock(8101009);
+ select * into proof from private.employee_admin_proofs where token_hash=encode(extensions.digest(coalesce(p_proof,''),'sha256'),'hex') for update;
+ if proof.token_hash is null or proof.email is distinct from mail or proof.expires_at<now() then return jsonb_build_object('ok',false,'message','إثبات الإكمال غير صالح؛ أعد فتح الملف الشخصي.'); end if;
+ select * into a from private.employee_admin_assignments where id=proof.assignment_id for update;
+ if a.status='ACTIVE' and a.auth_user_id=auth.uid() then return jsonb_build_object('ok',true,'message','حساب الإدارة مفعّل بالفعل.'); end if;
+ if a.status<>'PENDING' or proof.consumed_at is not null then return jsonb_build_object('ok',false,'message','التعيين غير متاح.'); end if;
+ select * into r from public.employee_registrations where id=a.registration_id for update;
+ if r.status<>'APPROVED' or not exists(select 1 from public.admin_profiles where auth_user_id=a.assigned_by and role='SUPER_ADMIN' and is_active) then return jsonb_build_object('ok',false,'message','التعيين أو اعتماد الموظف لم يعد صالحًا.'); end if;
+ if (a.auth_user_id is not null and a.auth_user_id<>auth.uid()) or exists(select 1 from public.admin_profiles where (auth_user_id=auth.uid() or lower(email)=mail) and (a.auth_user_id is null or auth_user_id<>a.auth_user_id)) then return jsonb_build_object('ok',false,'message','البريد مرتبط بحساب إدارة موجود؛ راجع المشرف الرئيسي.'); end if;
+ insert into public.admin_profiles(auth_user_id,email,full_name,phone_number,role,is_active,permissions) values(auth.uid(),mail,r.full_name,r.mobile_number,a.role,true,a.permissions) on conflict(auth_user_id) do update set full_name=excluded.full_name,phone_number=excluded.phone_number,role=excluded.role,is_active=true,permissions=excluded.permissions;
+ update private.employee_admin_assignments set status='ACTIVE',auth_user_id=auth.uid(),activated_at=now() where id=a.id;
+ update private.employee_admin_proofs set consumed_at=now() where assignment_id=a.id;
+ insert into public.admin_audit_logs(admin_auth_user_id,action,target_table,target_id,details) values(auth.uid(),'ACTIVATE_EMPLOYEE_ADMIN','employee_admin_assignments',a.id::text,jsonb_build_object('assigned_by',a.assigned_by,'role',a.role));
+ return jsonb_build_object('ok',true,'message','تم تفعيل حساب الإدارة بالصلاحيات التي حددها المشرف الرئيسي.');
+end $$;
+
+revoke all on function public.super_admin_assign_employee(uuid,text,jsonb),public.super_admin_employee_assignments(),public.super_admin_revoke_employee_assignment(uuid),public.employee_admin_assignment(text,text),public.employee_admin_claim(uuid,text,text,text),public.employee_admin_complete(text) from public,anon,authenticated;
+grant execute on function public.super_admin_assign_employee(uuid,text,jsonb),public.super_admin_employee_assignments(),public.super_admin_revoke_employee_assignment(uuid),public.employee_admin_complete(text) to authenticated;
+grant execute on function public.employee_admin_assignment(text,text),public.employee_admin_claim(uuid,text,text,text) to anon,authenticated;
+
+-- Close obsolete registration entry points after current registration is installed.
+-- Owner approved: Staging only. Current frontend sends all 15 arguments.
+-- Disable only obsolete signatures; preserve bodies/data and current registration grants.
+REVOKE EXECUTE ON FUNCTION public.register_employee_request(text,text,text,text,text,text,text,text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.register_employee_request(text,text,text,text,text,text,text,text,text,text,text,text,text) FROM PUBLIC, anon, authenticated;

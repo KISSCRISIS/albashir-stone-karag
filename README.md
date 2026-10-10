@@ -1,5 +1,65 @@
 # ALBASHIR Emergency Hospital Gate
 
+## Admin request cards and interactive indicators — Staging, 2026-10-10
+
+Registration requests now render as responsive cards instead of a 13-column
+table. All existing fields remain: private photo, name, employee ID, phone, job,
+specialty, registration category, affiliated entity, status, first-entry usage
+and time, trusted-device status/details/activity/actions, request time and approval
+or rejection. Existing RPC handlers, permission checks and one photo hydration
+pass per render are retained. Registration filters moved into the request section
+and selected filters survive data refresh. CSV exports still use the complete
+existing datasets.
+
+The six KPI buttons use a 3x2 desktop grid, two mobile columns or one on narrow
+phones. Pending requests are yellow; new violations and denied entry attempts
+are soft red. Buttons open corresponding filtered lists: PENDING registrations,
+last-30-day logs, today's ALLOWED logs, NEW historical violations, DENIED logs,
+and last-24-hour verification logs. Counts/meaning are unchanged; the rejected
+metric counts DENIED attempts, not REJECTED registration requests. Historical
+violation access and existing permissions are not expanded. Guard checkboxes are
+small labeled controls with a description below, rather than full-width inputs.
+
+`admin-review-cards.css` supplies the scoped presentation overrides.
+`tests/admin-review-cards-browser.cjs` covers all retained data/actions, unchanged
+disabled permissions, escaped names, photo references, six KPI routes/filters,
+search/reset/empty results and responsive layout at 320/390/768/1366 pixels.
+Browser data and actions in this regression are synthetic; no live approval or
+device revocation is performed. A separate read-only test on published Staging
+verified real SUPER_ADMIN access, the five actual request cards, pending KPI
+filtering, decoded private photos, mobile sizing and checkbox labels. No employee
+data, approval decisions or device bindings were changed. Cache advances to v27. No Backend,
+Auth, schema, RLS or account-setting change is part of this UI update.
+
+## Guard national-ID login and optional profile — Staging, 2026-10-10
+
+Guard login now accepts only the national ID, with the registered phone as its
+password. Administrators can create multiple guards without names; names no
+longer identify accounts or need to be unique. After login, the guard screen
+offers a personal page with optional name, age (16–100), residence, about text and
+an optional official-uniform portrait. Guards cannot change national ID, phone
+or account status through this page.
+
+`guard-profile.html` reads/saves only the current active guard's private profile
+through token-scoped RPCs. Photos are decoded and resized to at most 512 pixels,
+re-encoded as JPEG and capped at 192 KiB; invalid/unsupported files show a visible
+error. HEIC depends on browser decoding, so universal phone-format support is not
+claimed. No profile/photo is persisted in browser storage or included in public
+QR responses. Edits are audited without storing optional personal values in the
+audit record. Disabling the account revokes profile access. Cache version is v26.
+
+Canonical: `supabase/canonical/guard_optional_profile.sql`; migration:
+`supabase/migrations/20261010001848_guard_optional_profile.sql`.
+Regression: `tests/guard-profile.cjs` and `tests/guard-profile-browser.cjs` verify
+identity-only login, optional/nonunique names, isolation, revocation, input bounds,
+photo conversion/removal and duplicate-submit handling. All 35 isolated suites
+passed. A real Staging rollback smoke passed with zero synthetic guards left,
+five original employees and the unchanged employee-decision function hash.
+The published browser also passed actual Staging login, optional-field/photo
+save and reopen, photo removal and revoked-account denial; the synthetic guard
+and its profile were removed afterwards, retaining only test audit history.
+Production remains unchanged; the draft PR still requires acceptance before merge.
+
 ## Runtime consistency and employee journey — 2026-10-09
 
 Employee shortcut, remembered device login and mobile photo preparation remain as deployed in PR #15. Login/profile/admin transport now shares an eight-second aborting deadline; login buttons reject duplicate in-flight submissions and become available for explicit retry after failure. Verification retries abort timed-out transport and preserve the same decision request identity. No automatic login retry is introduced. The admin-only diagnostics panel shows the deployed source version plus connection/photo status categories without tokens, URLs or employee identifiers. Build metadata is generated from the reviewed commit or runtime content fingerprint. The offline cache advances consistently to v24 and includes the shared helper.
@@ -907,3 +967,95 @@ The guard QR already encodes a same-origin HTTPS verification link, so phone cam
 
 ## Public deployment artifact
 Vercel builds `public-runtime` using `scripts/build-public-runtime.cjs`. Only application pages and assets are published. SQL/canonical/migrations, documentation, tests, scripts, Git metadata and credentials remain outside the public output. The direct guard page remains in the runtime artifact. Regression `tests/public-runtime-artifact.cjs` verifies inclusion/exclusion. The 2026-10-08 post-deployment audit found and corrected the previous repository-root publishing configuration.
+
+## Registration images and supervisor-account preparation — 2026-10-10
+
+Registration now decodes small images too, rejecting corrupt JPG/PNG/WEBP before
+upload. An HTML Image decoder supplements ImageBitmap for browser format support;
+large supported images still convert to JPEG within 2 MiB/1600 pixels. HEIC/HEIF
+conversion depends on the browser's native decoder; unsupported formats show an
+actionable message, rather than being uploaded under a false JPEG MIME type.
+This is not a guarantee that all phone formats are supported.
+
+Supervisor creation incorporates the PR #17 UI with duplicate-submit protection
+and a user-authenticated `admin-create-user` server handler. Existing caller-JWT
+RPCs authorize profile changes and record audit events; no RLS, direct table
+grants or schema migration is added. Creation explicitly requests confirmation
+email, reports delivery failures as an unconfirmed account needing administrator
+attention, and deletes only a newly created account if permission setup fails.
+See `docs/admin-create-user-rollout.md` for the Staging rollout gates. Handler
+tests mock backend services; real JWT middleware, SMTP delivery and login are
+not yet verified. Prepared locally, not published to either environment.
+
+The owner subsequently chose counted emergency entries and simple guard accounts
+on 2026-10-10. Guard QR remains public; only manual entry needs guard login using
+name/national ID plus phone. SUPER_ADMIN manages guard profiles and enables
+emergency mode from the existing dashboard. Private bcrypt phone hashes, opaque
+24-hour sessions, immediate revocation, login throttling, request idempotency and
+guard audit logs protect the new path. The existing decision function is reused
+without rewriting its status/device/specialty/daily-limit rules. Ordinary employee
+QR entry remains mandatory. All new private tables have RLS and no direct public
+grants. Canonical SQL, the matching Staging migration and fresh-install SQL are
+synchronized. The result replaces QR and clears after ten seconds.
+
+Staging backend/frontend are applied and published (version `750c57c24472`, cache
+v25). Validation: 34 isolated suites, mocked browser journeys, published QR/form/
+unauthorized-denial checks and rollback-only real Staging SQL smoke PASS. The
+combined live fixture/browser test remains incomplete after a connector request
+state error; five original employees and zero test fixtures remain. Production
+is unchanged. See [guard acceptance](docs/GUARD_EMERGENCY_STAGING_ACCEPTANCE.md).
+The separate supervisor Auth-account creation feature still needs real JWT/SMTP/
+confirmation/login acceptance before Production; its server function has not been
+deployed as part of the guard rollout.
+
+
+### Staging portal dialog repair — 2026-10-10
+Login now uses a native modal dialog in the browser top layer, outside ancestor clipping and stacking contexts. Its surface is opaque and its backdrop blocks the page. The shared UI helper locks background scrolling, preserves/restores the previous page position, contains keyboard focus through the native dialog, closes on Escape, and prevents overlapping managed dialogs. Internal scrolling remains available on short/mobile viewports. Existing login/Auth and backend decisions are unchanged. Cache v28. Chromium and WebKit regression covers 320/390/768/1366px, viewport bounds, role switching, scroll stability/restoration and close controls.
+
+Admin navigation cleanup from the owner request: removed the obsolete guard-screen link without replacement; hid the global copy-registration-link shortcut on admin pages only; renamed guard report navigation to أمن الصخره وتبليغات التجاوزات; moved existing CSV export buttons into the dedicated sidebar export section. Existing export datasets and permissions remain unchanged. Shared-account requests, durable notification/device registration and shift summaries still require the requested owner decisions before database changes.
+
+Portal dialog: added an explicit return-to-page button with the destination name (بوابة الدخول الموحدة) beneath it. It closes the dialog and restores the underlying page without altering login state. Cache v29.
+# Staging update — 2026-10-10
+
+Temporary concurrent shared guard login, optional personal-account applications with approval, QR-header guard photo/name/sign-in time, audited guard emergency activation, and permission-filtered administrator notices are available on Staging. Existing employee decisions and quota rules are retained. See [Staging acceptance](docs/SHARED_GUARDS_ADMIN_NOTICES_STAGING.md) for deployment, checks and phone notification activation. Background phone delivery requires device permission and owner acceptance; Production is unchanged.
+
+Guard screen organization: QR stays on the main screen; emergency entry uses one opaque, scroll-contained dialog with focus containment and Escape/back support. Green confirms employee entry, amber controls emergency mode, and neutral controls return/refresh. Profile/logout are grouped under account options. Browser regression checks cover 320/390/768/1366 widths and counted-entry retry/ten-second result behavior. Staging only.
+
+
+### Employee directory (Staging review)
+The admin sidebar now offers دليل الموظفين using the existing authorized employee_registrations dataset. Approved records are shown by default; registration category, job, specialty, entity, status and name/ID/phone filters retain unknown classifications explicitly. Cards include private photo hydration, safe employee details and 24-record pagination. Counters describe registration records, not entry visits; filter option counts cover all current registrations. The classification-method diagnostic block is hidden without removing its chart dependencies. No backend, entry policy, permissions or offline storage changes. Regression: tests/employee-directory-browser.cjs and public runtime audits.
+
+
+### Readable navigation and reference-inspired actions (Staging)
+Fixed admin sidebar flex shrink/wrap causing crowded lower items: nonshrinking wrapped labels, in-flow unread badges, independent vertical desktop scrolling. Mobile uses a labeled expandable menu in document flow, retaining every section and closing after selection. Glossy rounded actions and circular sidebar icons follow owner image references; gold directional arrows keep original navigation text/handlers. Backend and permissions unchanged. Browser coverage includes all menu items, badges, scrolling, mobile expansion and content boundaries.
+
+
+### Two-column menu and scoped guard management
+Owner correction: all admin navigation options now form two parallel columns, including the mobile expanded menu. Local licensed Tajawal regular/bold fonts improve Arabic labels. Previous/next section arrows invoke the existing tab handlers, preserve section-specific loads, and disable at boundaries. Guard management/emergency panel is nested inside violations only, so it no longer appears under every section. Dashboard action buttons use glossy capsule styling. No authorization or entry logic changes.
+
+
+### Complete registration filters and brighter admin palette
+Employee directory reads the select options directly from same-origin register.html (job, specialty, affiliated entity, department), then unions historical/custom record values. All registration choices appear even with zero records; custom affiliated entities are covered by Other and their exact names. Department is a separate permanent-staff filter. Failure to load the catalog shows a retry-by-refresh message and keeps record-derived options. Brighter navy/turquoise panels preserve notification and decision semantics. No registration or backend changes.
+
+
+### Daily limit usage moved off overview
+Moved the unchanged limitsUsagePanel and its live data renderer to a dedicated sidebar section متابعة الحدود اليومية (dailyUsage). Overview no longer contains the table. Existing حدود الاختصاصات remains the configuration editor; usage calculations, access rules and export remain unchanged. Section arrows include the new tab.
+
+
+### Calm main workspace palette
+Owner feedback: replaced bright saturated main dashboard panels with matte navy/slate backgrounds, softer text and input borders. Accepted two-column sidebar colors remain unchanged; warning/decision colors and all functionality retained. Verified admin browser layout and navigation.
+
+
+### Admin header typography and hierarchy
+A single logo and prominent Arabic dashboard heading replace the repeated hospital identity blocks. Enlarged Tajawal title, hospital name, compact English subtitle and signed-in name form a responsive masthead. Role is displayed in Arabic while its original value remains in title; connection/sound/refresh/logout handlers unchanged. The duplicate role-navigation strip is hidden on the admin dashboard only; authentication checks remain intact.
+
+
+### Employee-based administrator appointment (owner approved Staging only)
+The owner selects an APPROVED employee and full authority or explicit existing permission switches. New manual email/password creation is replaced in the UI; existing administrators remain editable. A private pending assignment appears in the employee profile and a reminder on the employee QR journey. The employee supplies their own email/password, confirms the Auth email, signs in, and redeems a short-lived one-use server proof; role/permissions/name/phone are taken exclusively from the stored owner assignment and approved employee record. No frontend elevated keys or direct appointment/proof table access. Revocation disables a linked administrator and invalidates pending proofs; caller/last-owner safeguards retained. Existing entry/QR logic unchanged.
+Migration: supabase/migrations/20261010090000_employee_admin_appointments.sql, mirrored in schema_employee_admin_appointments.sql and the fresh-install baseline. PROJECT_RULES.md records the scoped owner approval. Tests: employee-admin-appointments.cjs (RLS/ACL, identity, email confirmation, role tampering, revocation/idempotency) and employee-admin-appointments-browser.cjs (owner picker, permissions, pending lists and employee self-completion). Production untouched.
+
+### Registration request audit (2026-10-10)
+Preserved owner-selected manual administrative review criteria. Fixed duplicate submission, failed/denied form preservation, optional device-review feedback and storage warning after accepted registration. Added Chromium/WebKit registration regression to browser CI. See docs/REGISTRATION_REQUEST_AUDIT_2026-10-10.md for current field rules, rejection cases and legacy backend findings. No database migration or Production change.
+
+### Legacy registration cleanup (2026-10-10)
+Owner approved Staging-only revocation of client execution on the obsolete 8/13-argument register_employee_request signatures. Runtime source uses the 15-argument signature exclusively; no public/private SQL function depends on the obsolete entry points. Function bodies and records are preserved. Current registration criteria are unchanged. Regression: tests/registration-legacy-acl.cjs; canonical SQL: supabase/canonical/revoke_legacy_registration_execute.sql. Production is not modified.

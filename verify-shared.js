@@ -24,7 +24,7 @@ const OFFLINE_DB_VERSION = 2;
 const OFFLINE_ACCESS_STORE = "offline_access_queue";
 const OFFLINE_CRYPTO_STORE = "offline_crypto_meta";
 const OFFLINE_CRYPTO_KEY_ID = "offline-sensitive-fields-v1";
-const CACHE_VERSION = "emergency-room-parking-offline-v24";
+const CACHE_VERSION = "emergency-room-parking-offline-v30";
 const APP_VERSION = "2026.09.28-24x7";
 
 let syncingLock = false;

@@ -132,7 +132,7 @@ const server = http.createServer((req, res) => {
         assert.ok(fits,name+' page overflow at '+viewport.width);
         if(name==='portal') {
           assert(await page.locator('#employeeForm').isHidden(),'portal login must be hidden until chosen');
-          await page.locator('#portalLoginOverlay').evaluate(el=>el.classList.remove('portal-login-overlay--closed'));
+          await page.locator('#portalLoginOverlay').evaluate(el=>{el.classList.remove('portal-login-overlay--closed');el.showModal();});
           assert(await page.locator('#employeeForm').isVisible());
           const width=await page.locator('#portalLoginOverlay').evaluate(el=>el.getBoundingClientRect().width);
           assert(width>=Math.min(280,viewport.width*.8),'portal login must not shrink into the reference image');
@@ -158,3 +158,4 @@ const server = http.createServer((req, res) => {
     console.log('All frontend checks PASS; no real-device or Production calls.');
   } finally { if(browser)await browser.close();server.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
